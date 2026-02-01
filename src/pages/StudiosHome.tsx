@@ -17,7 +17,7 @@ import {
   CarouselNext,
   useCarousel,
 } from "@/components/ui/carousel";
-import AutoScroll from "embla-carousel-auto-scroll";
+import Autoplay from "embla-carousel-autoplay";
 import {
   Building2,
   Home,
@@ -1196,8 +1196,8 @@ const StudiosHome = () => {
                 dragFree: true,
               }}
               plugins={[
-                AutoScroll({
-                  speed: 1.2,
+                Autoplay({
+                  delay: 2000,
                   stopOnInteraction: false,
                   stopOnMouseEnter: true,
                 })
