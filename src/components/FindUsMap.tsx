@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Clock, Navigation, Building2, ShoppingBag, Dumbbell, UtensilsCrossed, GraduationCap } from "lucide-react";
+import { MapPin, Clock, Navigation } from "lucide-react";
 import { AnimatedHeading, AnimatedText } from "./animations/AnimatedText";
 import TypingTitle from "./TypingTitle";
 
@@ -191,43 +191,6 @@ const FindUsMap = () => {
                     </div>
                   </button>
                 ))}
-            </div>
-
-            {/* Quick Stats */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mt-6">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">
-                Quick Stats
-              </h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="h-4 w-4 text-[#ff2020]" />
-                    <span className="text-sm text-muted-foreground">To UCLan</span>
-                  </div>
-                  <span className="font-bold text-sm">5 min walk</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShoppingBag className="h-4 w-4 text-[#ff2020]" />
-                    <span className="text-sm text-muted-foreground">To Tesco</span>
-                  </div>
-                  <span className="font-bold text-sm">2 min walk</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Dumbbell className="h-4 w-4 text-[#ff2020]" />
-                    <span className="text-sm text-muted-foreground">To PureGym</span>
-                  </div>
-                  <span className="font-bold text-sm">3 min walk</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-[#ff2020]" />
-                    <span className="text-sm text-muted-foreground">To City Centre</span>
-                  </div>
-                  <span className="font-bold text-sm">8 min walk</span>
-                </div>
-              </div>
             </div>
           </div>
 
