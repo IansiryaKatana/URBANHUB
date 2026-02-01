@@ -109,8 +109,8 @@ const FindUsMap = () => {
   const routeToUCLan = calculateRoute(URBAN_HUB_POSITION, locations.uclan.position);
 
   return (
-    <section className="w-full bg-white p-[10px]">
-      <div className="container mx-auto">
+    <section className="w-full bg-white py-16 md:py-24">
+      <div className="container mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-8 md:mb-12">
           <AnimatedText delay={0.1}>
