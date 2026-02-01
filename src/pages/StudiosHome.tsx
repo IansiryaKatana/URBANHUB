@@ -44,6 +44,7 @@ import { AnimatedHeading, AnimatedText, AnimatedParagraph, AnimatedCard } from "
 import Noise from "@/components/Noise";
 import TypingTitle from "@/components/TypingTitle";
 import { LeadForm } from "@/components/leads/LeadForm";
+import FindUsMap from "@/components/FindUsMap";
 
 const HeroDots = ({ className = "" }: { className?: string }) => {
   const { api } = useCarousel();
@@ -1436,6 +1437,9 @@ const StudiosHome = () => {
           </Carousel>
         </div>
       </section>
+
+      {/* Find Us Map Section */}
+      <FindUsMap />
 
       <Footer />
       <BookViewingDialog open={viewingDialogOpen} onOpenChange={setViewingDialogOpen} />
