@@ -301,9 +301,9 @@ const BlogDetail = () => {
               </div>
             )}
 
-            {/* Article Content */}
+            {/* Article Content – smaller body text on mobile, larger on desktop */}
             <div
-              className="prose prose-lg max-w-none mb-12"
+              className="prose prose-sm md:prose-base lg:prose-lg max-w-none mb-12"
               dangerouslySetInnerHTML={{ __html: blogPost.content }}
             />
 

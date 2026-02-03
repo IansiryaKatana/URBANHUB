@@ -156,7 +156,23 @@ export default function CsvBlogImport({ open, onOpenChange }: CsvBlogImportProps
 
           const categoryId = categories.length > 0 && categoryMap[categories[0].slug] ? categoryMap[categories[0].slug] : null;
           const status = ["publish", "published"].includes(String(row.status || "").toLowerCase()) ? "published" : "draft";
-          const publishedAt = row.date ? new Date(row.date).toISOString() : null;
+          
+          // Parse date with validation
+          let publishedAt: string | null = null;
+          if (row.date) {
+            try {
+              const dateObj = new Date(row.date);
+              // Check if date is valid
+              if (!isNaN(dateObj.getTime())) {
+                publishedAt = dateObj.toISOString();
+              } else {
+                console.warn(`Invalid date for "${row.title}": ${row.date}`);
+              }
+            } catch (e) {
+              console.warn(`Failed to parse date for "${row.title}": ${row.date}`, e);
+            }
+          }
+          
           const authorName = [row.authorFirstName, row.authorLastName].filter(Boolean).join(" ") || row.authorUsername || "Admin";
 
           const postData = {
