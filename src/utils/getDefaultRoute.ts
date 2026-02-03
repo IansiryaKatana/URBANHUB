@@ -9,12 +9,19 @@ export async function getDefaultRouteForRole(role: string): Promise<string | nul
 
   // Define role-specific default routes (in priority order)
   const roleDefaultRoutes: Record<string, string[]> = {
+    // Portal subroles
     maintenance_officer: ["/maintenance", "/maintenance/job-management", "/maintenance/out-of-order"],
     housekeeper: ["/housekeeping", "/housekeeping/roster"],
     reservationist: ["/ota-bookings", "/ota-bookings/booking-chart", "/ota-bookings/studio-allocation"],
     operations_manager: ["/maintenance", "/housekeeping", "/ota-bookings", "/admin"],
     accountant: ["/admin", "/admin/payment-history", "/admin/reports"],
     front_desk: ["/admin", "/admin/applications", "/admin/students"],
+    // Website subroles
+    seo_editor: ["/admin", "/admin/seo", "/admin/blog"],
+    content_editor: ["/admin", "/admin/blog", "/admin/media"],
+    marketing_manager: ["/admin", "/admin/blog", "/admin/newsletter", "/admin/seo", "/admin/analytics"],
+    customer_support: ["/admin", "/admin/form-submissions", "/admin/faqs", "/admin/reviews"],
+    // Base roles
     staff: ["/admin"],
     superadmin: ["/admin"],
     admin: ["/admin"],
@@ -25,7 +32,11 @@ export async function getDefaultRouteForRole(role: string): Promise<string | nul
 
   // Check permissions for each route in priority order
   const rolesToCheck = [role];
-  if (role === "operations_manager" || role === "reservationist" || role === "accountant" || role === "front_desk" || role === "maintenance_officer" || role === "housekeeper") {
+  const portalSubroles = ["operations_manager", "reservationist", "accountant", "front_desk", "maintenance_officer", "housekeeper"];
+  const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
+  const allSubroles = [...portalSubroles, ...websiteSubroles];
+  
+  if (allSubroles.includes(role)) {
     rolesToCheck.push("staff");
   }
 
@@ -62,7 +73,11 @@ export async function getDefaultRouteForRole(role: string): Promise<string | nul
     }
 
     // For subroles: If no specific record, they need explicit permission (no inheritance)
-    if (role === "operations_manager" || role === "reservationist" || role === "accountant" || role === "front_desk" || role === "maintenance_officer" || role === "housekeeper") {
+    const portalSubroles = ["operations_manager", "reservationist", "accountant", "front_desk", "maintenance_officer", "housekeeper"];
+    const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
+    const allSubroles = [...portalSubroles, ...websiteSubroles];
+    
+    if (allSubroles.includes(role)) {
       // Check if staff has permission (subroles can inherit if no explicit record)
       const staffPerm = permissions?.find((p) => p.route_path === route && p.role === "staff");
       if (staffPerm && staffPerm.allowed === true) {

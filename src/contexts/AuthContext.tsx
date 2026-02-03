@@ -15,7 +15,19 @@ type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"] & {
   staff_subrole?: StaffSubrole | null;
 };
 type Role = "student" | "staff" | "superadmin" | "partner" | "admin" | StaffSubrole;
-export type StaffSubrole = "operations_manager" | "reservationist" | "accountant" | "front_desk" | "maintenance_officer" | "housekeeper";
+export type StaffSubrole = 
+  // Portal/System subroles
+  | "operations_manager" 
+  | "reservationist" 
+  | "accountant" 
+  | "front_desk" 
+  | "maintenance_officer" 
+  | "housekeeper"
+  // Website subroles
+  | "seo_editor"
+  | "content_editor"
+  | "marketing_manager"
+  | "customer_support";
 
 type AuthContextValue = {
   user: User | null;
@@ -36,14 +48,28 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const fetchProfile = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .maybeSingle();
+  if (!userId) return null;
+  
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
 
-  if (error) throw error;
-  return data ?? null;
+    if (error) {
+      // Log the error but don't throw for 400 errors (might be RLS or missing profile)
+      if (error.code === "PGRST116" || error.status === 400) {
+        console.warn("Profile not found or access denied:", userId, error);
+        return null;
+      }
+      throw error;
+    }
+    return data ?? null;
+  } catch (err) {
+    console.error("Error fetching profile:", err);
+    return null;
+  }
 };
 
 type AuthProviderProps = {
@@ -125,7 +151,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           // Check user role to determine which reset password page to use
           const { data: profileData } = await supabase
             .from("profiles")
-            .select("role")
+            .select("role, staff_subrole")
             .eq("id", newSession.user.id)
             .maybeSingle();
           
@@ -157,7 +183,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             // Get profile to check role
             supabase
               .from("profiles")
-              .select("role")
+              .select("role, staff_subrole")
               .eq("id", newSession.user.id)
               .maybeSingle()
               .then(({ data: profileData }) => {
@@ -165,10 +191,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 
                 const userRole = profileData.role;
                 const userSubrole = profileData.staff_subrole;
+                const portalSubroles = ["operations_manager", "reservationist", "accountant", "front_desk", "maintenance_officer", "housekeeper"];
+                const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
                 const isStaff = userRole === "staff" || userRole === "superadmin" || userRole === "admin" || 
-                               userRole === "operations_manager" || userRole === "reservationist" || 
-                               userRole === "accountant" || userRole === "front_desk" ||
-                               userSubrole === "maintenance_officer" || userSubrole === "housekeeper";
+                               portalSubroles.includes(userRole) || websiteSubroles.includes(userRole) ||
+                               portalSubroles.includes(userSubrole || "") || websiteSubroles.includes(userSubrole || "");
                 const isPartner = userRole === "partner";
                 const isStudent = userRole === "student";
                 

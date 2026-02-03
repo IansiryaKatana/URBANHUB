@@ -33,6 +33,7 @@ const AnalyticsManagement = lazy(() => import("../pages/admin/AnalyticsManagemen
 const ReviewsList = lazy(() => import("../pages/admin/ReviewsList"));
 const MediaList = lazy(() => import("../pages/admin/MediaList"));
 const NewsletterAdmin = lazy(() => import("../pages/admin/NewsletterAdmin"));
+const UserManagement = lazy(() => import("../pages/admin/UserManagement"));
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -76,6 +77,7 @@ const AnimatedRoutes = () => {
             <Route path="reviews" element={<ReviewsList />} />
             <Route path="media" element={<MediaList />} />
             <Route path="newsletter" element={<NewsletterAdmin />} />
+            <Route path="users" element={<UserManagement />} />
           </Route>
           {/* Blog detail: siteurl/slug (no /blog/ prefix); must be after other top-level routes */}
           <Route path="/:slug" element={<PageTransition key={location.pathname}><BlogDetail /></PageTransition>} />

@@ -40,6 +40,7 @@ import {
 import { useAllStudioAvailability, getAvailabilityTag, isFullyBooked } from "@/hooks/useStudioAvailability";
 import { useWebsiteAmenities } from "@/hooks/useWebsiteAmenities";
 import { useWhyUsCards } from "@/hooks/useWhyUsCards";
+import { useTestimonials } from "@/hooks/useTestimonials";
 import { AnimatedHeading, AnimatedText, AnimatedParagraph, AnimatedCard } from "@/components/animations/AnimatedText";
 import Noise from "@/components/Noise";
 import TypingTitle from "@/components/TypingTitle";
@@ -219,19 +220,20 @@ const TestimonialCard = ({ testimonial }: { testimonial: any }) => {
   const isMobile = useIsMobile();
 
   // Check if video is YouTube or Vimeo
-  const isYouTube = testimonial.videoUrl?.includes('youtube.com') || testimonial.videoUrl?.includes('youtu.be');
-  const isVimeo = testimonial.videoUrl?.includes('vimeo.com');
+  const videoUrl = testimonial.video_url || testimonial.videoUrl;
+  const isYouTube = videoUrl?.includes('youtube.com') || videoUrl?.includes('youtu.be');
+  const isVimeo = videoUrl?.includes('vimeo.com');
 
   // Extract video IDs and create embed URLs
   const getEmbedUrl = () => {
     if (isYouTube) {
-      const youtubeId = testimonial.videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
+      const youtubeId = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
       if (youtubeId) {
         return `https://www.youtube.com/embed/${youtubeId}?autoplay=${isPlaying ? 1 : 0}&mute=${isMuted ? 1 : 0}&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0`;
       }
     }
     if (isVimeo) {
-      const vimeoId = testimonial.videoUrl.match(/vimeo\.com\/(\d+)/)?.[1];
+      const vimeoId = videoUrl.match(/vimeo\.com\/(\d+)/)?.[1];
       if (vimeoId) {
         return `https://player.vimeo.com/video/${vimeoId}?autoplay=${isPlaying ? 1 : 0}&muted=${isMuted ? 1 : 0}&loop=1&controls=0&background=1`;
       }
@@ -305,8 +307,8 @@ const TestimonialCard = ({ testimonial }: { testimonial: any }) => {
       ) : (
         <video
           ref={videoRef}
-          src={testimonial.videoUrl}
-          poster={testimonial.thumbnail}
+          src={videoUrl}
+          poster={testimonial.cover_image_url || testimonial.thumbnail}
           loop
           muted={isMuted}
           playsInline
@@ -567,29 +569,11 @@ const StudiosHome = () => {
       }))
     : featuresFallback) as { title: string; description: string; icon: React.ReactNode }[];
 
-  const testimonials = [
-    {
-      id: "t1",
-      name: "Student Testimonial",
-      result: "Real Experience at Urban Hub",
-      videoUrl: "https://youtu.be/iUbbllhqE2I",
-      thumbnail: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=800",
-    },
-    {
-      id: "t2",
-      name: "Student Testimonial",
-      result: "Life at Urban Hub",
-      videoUrl: "https://youtu.be/iUbbllhqE2I",
-      thumbnail: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=800",
-    },
-    {
-      id: "t3",
-      name: "Student Testimonial",
-      result: "Student Living Experience",
-      videoUrl: "https://youtu.be/iUbbllhqE2I",
-      thumbnail: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800",
-    },
-  ];
+  // Fetch testimonials from database
+  const { data: testimonialsData, isLoading: testimonialsLoading } = useTestimonials();
+  
+  // Fallback to empty array if loading or no data
+  const testimonials = testimonialsData || [];
 
   const pricingPlans = [
     {
@@ -964,12 +948,11 @@ const StudiosHome = () => {
                           Book {formatYearForHero(selectedYear.name)} Academic Year
                         </p>
                       </AnimatedText>
-                      <TypingTitle
-                        as="h1"
-                        text={`Secure your Student Accommodation at ${companyName} for £99`}
-                        className="text-4xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
-                        typingSpeed={30}
-                      />
+                      <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight">
+                        Secure your <br />
+                        Student Accommodation <br />
+                        at {companyName} for £99
+                      </h1>
                       <AnimatedText delay={0.4}>
                         <Button
                           onClick={() => setViewingDialogOpen(true)}
@@ -1347,29 +1330,41 @@ const StudiosHome = () => {
             </AnimatedParagraph>
           </header>
 
-          <div className="md:hidden">
-            <Carousel className="w-full max-w-sm mx-auto">
-              <CarouselContent>
-                {testimonials.map((t) => (
-                  <CarouselItem key={t.id}>
-                    <TestimonialCard testimonial={t} />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <div className="flex items-center justify-center gap-4 mt-8">
-                <CarouselPrevious className="static translate-y-0 border-black/10 text-black hover:bg-black/5" />
-                <CarouselNext className="static translate-y-0 border-black/10 text-black hover:bg-black/5" />
+          {testimonialsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="text-muted-foreground">Loading testimonials...</div>
+            </div>
+          ) : testimonials.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No testimonials available at this time.
+            </div>
+          ) : (
+            <>
+              <div className="md:hidden">
+                <Carousel className="w-full max-w-sm mx-auto">
+                  <CarouselContent>
+                    {testimonials.map((t) => (
+                      <CarouselItem key={t.id}>
+                        <TestimonialCard testimonial={t} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <div className="flex items-center justify-center gap-4 mt-8">
+                    <CarouselPrevious className="static translate-y-0 border-black/10 text-black hover:bg-black/5" />
+                    <CarouselNext className="static translate-y-0 border-black/10 text-black hover:bg-black/5" />
+                  </div>
+                </Carousel>
               </div>
-            </Carousel>
-          </div>
 
-          <div className="hidden md:grid grid-cols-3 gap-8">
-            {testimonials.map((t, index) => (
-              <AnimatedCard key={t.id} delay={0.3} index={index}>
-                <TestimonialCard testimonial={t} />
-              </AnimatedCard>
-            ))}
-          </div>
+              <div className="hidden md:grid grid-cols-3 gap-8">
+                {testimonials.map((t, index) => (
+                  <AnimatedCard key={t.id} delay={0.3} index={index}>
+                    <TestimonialCard testimonial={t} />
+                  </AnimatedCard>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
 

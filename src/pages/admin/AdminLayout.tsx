@@ -18,28 +18,71 @@ import {
   Star,
   ImageIcon,
   Mail,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const allNavItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/admin/form-submissions", label: "Form Submissions", icon: Inbox },
-  { path: "/admin/faqs", label: "FAQs", icon: HelpCircle },
-  { path: "/admin/amenities", label: "Amenities", icon: Building2 },
-  { path: "/admin/why-us", label: "Why Us", icon: Sparkles },
-  { path: "/admin/reviews", label: "Reviews", icon: Star },
-  { path: "/admin/blog", label: "Blog", icon: FileText },
-  { path: "/admin/media", label: "Media", icon: ImageIcon },
-  { path: "/admin/newsletter", label: "Newsletter", icon: Mail },
-  { path: "/admin/seo", label: "SEO", icon: Search },
-  { path: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { path: "/admin/form-submissions", label: "Form Submissions", icon: Inbox, subroles: ["customer_support"] },
+  { path: "/admin/faqs", label: "FAQs", icon: HelpCircle, subroles: ["customer_support", "content_editor"] },
+  { path: "/admin/amenities", label: "Amenities", icon: Building2, subroles: ["content_editor", "marketing_manager"] },
+  { path: "/admin/why-us", label: "Why Us", icon: Sparkles, subroles: ["content_editor", "marketing_manager"] },
+  { path: "/admin/reviews", label: "Reviews", icon: Star, subroles: ["customer_support", "content_editor", "marketing_manager"] },
+  { path: "/admin/blog", label: "Blog", icon: FileText, subroles: ["content_editor", "marketing_manager", "seo_editor"] },
+  { path: "/admin/media", label: "Media", icon: ImageIcon, subroles: ["content_editor", "marketing_manager"] },
+  { path: "/admin/newsletter", label: "Newsletter", icon: Mail, subroles: ["marketing_manager"] },
+  { path: "/admin/seo", label: "SEO", icon: Search, subroles: ["seo_editor", "marketing_manager"] },
+  { path: "/admin/analytics", label: "Analytics", icon: BarChart3, subroles: ["marketing_manager"] },
+  { path: "/admin/users", label: "Users", icon: Users, superadminOnly: true },
 ];
 
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, role, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Get user's subrole
+  const userSubrole = profile?.staff_subrole;
+
+  // Filter nav items based on role and subrole
+  const navItems = allNavItems.filter((item) => {
+    // Superadmin only items
+    if (item.superadminOnly) {
+      return role === "superadmin";
+    }
+    
+    // If item has subrole restrictions
+    if (item.subroles && item.subroles.length > 0) {
+      // Superadmin and admin see everything
+      if (role === "superadmin" || role === "admin") {
+        return true;
+      }
+      // Staff with website subrole: check if their subrole is in allowed list
+      if (role === "staff" && userSubrole) {
+        return item.subroles.includes(userSubrole);
+      }
+      // Staff without subrole: no access to restricted items
+      if (role === "staff" && !userSubrole) {
+        return false;
+      }
+      // Other roles: no access
+      return false;
+    }
+    
+    // Items without subrole restrictions: visible to all website admins
+    // (superadmin, admin, staff with website subroles)
+    if (role === "superadmin" || role === "admin") {
+      return true;
+    }
+    if (role === "staff") {
+      const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
+      // Staff with website subrole can see unrestricted items
+      return userSubrole ? websiteSubroles.includes(userSubrole) : false;
+    }
+    return false;
+  });
 
   const handleSignOut = async () => {
     await signOut();

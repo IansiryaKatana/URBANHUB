@@ -50,7 +50,11 @@ const ProtectedRoute = ({ children, allowedRoles, checkDatabase = true }: Protec
       // CRITICAL: If sub-role is NOT in allowedRoles, deny immediately (route-level restriction)
       // This prevents sub-roles from accessing routes they shouldn't have access to
       // even if database permissions exist (e.g., maintenance_officer cannot access /admin dashboard)
-      if (role === "operations_manager" || role === "reservationist" || role === "accountant" || role === "front_desk" || role === "maintenance_officer" || role === "housekeeper") {
+      const portalSubroles = ["operations_manager", "reservationist", "accountant", "front_desk", "maintenance_officer", "housekeeper"];
+      const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
+      const allSubroles = [...portalSubroles, ...websiteSubroles];
+      
+      if (allSubroles.includes(role)) {
         // Route-level check: If sub-role is NOT in allowedRoles, deny immediately
         // This is the primary security boundary and cannot be bypassed by database permissions
         if (!allowedRoles.includes(role)) {
