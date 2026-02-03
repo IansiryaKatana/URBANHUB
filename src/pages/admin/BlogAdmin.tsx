@@ -14,7 +14,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { FileText, Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet, ImageIcon, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import WordPressImport from "@/components/admin/WordPressImport";
@@ -26,7 +35,10 @@ type BlogPostRow = {
   slug: string;
   status: string;
   published_at: string | null;
+  featured_image_url: string | null;
 };
+
+const POSTS_PER_PAGE = 12;
 
 export default function BlogAdmin() {
   const navigate = useNavigate();
@@ -34,18 +46,39 @@ export default function BlogAdmin() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importOpen, setImportOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: posts, isLoading } = useQuery({
-    queryKey: ["admin-blog-posts"],
+  // Fetch total count
+  const { data: totalCount } = useQuery({
+    queryKey: ["admin-blog-posts-count"],
     queryFn: async () => {
+      const { count, error } = await supabase
+        .from("blog_posts")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch paginated posts
+  const { data: posts, isLoading } = useQuery({
+    queryKey: ["admin-blog-posts", currentPage],
+    queryFn: async () => {
+      const from = (currentPage - 1) * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+      
       const { data, error } = await supabase
         .from("blog_posts")
-        .select("id, title, slug, status, published_at")
-        .order("published_at", { ascending: false });
+        .select("id, title, slug, status, published_at, featured_image_url")
+        .order("published_at", { ascending: false })
+        .range(from, to);
+      
       if (error) throw error;
       return (data || []) as BlogPostRow[];
     },
   });
+
+  const totalPages = totalCount ? Math.ceil(totalCount / POSTS_PER_PAGE) : 0;
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -58,8 +91,23 @@ export default function BlogAdmin() {
 
   const toggleSelectAll = () => {
     if (!posts?.length) return;
-    if (selectedIds.size === posts.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(posts.map((p) => p.id)));
+    const currentPageIds = posts.map((p) => p.id);
+    const allCurrentPageSelected = currentPageIds.every((id) => selectedIds.has(id));
+    if (allCurrentPageSelected) {
+      // Deselect all on current page
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        currentPageIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      // Select all on current page
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        currentPageIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
   };
 
   const publishDraftsMutation = useMutation({
@@ -72,6 +120,7 @@ export default function BlogAdmin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
       toast.success("All drafts published.");
     },
     onError: () => toast.error("Failed to publish drafts."),
@@ -84,6 +133,7 @@ export default function BlogAdmin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
       toast.success("Post published.");
     },
     onError: () => toast.error("Failed to publish."),
@@ -97,6 +147,7 @@ export default function BlogAdmin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
       setSelectedIds(new Set());
       toast.success("Selected posts published.");
     },
@@ -111,6 +162,7 @@ export default function BlogAdmin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
       setSelectedIds(new Set());
       toast.success("Selected posts set to draft.");
     },
@@ -126,10 +178,245 @@ export default function BlogAdmin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
       setSelectedIds(new Set());
+      // Reset to page 1 if current page becomes empty
+      if (posts && posts.length <= selectedArray.length && currentPage > 1) {
+        setCurrentPage(1);
+      }
       toast.success("Selected posts deleted.");
     },
     onError: () => toast.error("Failed to delete."),
+  });
+
+  const fixBrokenImagesMutation = useMutation({
+    mutationFn: async (postIds: string[]) => {
+      if (postIds.length === 0) return;
+      
+      // Fetch posts with their image URLs
+      const { data: postsToFix, error: fetchError } = await supabase
+        .from("blog_posts")
+        .select("id, slug, featured_image_url")
+        .in("id", postIds)
+        .not("featured_image_url", "is", null);
+      
+      if (fetchError) throw fetchError;
+      if (!postsToFix?.length) {
+        toast.info("No posts with images found to fix.");
+        return;
+      }
+
+      let fixed = 0;
+      let failed = 0;
+      const failedPosts: string[] = [];
+
+      for (const post of postsToFix) {
+        if (!post.featured_image_url || !post.featured_image_url.startsWith("http")) continue;
+        
+        // Check if image is already hosted on Supabase
+        if (post.featured_image_url.includes("supabase.co") || 
+            (post.featured_image_url.includes("urbanhub.uk") && !post.featured_image_url.includes("old.urbanhub.uk"))) {
+          continue; // Already hosted, skip
+        }
+
+        let imageUrl = post.featured_image_url;
+        
+        // Try to update URL from old domain to new domain if needed
+        if (imageUrl.includes("old.urbanhub.uk")) {
+          // Keep the old.urbanhub.uk URL as is - we'll try to download from it
+        } else if (imageUrl.match(/https?:\/\/(www\.)?urbanhub\.uk/)) {
+          // If it's the new domain but broken, try old domain
+          imageUrl = imageUrl.replace(/https?:\/\/(www\.)?urbanhub\.uk/, "https://old.urbanhub.uk");
+        }
+
+        const ext = imageUrl.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)?.[1]?.toLowerCase() || "jpg";
+        const path = `blog/${post.slug}-featured-${Date.now()}.${ext}`;
+
+        try {
+          // Try to fetch the image (may fail due to CORS)
+          const imageRes = await fetch(imageUrl, { 
+            mode: "cors",
+            cache: "no-cache"
+          });
+          
+          if (!imageRes.ok) {
+            failed++;
+            failedPosts.push(post.slug);
+            continue;
+          }
+          
+          const blob = await imageRes.blob();
+          if (!blob.type.startsWith("image/")) {
+            failed++;
+            failedPosts.push(post.slug);
+            continue;
+          }
+
+          const { error: uploadError } = await supabase.storage.from("website").upload(path, blob, {
+            contentType: blob.type || `image/${ext}`,
+            upsert: true,
+          });
+
+          if (uploadError) {
+            failed++;
+            failedPosts.push(post.slug);
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage.from("website").getPublicUrl(path);
+          const { error: updateError } = await supabase
+            .from("blog_posts")
+            .update({ featured_image_url: urlData.publicUrl })
+            .eq("id", post.id);
+
+          if (updateError) {
+            failed++;
+            failedPosts.push(post.slug);
+          } else {
+            fixed++;
+          }
+        } catch (error) {
+          failed++;
+          failedPosts.push(post.slug);
+        }
+      }
+
+      return { fixed, failed, failedPosts };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
+      if (result) {
+        if (result.fixed > 0) {
+          toast.success(`Fixed ${result.fixed} image(s). ${result.failed > 0 ? `${result.failed} failed (likely CORS blocked).` : ""}`);
+          if (result.failed > 0 && result.failedPosts.length > 0) {
+            console.warn("Failed to fix images for:", result.failedPosts);
+          }
+        } else {
+          toast.warning("Could not fix images. They may be blocked by CORS. Use the Node script instead (see console for details).");
+        }
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Fix images error:", error);
+      toast.error(`Failed to fix images: ${error.message}`);
+    },
+  });
+
+  // New mutation to fix ALL broken images (not just selected)
+  const fixAllBrokenImagesMutation = useMutation({
+    mutationFn: async () => {
+      // Fetch ALL posts with external image URLs
+      const { data: allPosts, error: fetchError } = await supabase
+        .from("blog_posts")
+        .select("id, slug, featured_image_url")
+        .not("featured_image_url", "is", null);
+      
+      if (fetchError) throw fetchError;
+      if (!allPosts?.length) {
+        toast.info("No posts with images found.");
+        return;
+      }
+
+      // Filter to only external URLs (not Supabase hosted)
+      const postsToFix = allPosts.filter((post) => {
+        if (!post.featured_image_url || !post.featured_image_url.startsWith("http")) return false;
+        return !post.featured_image_url.includes("supabase.co") && 
+               !(post.featured_image_url.includes("urbanhub.uk") && !post.featured_image_url.includes("old.urbanhub.uk"));
+      });
+
+      if (postsToFix.length === 0) {
+        toast.info("All images are already hosted on Supabase.");
+        return;
+      }
+
+      let fixed = 0;
+      let failed = 0;
+      const failedPosts: string[] = [];
+
+      for (const post of postsToFix) {
+        let imageUrl = post.featured_image_url!;
+        
+        // Try to update URL from old domain to new domain if needed
+        if (imageUrl.includes("old.urbanhub.uk")) {
+          // Keep the old.urbanhub.uk URL as is
+        } else if (imageUrl.match(/https?:\/\/(www\.)?urbanhub\.uk/)) {
+          // If it's the new domain but broken, try old domain
+          imageUrl = imageUrl.replace(/https?:\/\/(www\.)?urbanhub\.uk/, "https://old.urbanhub.uk");
+        }
+
+        const ext = imageUrl.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)?.[1]?.toLowerCase() || "jpg";
+        const path = `blog/${post.slug}-featured-${Date.now()}.${ext}`;
+
+        try {
+          const imageRes = await fetch(imageUrl, { 
+            mode: "cors",
+            cache: "no-cache"
+          });
+          
+          if (!imageRes.ok) {
+            failed++;
+            failedPosts.push(post.slug);
+            continue;
+          }
+          
+          const blob = await imageRes.blob();
+          if (!blob.type.startsWith("image/")) {
+            failed++;
+            failedPosts.push(post.slug);
+            continue;
+          }
+
+          const { error: uploadError } = await supabase.storage.from("website").upload(path, blob, {
+            contentType: blob.type || `image/${ext}`,
+            upsert: true,
+          });
+
+          if (uploadError) {
+            failed++;
+            failedPosts.push(post.slug);
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage.from("website").getPublicUrl(path);
+          const { error: updateError } = await supabase
+            .from("blog_posts")
+            .update({ featured_image_url: urlData.publicUrl })
+            .eq("id", post.id);
+
+          if (updateError) {
+            failed++;
+            failedPosts.push(post.slug);
+          } else {
+            fixed++;
+          }
+        } catch (error) {
+          failed++;
+          failedPosts.push(post.slug);
+        }
+      }
+
+      return { fixed, failed, failedPosts, total: postsToFix.length };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
+      if (result) {
+        if (result.fixed > 0) {
+          toast.success(`Fixed ${result.fixed} of ${result.total} image(s). ${result.failed > 0 ? `${result.failed} failed (likely CORS blocked). Use Node script for those.` : ""}`);
+          if (result.failed > 0 && result.failedPosts.length > 0) {
+            console.warn("Failed to fix images for:", result.failedPosts);
+            console.info("To fix CORS-blocked images, use the Node script: node scripts/fix-blog-images.mjs");
+          }
+        } else {
+          toast.warning("Could not fix images. They may be blocked by CORS. Use the Node script instead: node scripts/fix-blog-images.mjs");
+        }
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Fix all images error:", error);
+      toast.error(`Failed to fix images: ${error.message}. Try the Node script instead.`);
+    },
   });
 
   const draftCount = posts?.filter((p) => p.status === "draft").length ?? 0;
@@ -172,7 +459,7 @@ export default function BlogAdmin() {
           <div>
             <CardTitle className="text-base">Blog posts</CardTitle>
             <CardDescription>
-              {posts?.length ?? 0} post{(posts?.length ?? 0) !== 1 ? "s" : ""}. Click a row to edit. Only &quot;published&quot; posts appear on the public blog.
+              {totalCount ?? 0} total post{(totalCount ?? 0) !== 1 ? "s" : ""} ({posts?.length ?? 0} on this page). Click a row to edit. Only &quot;published&quot; posts appear on the public blog.
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -187,6 +474,20 @@ export default function BlogAdmin() {
                 Publish all drafts ({draftCount})
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (window.confirm("This will download and upload ALL external blog images to Supabase storage. This may take a while. Continue?")) {
+                  fixAllBrokenImagesMutation.mutate();
+                }
+              }}
+              disabled={fixAllBrokenImagesMutation.isPending}
+              title="Download all external WordPress images and upload to Supabase storage"
+            >
+              {fixAllBrokenImagesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
+              Fix All Images
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -210,6 +511,16 @@ export default function BlogAdmin() {
               >
                 {bulkUnpublishMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Archive className="h-4 w-4 mr-2" />}
                 Unpublish selected
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fixBrokenImagesMutation.mutate(selectedArray)}
+                disabled={fixBrokenImagesMutation.isPending}
+                title="Download and re-upload external images to Supabase storage"
+              >
+                {fixBrokenImagesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
+                Fix Images
               </Button>
               <Button
                 variant="destructive"
@@ -242,13 +553,14 @@ export default function BlogAdmin() {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox
-                        checked={posts.length > 0 && selectedIds.size === posts.length}
+                        checked={posts.length > 0 && posts.every((p) => selectedIds.has(p.id))}
                         onCheckedChange={toggleSelectAll}
-                        aria-label="Select all"
+                        aria-label="Select all on this page"
                       />
                     </TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Slug</TableHead>
+                    <TableHead>Image</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Published</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -270,6 +582,23 @@ export default function BlogAdmin() {
                       </TableCell>
                       <TableCell className="font-medium max-w-[240px] truncate">{row.title}</TableCell>
                       <TableCell className="font-mono text-xs max-w-[160px] truncate">{row.slug}</TableCell>
+                      <TableCell>
+                        {row.featured_image_url ? (
+                          row.featured_image_url.includes("supabase.co") || row.featured_image_url.includes("urbanhub.uk") ? (
+                            <span className="text-xs text-green-600 flex items-center gap-1">
+                              <ImageIcon className="h-3 w-3" />
+                              OK
+                            </span>
+                          ) : (
+                            <span className="text-xs text-amber-600 flex items-center gap-1" title="External URL - may break">
+                              <AlertCircle className="h-3 w-3" />
+                              External
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={row.status === "published" ? "default" : "secondary"}>{row.status}</Badge>
                       </TableCell>
@@ -309,6 +638,69 @@ export default function BlogAdmin() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) setCurrentPage(currentPage - 1);
+                      }}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setCurrentPage(page);
+                            }}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                      }}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>

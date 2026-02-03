@@ -11,6 +11,7 @@ import MetaTagsUpdater from "./components/MetaTagsUpdater";
 import Preloader from "./components/Preloader";
 import ScrollProgress from "./components/ScrollProgress";
 import GoogleAnalytics from "./components/GoogleAnalytics";
+import GoogleSearchConsole from "./components/GoogleSearchConsole";
 import WebsiteAnalyticsTracker from "./components/WebsiteAnalyticsTracker";
 import NewsletterPopup from "./components/NewsletterPopup";
 import FloatingActions from "./components/FloatingActions";
@@ -37,6 +38,7 @@ const App = () => (
               <FaviconUpdater />
               <MetaTagsUpdater />
               <GoogleAnalytics />
+              <GoogleSearchConsole />
               <WebsiteAnalyticsTracker />
               <ScrollProgress />
               <AnimatedRoutes />

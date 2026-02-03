@@ -210,6 +210,12 @@ html::-webkit-scrollbar {
 }
 
 /* Grid scan background for 404 page */
+/* Studios homepage hero: constrain carousel viewport to section height so no extra gap on mobile */
+.studios-hero-section > div,
+.studios-hero-section > div > div {
+  height: 100%;
+}
+
 .grid-scan-bg {
   position: relative;
 }

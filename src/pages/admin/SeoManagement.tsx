@@ -78,6 +78,7 @@ type SeoSettingsRow = {
   default_meta_description: string | null;
   default_og_image_url: string | null;
   twitter_handle: string | null;
+  google_search_console_verification: string | null;
   is_active: boolean;
 };
 
@@ -113,7 +114,7 @@ export default function SeoManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("website_seo_settings")
-        .select("id, site_name, default_meta_title, default_meta_description, default_og_image_url, twitter_handle, is_active")
+        .select("id, site_name, default_meta_title, default_meta_description, default_og_image_url, twitter_handle, google_search_console_verification, is_active")
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -342,6 +343,7 @@ function GeneralSeoForm({
   const [default_meta_description, setDefault_meta_description] = useState(initial.default_meta_description ?? "");
   const [default_og_image_url, setDefault_og_image_url] = useState(initial.default_og_image_url ?? "");
   const [twitter_handle, setTwitter_handle] = useState(initial.twitter_handle ?? "");
+  const [google_search_console_verification, setGoogle_search_console_verification] = useState(initial.google_search_console_verification ?? "");
   const [is_active, setIs_active] = useState(initial.is_active);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -352,6 +354,7 @@ function GeneralSeoForm({
       default_meta_description: default_meta_description.trim() || null,
       default_og_image_url: default_og_image_url.trim() || null,
       twitter_handle: twitter_handle.trim() || null,
+      google_search_console_verification: google_search_console_verification.trim() || null,
       is_active,
     });
   };
@@ -380,6 +383,18 @@ function GeneralSeoForm({
       <div className="space-y-2">
         <Label htmlFor="seo-twitter">Twitter handle</Label>
         <Input id="seo-twitter" value={twitter_handle} onChange={(e) => setTwitter_handle(e.target.value)} placeholder="@UrbanHubBooking" required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="seo-gsc">Google Search Console Verification</Label>
+        <Input 
+          id="seo-gsc" 
+          value={google_search_console_verification} 
+          onChange={(e) => setGoogle_search_console_verification(e.target.value)} 
+          placeholder="Enter verification code from Google Search Console" 
+        />
+        <p className="text-xs text-muted-foreground">
+          Get this code from Google Search Console → Settings → Ownership verification → HTML tag method
+        </p>
       </div>
       <div className="flex items-center gap-2">
         <Switch id="seo-active" checked={is_active} onCheckedChange={setIs_active} />

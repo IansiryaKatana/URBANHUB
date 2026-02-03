@@ -21,6 +21,7 @@ import type { Database } from "@/integrations/supabase/types";
 import Noise from "@/components/Noise";
 import { portalStudiosUrl } from "@/config";
 import { useWebsiteAmenities } from "@/hooks/useWebsiteAmenities";
+import { useWebsiteImageSlots, getSlotUrl } from "@/hooks/useWebsiteImageSlots";
 import { AnimatedHeading, AnimatedText, AnimatedParagraph, AnimatedCard } from "@/components/animations/AnimatedText";
 import TypingTitle from "@/components/TypingTitle";
 
@@ -139,13 +140,23 @@ const About = () => {
   // Video hero state
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [videoLoaded, setVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Placeholder images for hero (mobile + desktop) while video loads – editable in admin Image Slots
+  const { data: imageSlots } = useWebsiteImageSlots();
+  const aboutHeroDesktop = imageSlots?.find((s) => s.slot_key === "about_hero_desktop");
+  const aboutHeroMobile = imageSlots?.find((s) => s.slot_key === "about_hero_mobile");
+  const heroPlaceholderDesktop = getSlotUrl(aboutHeroDesktop) || "";
+  const heroPlaceholderMobile = getSlotUrl(aboutHeroMobile) || heroPlaceholderDesktop;
+  const heroPosterUrl = isMobile ? heroPlaceholderMobile : heroPlaceholderDesktop;
 
   // Auto-play video on mount
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
       const handleCanPlay = () => {
+        setVideoLoaded(true);
         const playPromise = video.play();
         if (playPromise !== undefined) {
           playPromise
@@ -318,22 +329,34 @@ const About = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      {/* Video Hero Section */}
+      {/* Video Hero Section – placeholder image shown until video is ready */}
       <section
         aria-label="Urban Hub Preston student accommodation video hero"
         className="relative flex items-center justify-center overflow-hidden"
         style={{ minHeight: "100vh" }}
       >
+        {/* Placeholder image (mobile + desktop) while video loads – editable in admin Image Slots */}
+        {heroPosterUrl && !videoLoaded && (
+          <img
+            src={heroPosterUrl}
+            alt={isMobile ? (aboutHeroMobile?.alt_text || "Urban Hub Preston") : (aboutHeroDesktop?.alt_text || "Urban Hub Preston")}
+            className="absolute inset-0 h-full w-full object-cover"
+            fetchPriority="high"
+          />
+        )}
         <video
           ref={videoRef}
           src="https://urbanhub.uk/wp-content/uploads/2025/04/URBAN-HUB-home-trial.mp4"
+          poster={heroPosterUrl || undefined}
           autoPlay
           loop
           muted={isMuted}
           playsInline
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
-          className="h-full w-full object-cover"
+          onLoadedData={() => setVideoLoaded(true)}
+          onCanPlay={() => setVideoLoaded(true)}
+          className={`h-full w-full object-cover transition-opacity duration-500 ${videoLoaded ? "opacity-100" : "opacity-0"}`}
         />
 
         {/* Overlay */}
@@ -441,8 +464,8 @@ const About = () => {
       </section>
 
       {/* 5 Room Grades Section – same width as Urban Hub Facilities */}
-      <section className="bg-red-50 py-16 md:py-24">
-        <div className="container mx-auto px-4 pt-16 pb-20 space-y-12">
+      <section className="bg-red-50 pt-6 pb-12 md:pt-16 md:pb-20 md:py-24">
+        <div className="container mx-auto px-4 pt-4 md:pt-16 pb-12 md:pb-20 space-y-8 md:space-y-12">
           <header className="space-y-4 text-center">
             {/* Mobile: two lines "5 room grades" / "to choose from" */}
             <h2 className="text-4xl md:text-5xl font-display font-black uppercase tracking-wide block md:hidden">

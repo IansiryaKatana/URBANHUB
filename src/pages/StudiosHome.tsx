@@ -894,23 +894,24 @@ const StudiosHome = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <section aria-label="Urban Hub Preston student accommodation hero carousel" className="relative">
-        <Carousel opts={{ loop: true }} className="w-full">
-          <CarouselContent className="-ml-0">
+      {/* Hero height fixed to viewport so it doesn't create extra gap below on mobile */}
+      <section aria-label="Urban Hub Preston student accommodation hero carousel" className="studios-hero-section relative overflow-hidden h-[100dvh] min-h-[280px] md:h-[100vh]">
+        <Carousel opts={{ loop: true }} className="w-full h-full">
+          <CarouselContent className="-ml-0 h-full">
             {[hero1, hero2, hero3].map((bg, idx) => (
-              <CarouselItem key={`hero-${idx}`} className="pl-0">
+              <CarouselItem key={`hero-${idx}`} className="pl-0 h-full flex-[0_0_100%]">
                 <div
-                  className={`relative flex items-center ${idx === 1 ? "justify-start" : "justify-center"}`}
+                  className={`relative flex items-center h-full min-h-0 ${idx === 1 ? "justify-start" : "justify-center"}`}
                   style={{
-                    minHeight: "100vh",
+                    height: "100%",
                     backgroundImage: `linear-gradient(180deg, rgba(5, 6, 9, 0.7) 0%, rgba(5, 6, 9, 0.35) 65%, rgba(5, 6, 9, 0.7) 100%), url('${bg}')`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }}
                 >
                   {idx === 1 ? (
-                    <div className="container mx-auto px-4 text-white py-20 md:py-24">
-                      <div className="px-4 md:px-6 space-y-6 text-left">
+                    <div className="container mx-auto px-4 text-white py-12 md:py-24 h-full overflow-y-auto min-h-0 flex flex-col">
+                      <div className="px-4 md:px-6 space-y-6 text-left flex-shrink-0">
                         <AnimatedText delay={0.1}>
                           <p className="text-[11px] uppercase tracking-[0.5em] text-white/70 font-normal">
                             THE MOST EQUIPPED, MOST CONNECTED,
@@ -942,7 +943,7 @@ const StudiosHome = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-24">
+                    <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-12 md:py-24">
                       <AnimatedText delay={0.1}>
                         <p className="text-[11px] uppercase tracking-[0.5em] text-white/70">
                           Book {formatYearForHero(selectedYear.name)} Academic Year
@@ -977,10 +978,10 @@ const StudiosHome = () => {
           </CarouselContent>
         </Carousel>
       </section>
-      <main className="container mx-auto px-4 pt-16 pb-20 max-w-6xl space-y-12">
+      <main className="container mx-auto px-4 pt-2 pb-12 md:pt-16 md:pb-20 max-w-6xl space-y-4 md:space-y-12">
         {/* Academic Year Tabs */}
         {academicYears.length > 0 && (
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-2 md:mb-8">
             <Tabs
               value={selectedYear?.name || ""}
               onValueChange={handleYearChange}
@@ -1001,7 +1002,7 @@ const StudiosHome = () => {
           </div>
         )}
 
-        <header className="space-y-4 text-center">
+        <header className="space-y-2 md:space-y-4 text-center">
           <AnimatedText delay={0.1}>
             <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">
               Discover {companyName}
@@ -1156,17 +1157,17 @@ const StudiosHome = () => {
           </div>
         </div>
         
-        {/* Edge Fade / Gradient Mask + wide side padding */}
-        <div className="relative w-full px-6 md:px-10 lg:px-[100px]">
-          {/* Stronger gradient mask on the carousel edges - positioned to fade the images */}
+        {/* Edge Fade on desktop only; mobile: one card, no fade */}
+        <div className="relative w-full px-4 md:px-10 lg:px-[100px]">
+          {/* Gradient mask on carousel edges - hidden on mobile so one full card shows without fade */}
           <div 
-            className="absolute inset-y-0 left-0 w-24 md:w-40 lg:w-[100px] z-30 pointer-events-none" 
+            className="hidden md:block absolute inset-y-0 left-0 w-24 md:w-40 lg:w-[100px] z-30 pointer-events-none" 
             style={{ 
               background: 'linear-gradient(to right, #f8f9fa 0%, #f8f9fa 60%, rgba(248, 249, 250, 0.8) 80%, rgba(248, 249, 250, 0) 100%)' 
             }} 
           />
           <div 
-            className="absolute inset-y-0 right-0 w-24 md:w-40 lg:w-[100px] z-30 pointer-events-none" 
+            className="hidden md:block absolute inset-y-0 right-0 w-24 md:w-40 lg:w-[100px] z-30 pointer-events-none" 
             style={{ 
               background: 'linear-gradient(to left, #f8f9fa 0%, #f8f9fa 60%, rgba(248, 249, 250, 0.8) 80%, rgba(248, 249, 250, 0) 100%)' 
             }} 
@@ -1178,6 +1179,7 @@ const StudiosHome = () => {
                 align: "start",
                 loop: true,
                 dragFree: true,
+                containScroll: "trimSnaps",
               }}
               plugins={[
                 Autoplay({
@@ -1188,12 +1190,12 @@ const StudiosHome = () => {
               ]}
               className="w-full relative z-10"
             >
-            <CarouselContent className="-ml-4 px-0">
-              {/* Duplicate amenities to ensure a perfect continuous loop */}
+            <CarouselContent className="-ml-4 px-0 md:-ml-4">
+              {/* Duplicate amenities to ensure a perfect continuous loop; mobile: one card per slide */}
               {[...amenities, ...amenities].map((amenity, index) => (
                 <CarouselItem
                   key={index}
-                  className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
+                  className="pl-4 basis-full min-w-0 shrink-0 md:basis-1/3 lg:basis-1/4"
                 >
                   <div className="relative overflow-hidden rounded-2xl aspect-[3/4] group transition-all duration-500 shadow-xl bg-muted">
                     <img

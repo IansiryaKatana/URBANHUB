@@ -8,6 +8,7 @@ export type WebsiteSeoSettings = {
   default_meta_description: string | null;
   default_og_image_url: string | null;
   twitter_handle: string | null;
+  google_search_console_verification: string | null;
   is_active: boolean;
 };
 
@@ -17,7 +18,7 @@ export function useWebsiteSeoSettings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("website_seo_settings")
-        .select("id, site_name, default_meta_title, default_meta_description, default_og_image_url, twitter_handle, is_active")
+        .select("id, site_name, default_meta_title, default_meta_description, default_og_image_url, twitter_handle, google_search_console_verification, is_active")
         .eq("is_active", true)
         .limit(1)
         .maybeSingle();
