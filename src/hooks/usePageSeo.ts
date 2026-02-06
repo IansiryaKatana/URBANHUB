@@ -14,6 +14,7 @@ export type PageSeo = {
   twitter_image_alt: string | null;
   canonical_url: string | null;
   robots_meta: string | null;
+  schema_json: Record<string, unknown> | null;
 };
 
 /**
@@ -36,7 +37,7 @@ export function usePageSeo(pagePath: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("seo_pages")
-        .select("meta_title, meta_description, og_title, og_description, og_image_url, og_image_alt, twitter_title, twitter_description, twitter_image_url, twitter_image_alt, canonical_url, robots_meta")
+        .select("meta_title, meta_description, og_title, og_description, og_image_url, og_image_alt, twitter_title, twitter_description, twitter_image_url, twitter_image_alt, canonical_url, robots_meta, schema_json")
         .eq("page_path", normalizedPath)
         .limit(1)
         .maybeSingle();

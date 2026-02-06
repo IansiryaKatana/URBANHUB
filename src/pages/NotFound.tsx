@@ -17,6 +17,14 @@ const NotFound = () => {
 
   useEffect(() => {
     document.title = `Page Not Found | ${companyName} Student Accommodation Preston`;
+    const desc = `The page you're looking for doesn't exist or has been moved. Return to ${companyName} student accommodation in Preston to find studios and book.`;
+    let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement;
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "description");
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute("content", desc);
   }, [companyName]);
 
   return (

@@ -4,6 +4,8 @@ import { useBrandingSettings } from "@/hooks/useBranding";
 import { useWebsiteSeoSettings } from "@/hooks/useWebsiteSeoSettings";
 import { usePageSeo } from "@/hooks/usePageSeo";
 
+const META_TITLE_MAX_LENGTH = 60; // Google ~600px; ~60 chars recommended for display
+
 const MetaTagsUpdater = () => {
   const location = useLocation();
   const { data: brandingSettings } = useBrandingSettings();
@@ -13,10 +15,11 @@ const MetaTagsUpdater = () => {
   useEffect(() => {
     const companyName = seoSettings?.site_name ?? brandingSettings?.company_name ?? "Urban Hub";
     const defaultMetaDesc = seoSettings?.default_meta_description ?? brandingSettings?.meta_description ??
-      `Modern student accommodation. Book your studio apartment for the academic year. Premium amenities and convenient location.`;
+      `Modern student accommodation in Preston. Book your studio apartment for the academic year. Premium amenities and convenient location.`;
     const defaultOgImage = brandingSettings?.favicon_path ?? "/favicon.png";
     const defaultOg = seoSettings?.default_og_image_url || defaultOgImage;
     const twitterHandle = seoSettings?.twitter_handle ?? brandingSettings?.twitter_handle ?? "@UrbanHubBooking";
+    const siteUrl = typeof window !== "undefined" ? window.location.origin : "https://urbanhub.uk";
 
     const metaDescription = pageSeo?.meta_description ?? defaultMetaDesc;
     const ogTitle = pageSeo?.og_title ?? `${companyName} | Student Accommodation`;
@@ -25,8 +28,6 @@ const MetaTagsUpdater = () => {
     const twitterTitle = pageSeo?.twitter_title ?? ogTitle;
     const twitterDescription = pageSeo?.twitter_description ?? ogDescription;
     const twitterImage = pageSeo?.twitter_image_url ?? ogImage;
-
-    if (!brandingSettings && !seoSettings && !pageSeo) return;
 
     const updateMetaTagByProperty = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
@@ -48,10 +49,12 @@ const MetaTagsUpdater = () => {
       meta.setAttribute("content", content);
     };
 
-    // Set document title from seo_pages or fallback to default
-    // usePageTitle handles admin/portal routes; MetaTagsUpdater handles public website pages
+    // Set document title from seo_pages or fallback; cap at 60 chars for Google display
     const defaultMetaTitle = seoSettings?.default_meta_title ?? `${companyName} Student Accommodation Preston`;
-    const pageTitle = pageSeo?.meta_title ?? defaultMetaTitle;
+    let pageTitle = pageSeo?.meta_title ?? defaultMetaTitle;
+    if (pageTitle && pageTitle.length > META_TITLE_MAX_LENGTH) {
+      pageTitle = pageTitle.slice(0, META_TITLE_MAX_LENGTH - 1).trim() + "…";
+    }
     if (pageTitle) {
       document.title = pageTitle;
     }
@@ -90,6 +93,35 @@ const MetaTagsUpdater = () => {
     }
 
     updateMetaTagByName("theme-color", "#ff2020");
+
+    // Structured data (JSON-LD): page-specific from seo_pages or default Organization + WebSite
+    const existingJsonLd = document.querySelector('script[type="application/ld+json"][data-seo-json]');
+    if (existingJsonLd) existingJsonLd.remove();
+
+    const schema = pageSeo?.schema_json ?? {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": `${siteUrl}/#organization`,
+          name: companyName,
+          url: siteUrl,
+        },
+        {
+          "@type": "WebSite",
+          "@id": `${siteUrl}/#website`,
+          url: siteUrl,
+          name: companyName,
+          publisher: { "@id": `${siteUrl}/#organization` },
+        },
+      ],
+    };
+
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.setAttribute("data-seo-json", "true");
+    script.textContent = typeof schema === "string" ? schema : JSON.stringify(schema);
+    document.head.appendChild(script);
   }, [brandingSettings, seoSettings, pageSeo, location.pathname]);
 
   return null;
