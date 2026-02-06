@@ -159,12 +159,12 @@
   status = 301
   force = true
 
-# SPA fallback – must be last (first match wins)
+# SPA fallback – must be last. Do NOT use force = true, or /assets/*.js and *.css
+# get index.html (wrong MIME) and break. Without force, Netlify serves real files first.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
 
 # ========== Headers ==========
 [[headers]]
