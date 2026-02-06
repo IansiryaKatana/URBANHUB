@@ -28,11 +28,17 @@ const Index = () => {
     redirectToDefaultYear();
   }, [navigate]);
 
-  // Return a minimal loading state to prevent white screen flash
+  // Minimal loading state with H1 and keywords for SEO (crawlers may hit / before redirect)
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="animate-pulse">
-        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
+      <h1 className="sr-only focus:not-sr-only">
+        Urban Hub Student Accommodation Preston – Studios &amp; Room Types
+      </h1>
+      <p className="sr-only">
+        Student accommodation in Preston. Book your studio apartment for the academic year. Gold, Silver, Platinum and Rhodium studios.
+      </p>
+      <div className="animate-pulse" aria-hidden>
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     </div>
   );
