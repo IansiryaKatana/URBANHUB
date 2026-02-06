@@ -7,7 +7,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&family=Big+Shoulders+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Non-render-blocking fonts: load async with display=swap to avoid blocking FCP/LCP -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&family=Big+Shoulders+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&family=Big+Shoulders+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
     <title>Urban Hub Website</title>
     <meta name="description" content="Modern student accommodation. Book your studio apartment for the academic year. Premium amenities and convenient location." />
     <meta name="author" content="IanKatana" />

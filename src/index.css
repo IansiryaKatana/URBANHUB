@@ -1,5 +1,4 @@
-/* Leaflet Map Styles - must be imported first */
-@import "leaflet/dist/leaflet.css";
+/* Leaflet map styles are loaded only in FindUsMap (with the map chunk) to reduce initial CSS and main-thread work */
 
 @tailwind base;
 @tailwind components;
@@ -11,6 +10,7 @@
   border: none !important;
 }
 
+/* Leaflet overrides: applied when map is on page (FindUsMap imports leaflet.css) */
 .leaflet-container {
   font-family: inherit;
 }

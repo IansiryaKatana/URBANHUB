@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ImageIcon, Upload } from "lucide-react";
+import { Loader2, ImageIcon, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 
 const BUCKET = "website";
 const MAX_SIZE_MB = 5;
+const MAX_VIDEO_SIZE_MB = 100;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
 
 type SlotRow = {
   id: string;
@@ -96,6 +98,7 @@ export default function ImageSlotsList() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {slots.map((slot) => {
                 const url = slot.file_url || slot.fallback_url || null;
+                const isVideoSlot = slot.slot_key === "about_hero_video";
                 return (
                   <button
                     key={slot.id}
@@ -105,9 +108,23 @@ export default function ImageSlotsList() {
                   >
                     <div className="aspect-video relative bg-muted flex items-center justify-center overflow-hidden">
                       {url ? (
-                        <img src={url} alt={slot.alt_text || slot.display_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        isVideoSlot ? (
+                          <video
+                            src={url}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            muted
+                            playsInline
+                            loop
+                          />
+                        ) : (
+                          <img src={url} alt={slot.alt_text || slot.display_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        )
                       ) : (
-                        <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                        isVideoSlot ? (
+                          <Video className="h-12 w-12 text-muted-foreground" />
+                        ) : (
+                          <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                        )
                       )}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                         <span className="opacity-0 group-hover:opacity-100 text-white text-sm font-medium bg-black/60 px-3 py-1.5 rounded-full transition-opacity">
@@ -130,9 +147,12 @@ export default function ImageSlotsList() {
       <Dialog open={!!editingSlotId} onOpenChange={(o) => !o && setEditingSlotId(null)}>
         <DialogContent className="max-w-lg" aria-describedby="edit-slot-desc">
           <DialogHeader>
-            <DialogTitle>Edit image slot</DialogTitle>
+            <DialogTitle>Edit {slots?.find(s => s.id === editingSlotId)?.slot_key === "about_hero_video" ? "video" : "image"} slot</DialogTitle>
             <DialogDescription id="edit-slot-desc">
-              Upload an image, pick from Media, or paste a URL. Leave empty to use fallback.
+              {slots?.find(s => s.id === editingSlotId)?.slot_key === "about_hero_video" 
+                ? "Upload a video file or paste a video URL. Leave empty to use fallback."
+                : "Upload an image, pick from Media, or paste a URL. Leave empty to use fallback."
+              }
             </DialogDescription>
           </DialogHeader>
           {editing && (
@@ -170,6 +190,7 @@ function SlotEditForm({
   const [alt_text, setAlt_text] = useState(slot.alt_text ?? "");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isVideoSlot = slot.slot_key === "about_hero_video";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,43 +204,67 @@ function SlotEditForm({
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      toast.error(`File must be under ${MAX_SIZE_MB}MB`);
+    
+    // Check file size based on type
+    const maxSize = isVideoSlot ? MAX_VIDEO_SIZE_MB : MAX_SIZE_MB;
+    if (file.size > maxSize * 1024 * 1024) {
+      toast.error(`File must be under ${maxSize}MB`);
       e.target.value = "";
       return;
     }
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error("Allowed: JPEG, PNG, GIF, WebP, SVG");
+    
+    // Check file type based on slot
+    const allowedTypes = isVideoSlot ? ALLOWED_VIDEO_TYPES : ALLOWED_TYPES;
+    if (!allowedTypes.includes(file.type)) {
+      if (isVideoSlot) {
+        toast.error("Allowed: MP4, WebM, OGG, MOV");
+      } else {
+        toast.error("Allowed: JPEG, PNG, GIF, WebP, SVG");
+      }
       e.target.value = "";
       return;
     }
+    
     setUploading(true);
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `media/${crypto.randomUUID()}.${ext}`;
+    const ext = file.name.split(".").pop() || (isVideoSlot ? "mp4" : "jpg");
+    const folder = isVideoSlot ? "videos" : "media";
+    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
+    
+    // For .mov files, use video/mp4 content-type as workaround
+    const contentType = file.type === "video/quicktime" ? "video/mp4" : file.type;
+    
     const { data: uploadData, error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
       cacheControl: "3600",
       upsert: false,
+      contentType: isVideoSlot ? contentType : undefined,
     });
+    
     if (uploadError) {
       toast.error(uploadError.message);
       setUploading(false);
       e.target.value = "";
       return;
     }
+    
     const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(uploadData.path);
-    await supabase.from("website_media_library").insert({
-      file_name: file.name,
-      file_path: uploadData.path,
-      file_url: urlData.publicUrl,
-      file_type: "image",
-      file_size: file.size,
-      mime_type: file.type,
-      folder: "media",
-    });
+    
+    // Only add to media library if it's an image
+    if (!isVideoSlot) {
+      await supabase.from("website_media_library").insert({
+        file_name: file.name,
+        file_path: uploadData.path,
+        file_url: urlData.publicUrl,
+        file_type: "image",
+        file_size: file.size,
+        mime_type: file.type,
+        folder: "media",
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-website-media-library"] });
+    }
+    
     setFile_url(urlData.publicUrl);
     if (!alt_text.trim()) setAlt_text(file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ") || "");
-    queryClient.invalidateQueries({ queryKey: ["admin-website-media-library"] });
-    toast.success("Image uploaded. Click Save to assign to this slot.");
+    toast.success(isVideoSlot ? "Video uploaded. Click Save to assign to this slot." : "Image uploaded. Click Save to assign to this slot.");
     setUploading(false);
     e.target.value = "";
   };
@@ -227,16 +272,16 @@ function SlotEditForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="file_url">Image URL</Label>
-        <Input id="file_url" value={file_url} onChange={(e) => setFile_url(e.target.value)} placeholder="Paste URL, upload below, or pick from Media" />
+        <Label htmlFor="file_url">{isVideoSlot ? "Video URL" : "Image URL"}</Label>
+        <Input id="file_url" value={file_url} onChange={(e) => setFile_url(e.target.value)} placeholder={isVideoSlot ? "Paste video URL or upload below" : "Paste URL, upload below, or pick from Media"} />
       </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Label className="shrink-0">Upload image</Label>
+        <Label className="shrink-0">{isVideoSlot ? "Upload video" : "Upload image"}</Label>
         <div className="flex gap-2 flex-1 flex-wrap">
           <input
             ref={fileInputRef}
             type="file"
-            accept={ALLOWED_TYPES.join(",")}
+            accept={isVideoSlot ? ALLOWED_VIDEO_TYPES.join(",") : ALLOWED_TYPES.join(",")}
             className="hidden"
             onChange={handleFileUpload}
           />
@@ -250,10 +295,29 @@ function SlotEditForm({
             {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
             {uploading ? "Uploading…" : "Choose file"}
           </Button>
-          <span className="text-xs text-muted-foreground">JPEG, PNG, GIF, WebP, SVG, max {MAX_SIZE_MB}MB</span>
+          <span className="text-xs text-muted-foreground">
+            {isVideoSlot 
+              ? `MP4, WebM, OGG, MOV, max ${MAX_VIDEO_SIZE_MB}MB`
+              : `JPEG, PNG, GIF, WebP, SVG, max ${MAX_SIZE_MB}MB`
+            }
+          </span>
         </div>
       </div>
-      {media.length > 0 && (
+      {file_url && isVideoSlot && (
+        <div className="space-y-2">
+          <Label>Video Preview</Label>
+          <div className="rounded border overflow-hidden bg-black aspect-video">
+            <video
+              src={file_url}
+              controls
+              className="w-full h-full object-contain"
+              muted
+              playsInline
+            />
+          </div>
+        </div>
+      )}
+      {!isVideoSlot && media.length > 0 && (
         <div className="space-y-2">
           <Label>Pick from Media</Label>
           <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1">

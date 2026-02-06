@@ -147,9 +147,11 @@ const About = () => {
   const { data: imageSlots } = useWebsiteImageSlots();
   const aboutHeroDesktop = imageSlots?.find((s) => s.slot_key === "about_hero_desktop");
   const aboutHeroMobile = imageSlots?.find((s) => s.slot_key === "about_hero_mobile");
+  const aboutHeroVideo = imageSlots?.find((s) => s.slot_key === "about_hero_video");
   const heroPlaceholderDesktop = getSlotUrl(aboutHeroDesktop) || "";
   const heroPlaceholderMobile = getSlotUrl(aboutHeroMobile) || heroPlaceholderDesktop;
   const heroPosterUrl = isMobile ? heroPlaceholderMobile : heroPlaceholderDesktop;
+  const heroVideoUrl = getSlotUrl(aboutHeroVideo) || "https://old.urbanhub.uk/wp-content/uploads/2025/04/URBAN-HUB-home-trial.mp4";
 
   // Auto-play video on mount
   useEffect(() => {
@@ -346,7 +348,7 @@ const About = () => {
         )}
         <video
           ref={videoRef}
-          src="https://urbanhub.uk/wp-content/uploads/2025/04/URBAN-HUB-home-trial.mp4"
+          src={heroVideoUrl}
           poster={heroPosterUrl || undefined}
           autoPlay
           loop
@@ -356,6 +358,11 @@ const About = () => {
           onPause={() => setIsPlaying(false)}
           onLoadedData={() => setVideoLoaded(true)}
           onCanPlay={() => setVideoLoaded(true)}
+          onError={(e) => {
+            console.error("Video failed to load:", heroVideoUrl, e);
+            // If video fails, keep showing the poster image
+            setVideoLoaded(false);
+          }}
           className={`h-full w-full object-cover transition-opacity duration-500 ${videoLoaded ? "opacity-100" : "opacity-0"}`}
         />
 

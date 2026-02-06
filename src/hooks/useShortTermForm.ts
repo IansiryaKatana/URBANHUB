@@ -17,8 +17,11 @@ export type ShortTermFormData = {
 };
 
 async function saveShortTermToDb(formData: ShortTermFormData) {
+  // Determine form_type based on guest_type
+  const formType = formData.guest_type === "tourist" ? "tourist_inquiry" : "keyworker_inquiry";
+  
   await supabase.from("website_form_submissions").insert({
-    form_type: "short_term",
+    form_type: formType,
     name: formData.full_name,
     email: formData.email,
     phone: formData.phone || null,
@@ -39,13 +42,16 @@ export const useShortTermForm = () => {
   const submitShortTermForm = async (formData: ShortTermFormData) => {
     setIsSubmitting(true);
     try {
+      // Determine form_type based on guest_type
+      const formType = formData.guest_type === "tourist" ? "tourist_inquiry" : "keyworker_inquiry";
+      
       const response = await fetch(SHORT_TERM_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           landing_page: "Short Term",
-          form_type: "short_term",
+          form_type: formType,
         }),
       });
 
@@ -55,7 +61,7 @@ export const useShortTermForm = () => {
 
       await response.json();
       await saveShortTermToDb(formData).catch((err) => console.warn("Website form save:", err));
-      recordFormSubmitEvent("short_term", typeof window !== "undefined" ? window.location.pathname : "/short-term");
+      recordFormSubmitEvent(formType, typeof window !== "undefined" ? window.location.pathname : "/short-term");
       toast.success(
         "Thank you! Your short stay request has been sent. We'll get back to you soon."
       );

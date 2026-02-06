@@ -107,6 +107,58 @@
   status = 301
   force = true
 
+# Studio 26-27 grade pages (old /studio-2627/* → portal, format: /studios/2026-2027/{slug})
+[[redirects]]
+  from = "/studio-2627/gold-studios"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/gold"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/gold-studios/"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/gold"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/silver-studios"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/silver"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/silver-studios/"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/silver"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/platinum-studios"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/platinum"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/platinum-studios/"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/platinum"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/rhodium-plus-studios"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/rhodium-plus"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/rhodium-plus-studios/"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/rhodium-plus"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/rhodiun-studios"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/rhodium"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/studio-2627/rhodiun-studios/"
+  to = "https://portal.urbanhub.uk/studios/2026-2027/rhodium"
+  status = 301
+  force = true
+
 # SPA fallback – must be last (first match wins)
 [[redirects]]
   from = "/*"
@@ -123,6 +175,13 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
+# SPA index - short cache so deploys get fresh HTML and chunk references
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Hashed JS/CSS - long cache (Vite uses content hashes; immutable = no revalidation)
 [[headers]]
   for = "/assets/*"
   [headers.values]

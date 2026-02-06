@@ -7,28 +7,22 @@ const Preloader = () => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Simulate loading progress
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(() => setIsVisible(false), 300);
+          setTimeout(() => setIsVisible(false), 200);
           return 100;
         }
-        return prev + Math.random() * 15;
+        return prev + Math.random() * 20;
       });
-    }, 100);
+    }, 80);
 
-    // Ensure minimum display time
-    const minDisplayTimer = setTimeout(() => {
-      if (progress >= 100) {
-        setIsVisible(false);
-      }
-    }, 1500);
-
+    // Shorter max display (800ms) to improve LCP and avoid "No CPU idle period" in Lighthouse
+    const maxDisplay = setTimeout(() => setIsVisible(false), 800);
     return () => {
       clearInterval(interval);
-      clearTimeout(minDisplayTimer);
+      clearTimeout(maxDisplay);
     };
   }, []);
 
@@ -52,7 +46,7 @@ const Preloader = () => {
             ease: [0.25, 0.1, 0.25, 1],
           }}
         >
-          <img src={logo} alt="Urban Hub" className="h-10 w-auto md:h-14" />
+          <img src={logo} alt="Urban Hub" className="h-10 w-auto md:h-14" width={160} height={56} fetchPriority="high" />
         </motion.div>
 
         {/* Progress Bar */}

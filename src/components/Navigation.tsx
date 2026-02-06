@@ -39,7 +39,7 @@ const Navigation = () => {
 
   const isHomePage = location.pathname === "/" || location.pathname.startsWith("/studios");
   const isContactOrFAQ = location.pathname === "/contact" || location.pathname === "/faq";
-  const topLevelReserved = ["studios", "contact", "faq", "blog", "about", "short-term", "reviews", "privacy", "terms", "admin"];
+  const topLevelReserved = ["studios", "contact", "faq", "blog", "about", "short-term", "pay-urban-hub-now", "reviews", "privacy", "terms", "admin"];
   const pathSegment = location.pathname.replace(/^\/|\/$/g, "").split("/")[0];
   const isBlogPage = location.pathname === "/blog" || (pathSegment && !topLevelReserved.includes(pathSegment) && location.pathname.match(/^\/[^/]+$/));
   const isAboutPage = location.pathname === "/about";

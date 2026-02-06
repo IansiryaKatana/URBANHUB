@@ -21,50 +21,25 @@ export default defineConfig(() => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks - split large libraries
+          // Vendor chunks - split large libraries to reduce main-thread work and TBT
           if (id.includes("node_modules")) {
-            // React core - keep in main bundle for synchronous access
-            // Don't split React/ReactDOM as they need to be available immediately
             if (id.includes("react") || id.includes("react-dom")) {
               return undefined; // Keep in main bundle
             }
-            // React Router can be split
-            if (id.includes("react-router")) {
-              return "react-router";
-            }
-            // UI libraries (Radix UI)
-            if (id.includes("@radix-ui")) {
-              return "radix-ui";
-            }
-            // Data fetching
-            if (id.includes("@tanstack/react-query")) {
-              return "react-query";
-            }
-            // Supabase
-            if (id.includes("@supabase")) {
-              return "supabase";
-            }
-            // Stripe
-            if (id.includes("@stripe")) {
-              return "stripe";
-            }
-            // PDF/Image libraries
-            if (id.includes("jspdf") || id.includes("html2canvas")) {
-              return "pdf-utils";
-            }
-            // Form libraries
-            if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) {
-              return "forms";
-            }
-            // Date libraries
-            if (id.includes("date-fns")) {
-              return "date-utils";
-            }
-            // Other large vendor libraries
-            if (id.includes("lucide-react") || id.includes("react-icons")) {
-              return "icons";
-            }
-            // Default vendor chunk for other node_modules
+            // Heavy animation/libs - load only on pages that need them (reduces TBT on initial load)
+            if (id.includes("gsap")) return "gsap";
+            if (id.includes("framer-motion")) return "framer-motion";
+            if (id.includes("leaflet") || id.includes("react-leaflet")) return "leaflet";
+            if (id.includes("three") || id.includes("postprocessing") || id.includes("face-api")) return "three-effects";
+            if (id.includes("react-router")) return "react-router";
+            if (id.includes("@radix-ui")) return "radix-ui";
+            if (id.includes("@tanstack/react-query")) return "react-query";
+            if (id.includes("@supabase")) return "supabase";
+            if (id.includes("@stripe")) return "stripe";
+            if (id.includes("jspdf") || id.includes("html2canvas")) return "pdf-utils";
+            if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) return "forms";
+            if (id.includes("date-fns")) return "date-utils";
+            if (id.includes("lucide-react") || id.includes("react-icons")) return "icons";
             return "vendor";
           }
         },

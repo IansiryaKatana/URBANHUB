@@ -15,6 +15,7 @@ import GoogleSearchConsole from "./components/GoogleSearchConsole";
 import WebsiteAnalyticsTracker from "./components/WebsiteAnalyticsTracker";
 import NewsletterPopup from "./components/NewsletterPopup";
 import FloatingActions from "./components/FloatingActions";
+import LegacyRedirects from "./components/LegacyRedirects";
 import AnimatedRoutes from "./components/AnimatedRoutes";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
               <GoogleSearchConsole />
               <WebsiteAnalyticsTracker />
               <ScrollProgress />
+              <LegacyRedirects />
               <AnimatedRoutes />
               <NewsletterPopup />
               <FloatingActions />

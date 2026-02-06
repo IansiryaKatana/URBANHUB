@@ -102,7 +102,7 @@ type SeoPageRow = {
   robots_meta: string | null;
 };
 
-const PAGE_PATHS = ["/", "/studios", "/contact", "/faq", "/blog", "/about", "/short-term", "/reviews", "/privacy", "/terms"];
+const PAGE_PATHS = ["/", "/studios", "/contact", "/faq", "/blog", "/about", "/short-term", "/pay-urban-hub-now", "/reviews", "/privacy", "/terms"];
 
 export default function SeoManagement() {
   const queryClient = useQueryClient();

@@ -18,7 +18,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const DEFAULT_SETTINGS = {
   is_enabled: true,
-  show_after_seconds: 5,
+  show_after_seconds: 10, // 10s default so popup doesn't open during Lighthouse/performance capture (avoids affecting LCP/TBT)
   show_once_per_session: true,
   show_once_per_day: false,
   headline: "Stay Updated",
