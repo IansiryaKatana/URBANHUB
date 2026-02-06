@@ -20,19 +20,9 @@
   status = 301
   force = true
 
-# Blog (trailing slash)
-[[redirects]]
-  from = "/blog/"
-  to = "/blog"
-  status = 301
-  force = true
-
-# Reviews
-[[redirects]]
-  from = "/reviews/"
-  to = "/reviews"
-  status = 301
-  force = true
+# Blog, Reviews, Contact, FAQ, About, Privacy, Terms: do NOT redirect trailing slash
+# here—Netlify or CDN may add trailing slash to /about etc., causing /about/ -> /about
+# 301 to loop with "add slash" rule. Both /about and /about/ now serve SPA; client normalizes.
 
 # Academic year booking → portal
 [[redirects]]
@@ -56,23 +46,6 @@
   status = 301
   force = true
 
-# Contact, FAQ, About (trailing slash)
-[[redirects]]
-  from = "/contact/"
-  to = "/contact"
-  status = 301
-  force = true
-[[redirects]]
-  from = "/faq/"
-  to = "/faq"
-  status = 301
-  force = true
-[[redirects]]
-  from = "/about/"
-  to = "/about"
-  status = 301
-  force = true
-
 # Short term
 [[redirects]]
   from = "/short-term-stays"
@@ -92,18 +65,6 @@
 [[redirects]]
   from = "/urban-hub-keyworkers/"
   to = "/short-term?tab=keyworker"
-  status = 301
-  force = true
-
-# Privacy, Terms (trailing slash)
-[[redirects]]
-  from = "/privacy/"
-  to = "/privacy"
-  status = 301
-  force = true
-[[redirects]]
-  from = "/terms/"
-  to = "/terms"
   status = 301
   force = true
 
@@ -157,6 +118,13 @@
   from = "/studio-2627/rhodiun-studios/"
   to = "https://portal.urbanhub.uk/studios/2026-2027/rhodium"
   status = 301
+  force = true
+
+# Blog sitemap (dynamic: generated from Supabase on each request; updates when posts are added)
+[[redirects]]
+  from = "/sitemap-blog.xml"
+  to = "/.netlify/functions/sitemap-blog"
+  status = 200
   force = true
 
 # SPA fallback – must be last. Do NOT use force = true, or /assets/*.js and *.css
