@@ -44,6 +44,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
@@ -137,7 +138,7 @@ function StripePaymentForm({
         <Button
           type="button"
           variant="outline"
-          className={isLight ? "border-gray-300 text-gray-700 hover:bg-gray-100" : "border-white/30 text-white hover:bg-white/10"}
+          className={isLight ? "border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900" : "bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white"}
           onClick={onCancel}
         >
           Back
@@ -205,15 +206,20 @@ function PayUrbanHubFormSection({
   if (clientSecret && stripePromise) {
     const options = { clientSecret, appearance: { theme: isLight ? "stripe" as const : "night" as const } };
     return (
-      <Elements stripe={stripePromise} options={options}>
-        <StripePaymentForm
-          clientSecret={clientSecret}
-          onSuccess={onSuccess}
-          onCancel={onCancelStripe}
-          onLoadError={onPaymentElementLoadError}
-          variant={variant}
-        />
-      </Elements>
+      <div className="min-h-[320px] flex flex-col" role="region" aria-label="Card payment form">
+        <p className={`text-sm mb-2 ${isLight ? "text-gray-600" : "text-white"}`}>
+          Enter your card details below to complete payment.
+        </p>
+        <Elements stripe={stripePromise} options={options} key={clientSecret}>
+          <StripePaymentForm
+            clientSecret={clientSecret}
+            onSuccess={onSuccess}
+            onCancel={onCancelStripe}
+            onLoadError={onPaymentElementLoadError}
+            variant={variant}
+          />
+        </Elements>
+      </div>
     );
   }
 
@@ -346,9 +352,17 @@ const PayUrbanHubNow = () => {
     }
   };
 
-  const handlePaymentSuccess = () => {
-    setSuccessDialogOpen(true);
+  const handlePaymentSuccess = (closeDrawerFirst?: boolean) => {
     setClientSecret(null);
+    if (closeDrawerFirst) {
+      setPayDrawerOpen(false);
+      // Open success dialog after drawer has closed so focus moves into dialog (avoids aria-hidden focus issue)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setSuccessDialogOpen(true));
+      });
+    } else {
+      setSuccessDialogOpen(true);
+    }
   };
 
   const handleCancelStripe = () => {
@@ -359,17 +373,16 @@ const PayUrbanHubNow = () => {
     setClientSecret(null);
   };
 
-  // Dev: log Stripe key mode when loading Payment Element (400 often = test/live mismatch)
+  // Log Stripe key mode when loading Payment Element (400 = test/live mismatch between frontend key and Supabase secret)
   useEffect(() => {
-    if (import.meta.env.DEV && clientSecret) {
-      const mode = getStripePublishableKeyMode();
-      if (mode === "missing") {
-        console.warn("[Stripe] VITE_STRIPE_PUBLISHABLE_KEY is not set. Add it to .env");
-      } else if (mode !== "unknown") {
-        console.info(
-          `[Stripe] Publishable key mode: ${mode}. If you get 400, set Supabase Edge Function secret STRIPE_SECRET_KEY to the same mode (sk_${mode}_...).`
-        );
-      }
+    if (!clientSecret) return;
+    const mode = getStripePublishableKeyMode();
+    if (mode === "missing") {
+      console.warn("[Stripe] VITE_STRIPE_PUBLISHABLE_KEY is not set. Add it to .env (and to Netlify env for production).");
+    } else if (mode !== "unknown" && (import.meta.env.DEV || import.meta.env.PROD)) {
+      console.info(
+        `[Stripe] Publishable key mode: ${mode}. Supabase Edge Function STRIPE_SECRET_KEY must be the same mode (sk_${mode}_...). If you see 400, frontend and server keys don't match—check .env vs .env.local (Vite uses .env.local over .env) and Netlify env.`
+      );
     }
   }, [clientSecret]);
 
@@ -536,10 +549,7 @@ const PayUrbanHubNow = () => {
                   isCreatingIntent={isCreatingIntent}
                   onCreateIntent={handleCreateIntent(drawerStep)}
                   clientSecret={clientSecret}
-                  onSuccess={() => {
-                    handlePaymentSuccess();
-                    setPayDrawerOpen(false);
-                  }}
+                  onSuccess={() => handlePaymentSuccess(true)}
                   onCancelStripe={handleCancelStripe}
                   onPaymentElementLoadError={handlePaymentElementLoadError}
                   createIntentError={createIntentError}
@@ -553,17 +563,23 @@ const PayUrbanHubNow = () => {
 
       {/* Success confirmation dialog - 2 close buttons */}
       <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
-        <DialogContent className="sm:max-w-md p-6 gap-4">
+        <DialogContent
+          className="sm:max-w-md p-6 gap-4"
+          aria-describedby="payment-success-description"
+        >
           <DialogHeader className="space-y-2">
             <div className="flex justify-end order-first">
               <DialogClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">×</Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label="Close dialog">×</Button>
               </DialogClose>
             </div>
             <DialogTitle className="text-xl font-display font-black uppercase tracking-wide text-center flex items-center justify-center gap-2">
               <CheckCircle2 className="h-8 w-8 text-green-600 shrink-0" aria-hidden />
               Payment successful
             </DialogTitle>
+            <DialogDescription id="payment-success-description" className="sr-only">
+              Your payment has been processed successfully. You will receive an email confirmation shortly.
+            </DialogDescription>
           </DialogHeader>
           <p className="text-center text-muted-foreground">
             Thank you. Your payment has been processed successfully. You will receive an email confirmation shortly.

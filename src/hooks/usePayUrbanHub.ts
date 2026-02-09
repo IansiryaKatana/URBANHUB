@@ -2,6 +2,8 @@ import { useState } from "react";
 import { SUPABASE_URL } from "@/integrations/supabase/client";
 
 const CREATE_PAYMENT_INTENT_URL = `${SUPABASE_URL}/functions/v1/create-payment-intent`;
+// 400 from Stripe when loading Payment Element = mode mismatch: client_secret (from Supabase STRIPE_SECRET_KEY)
+// was created with test/live, but the page's VITE_STRIPE_PUBLISHABLE_KEY is the other mode. Both must match.
 
 export type PayUrbanHubFormData = {
   firstName: string;

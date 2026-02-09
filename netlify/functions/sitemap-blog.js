@@ -10,18 +10,23 @@ async function fetchPublishedPosts() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
   if (!url || !key) {
-    console.warn("sitemap-blog: missing SUPABASE_URL or SUPABASE_ANON_KEY");
+    console.warn("sitemap-blog: Set SUPABASE_URL and SUPABASE_ANON_KEY in Netlify → Site settings → Environment variables (for Functions).");
     return [];
   }
-  const apiUrl = `${url.replace(/\/$/, "")}/rest/v1/blog_posts?status=eq.published&select=slug,published_at,updated_at&order=published_at.desc`;
+  const base = url.replace(/\/$/, "");
+  const apiUrl = `${base}/rest/v1/blog_posts?status=eq.published&select=slug,published_at,updated_at&order=published_at.desc`;
   const res = await fetch(apiUrl, {
     headers: {
       apikey: key,
       Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
+      Accept: "application/json",
+      "Accept-Profile": "public",
     },
   });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.warn("sitemap-blog: Supabase returned", res.status, await res.text());
+    return [];
+  }
   return res.json();
 }
 
@@ -45,6 +50,7 @@ exports.handler = async function (event, context) {
   const posts = await fetchPublishedPosts();
   const urlset = [
     '<?xml version="1.0" encoding="UTF-8"?>',
+    '<!-- Blog sitemap: list of published post URLs. Empty = no published posts yet, or check Netlify env vars (SUPABASE_URL, SUPABASE_ANON_KEY) for Functions. -->',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   ];
   for (const post of posts) {
