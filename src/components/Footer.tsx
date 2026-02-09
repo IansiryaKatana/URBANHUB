@@ -108,6 +108,11 @@ const Footer = () => {
                   </a>
                 </li>
               ))}
+              <li>
+                <Link to="/pay-urban-hub-now" className="text-white/80 hover:text-white transition-colors">
+                  Pay Urban Hub Now
+                </Link>
+              </li>
             </ul>
           </div>
 
