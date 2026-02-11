@@ -144,6 +144,10 @@ export function useAnalyticsData() {
         }
       });
       const totalPv = newPageviews + returningPageviews;
+      const latestPageViewAt =
+        list.length > 0
+          ? list.reduce((max, r) => (r.created_at > max ? r.created_at : max), list[0].created_at)
+          : null;
 
       return {
         allVisitors,
@@ -157,6 +161,7 @@ export function useAnalyticsData() {
         returningPageviews,
         totalPageviews: totalPv,
         prevVisitors,
+        latestPageViewAt,
       };
     },
     staleTime: 2 * 60 * 1000,

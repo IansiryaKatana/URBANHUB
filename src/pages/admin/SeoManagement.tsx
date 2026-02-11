@@ -256,6 +256,7 @@ export default function SeoManagement() {
                       <TableRow>
                         <TableHead>Slug / Path</TableHead>
                         <TableHead>Type</TableHead>
+                        <TableHead>Used for</TableHead>
                         <TableHead>Meta title</TableHead>
                         <TableHead>Focus keyphrase</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -266,6 +267,13 @@ export default function SeoManagement() {
                         <TableRow key={row.id}>
                           <TableCell className="font-mono text-sm">{row.page_path}</TableCell>
                           <TableCell>{row.page_type}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[140px]">
+                            {row.page_path === "/"
+                              ? "Homepage (/)"
+                              : row.page_path === "/studios"
+                                ? "Studios; Home if no / row"
+                                : "—"}
+                          </TableCell>
                           <TableCell className="max-w-[220px] truncate">{row.meta_title ?? "—"}</TableCell>
                           <TableCell className="max-w-[160px] truncate text-muted-foreground">{row.focus_keyword ?? "—"}</TableCell>
                           <TableCell className="text-right">

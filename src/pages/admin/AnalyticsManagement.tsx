@@ -215,6 +215,23 @@ export default function AnalyticsManagement() {
     onError: () => toast.error("Failed to delete."),
   });
 
+  const testInsertPageViewMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("website_analytics_page_views").insert({
+        page_path: "/admin/analytics",
+        session_id: "diagnostic-test",
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["analytics-dashboard-data"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-website-analytics-page-views"] });
+      toast.success("Test page view inserted. Tracking is working.");
+    },
+    onError: (err: Error) => toast.error(`Page view insert failed: ${err.message}`),
+  });
+
   const editingTag = tags?.find((t) => t.id === tagEditId);
 
   const { data: analyticsData, isLoading: analyticsLoading } = useAnalyticsData();
@@ -367,6 +384,29 @@ export default function AnalyticsManagement() {
               </CardContent>
             </Card>
           </div>
+
+          <Card className="bg-white shadow-sm border-dashed">
+            <CardHeader>
+              <CardTitle className="text-base">Page view tracking</CardTitle>
+              <p className="text-sm text-muted-foreground">Diagnostic: last recorded page view and test insert</p>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Latest page view in DB (last 56 days):{" "}
+                {analyticsData?.latestPageViewAt
+                  ? format(new Date(analyticsData.latestPageViewAt), "PPpp")
+                  : "—"}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => testInsertPageViewMutation.mutate()}
+                disabled={testInsertPageViewMutation.isPending}
+              >
+                {testInsertPageViewMutation.isPending ? "Inserting…" : "Test insert page view"}
+              </Button>
+            </CardContent>
+          </Card>
 
           <Card className="bg-white shadow-sm">
             <CardHeader>
