@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
@@ -100,10 +100,21 @@ function StripePaymentForm({
   const elements = useElements();
   const [isConfirming, setIsConfirming] = useState(false);
   const isLight = variant === "light";
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handleLoadError = () => {
+    const isProd = typeof window !== "undefined" && !window.location.hostname.includes("localhost");
     toast.error(
-      "Payment form could not load. Ensure your Stripe keys match (both test or both live). Try again or use bank transfer."
+      isProd
+        ? "Payment form could not load. In production, set VITE_STRIPE_PUBLISHABLE_KEY in Netlify (pk_live_...) and STRIPE_SECRET_KEY in Supabase (sk_live_...), then redeploy. Both must be the same mode (live). Try again or use bank transfer."
+        : "Payment form could not load. Ensure your Stripe keys match (both test or both live). Try again or use bank transfer."
     );
     onLoadError?.();
   };
@@ -111,6 +122,7 @@ function StripePaymentForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
+    if (!mountedRef.current) return;
     setIsConfirming(true);
     try {
       const { error } = await stripe.confirmPayment({
@@ -119,15 +131,23 @@ function StripePaymentForm({
           return_url: `${window.location.origin}/pay-urban-hub-now`,
         },
       });
+      if (!mountedRef.current) return;
       if (error) {
         toast.error(error.message || "Payment failed");
         return;
       }
       onSuccess();
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      if (!mountedRef.current) return;
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("destroyed") || msg.includes("already been destroyed")) {
+        toast.error("Payment form was closed. Please fill the form again and try paying.");
+        onLoadError?.();
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
-      setIsConfirming(false);
+      if (mountedRef.current) setIsConfirming(false);
     }
   };
 
@@ -373,15 +393,15 @@ const PayUrbanHubNow = () => {
     setClientSecret(null);
   };
 
-  // Log Stripe key mode when loading Payment Element (400 = test/live mismatch between frontend key and Supabase secret)
+  // Log Stripe key mode when loading Payment Element (401/400 = key missing or test/live mismatch)
   useEffect(() => {
     if (!clientSecret) return;
     const mode = getStripePublishableKeyMode();
     if (mode === "missing") {
-      console.warn("[Stripe] VITE_STRIPE_PUBLISHABLE_KEY is not set. Add it to .env (and to Netlify env for production).");
+      console.warn("[Stripe] VITE_STRIPE_PUBLISHABLE_KEY is not set. Add it to .env and to Netlify env for production, then redeploy.");
     } else if (mode !== "unknown" && (import.meta.env.DEV || import.meta.env.PROD)) {
       console.info(
-        `[Stripe] Publishable key mode: ${mode}. Supabase Edge Function STRIPE_SECRET_KEY must be the same mode (sk_${mode}_...). If you see 400, frontend and server keys don't match—check .env vs .env.local (Vite uses .env.local over .env) and Netlify env.`
+        `[Stripe] Publishable key mode: ${mode}. Supabase STRIPE_SECRET_KEY must be the same (sk_${mode}_...). 401 in production? Set both keys to live in Netlify + Supabase and redeploy.`
       );
     }
   }, [clientSecret]);

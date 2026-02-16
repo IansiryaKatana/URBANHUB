@@ -16,6 +16,10 @@ export const PORTAL_BASE_URL =
  * use live in the file that wins (e.g. remove VITE_STRIPE_PUBLISHABLE_KEY from .env.local
  * or set it to pk_live_ there too). For Netlify, set VITE_STRIPE_PUBLISHABLE_KEY in the
  * dashboard so the deployed site uses your live key.
+ *
+ * Production 401 / "doesn't work in live": The key is inlined at BUILD time. Set
+ * VITE_STRIPE_PUBLISHABLE_KEY in Netlify (pk_live_...) and redeploy. In Supabase
+ * Edge Function secrets set STRIPE_SECRET_KEY (sk_live_...). Both must be live.
  */
 export const STRIPE_PUBLISHABLE_KEY = (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "").trim();
 
