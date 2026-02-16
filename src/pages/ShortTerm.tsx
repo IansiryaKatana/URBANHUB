@@ -126,15 +126,15 @@ const ShortTermFormSection = ({
                   <div className="relative h-12">
                     <Input
                       type="date"
-                      className={`h-full w-full rounded-xl border-none outline-none ring-0 bg-black/50 focus:bg-black/60 focus-visible:ring-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:bottom-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!field.value ? "text-transparent" : "text-white"}`}
+                      className={`relative h-full w-full rounded-xl border-none outline-none ring-0 bg-black/50 focus:bg-black/60 focus-visible:ring-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:bottom-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-[0.01] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:z-[2] ${!field.value ? "text-transparent" : "text-white"}`}
                       {...field}
                     />
                     {!field.value && (
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/55 text-sm pointer-events-none">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/55 text-sm pointer-events-none z-[1]">
                         Check-in date
                       </span>
                     )}
-                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white pointer-events-none" aria-hidden />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white pointer-events-none z-[1]" aria-hidden />
                   </div>
                 </FormControl>
                 <FormMessage className="text-white/90 text-xs" />
@@ -150,15 +150,15 @@ const ShortTermFormSection = ({
                   <div className="relative h-12">
                     <Input
                       type="date"
-                      className={`h-full w-full rounded-xl border-none outline-none ring-0 bg-black/50 focus:bg-black/60 focus-visible:ring-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:bottom-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!field.value ? "text-transparent" : "text-white"}`}
+                      className={`relative h-full w-full rounded-xl border-none outline-none ring-0 bg-black/50 focus:bg-black/60 focus-visible:ring-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:bottom-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-[0.01] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:z-[2] ${!field.value ? "text-transparent" : "text-white"}`}
                       {...field}
                     />
                     {!field.value && (
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/55 text-sm pointer-events-none">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/55 text-sm pointer-events-none z-[1]">
                         Check-out date
                       </span>
                     )}
-                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white pointer-events-none" aria-hidden />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white pointer-events-none z-[1]" aria-hidden />
                   </div>
                 </FormControl>
                 <FormMessage className="text-white/90 text-xs" />
@@ -305,7 +305,7 @@ const ShortTerm = () => {
         }}
       >
         <Tabs defaultValue={tabFromUrl} className="w-full h-full min-h-0 flex flex-col md:min-h-screen">
-          <div className="w-full min-h-0 flex-1 overflow-y-auto px-4 py-8 pb-4 md:overflow-visible md:px-[100px] md:pb-[100px] md:pt-0 md:min-h-screen flex flex-col md:flex-row md:items-end md:justify-between gap-8 md:gap-12 pb-36 md:pb-4">
+          <div className="w-full min-h-0 flex-1 overflow-y-auto px-4 py-8 pb-8 md:overflow-visible md:px-[100px] md:pb-[100px] md:pt-0 md:min-h-screen flex flex-col md:flex-row md:items-end md:justify-between gap-8 md:gap-12 md:pb-4">
             {/* Left: title, desc, tabs — aligned to very bottom, tabs directly under desc like CTAs; pb-36 on mobile clears the fixed CTA button */}
             <div className="flex-1 flex min-h-0 flex-col justify-end text-white max-w-2xl md:justify-end md:min-h-0">
               <TabsContent value="tourist" className="mt-0 mb-0 outline-none ring-0">
@@ -358,6 +358,18 @@ const ShortTerm = () => {
                   </TabsTrigger>
                 </TabsList>
               </div>
+              {/* Mobile: CTA in its own section below title and description to avoid overlap */}
+              {isMobile && (
+                <div className="mt-6 w-full md:hidden">
+                  <Button
+                    onClick={() => setBookDrawerOpen(true)}
+                    className="w-full h-14 rounded-full bg-primary text-white font-semibold text-base uppercase tracking-wide hover:bg-primary/90"
+                    data-analytics="short-term-book"
+                  >
+                    Book your Short Stay Now
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Right: form aligned very bottom */}
@@ -383,19 +395,6 @@ const ShortTerm = () => {
             </div>
           </div>
         </Tabs>
-
-        {/* Mobile: full-width Book your Short Stay Now button */}
-        {isMobile && (
-          <div className="absolute inset-x-0 bottom-0 px-4 pb-8 pt-4 md:hidden">
-            <Button
-              onClick={() => setBookDrawerOpen(true)}
-              className="w-full h-14 rounded-full bg-primary text-white font-semibold text-base uppercase tracking-wide hover:bg-primary/90"
-              data-analytics="short-term-book"
-            >
-              Book your Short Stay Now
-            </Button>
-          </div>
-        )}
       </section>
       </main>
 
@@ -430,7 +429,7 @@ const ShortTerm = () => {
               </div>
             </>
           ) : (
-            <div className="bg-gray-900 min-h-[70vh] rounded-t-2xl flex flex-col">
+            <div className="bg-zinc-800 rounded-t-2xl flex flex-col min-h-0">
               <div className="flex items-center gap-2 px-4 pt-4 pb-2">
                 <DrawerClose asChild>
                   <Button
