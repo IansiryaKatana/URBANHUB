@@ -46,7 +46,7 @@ const Preloader = () => {
             ease: [0.25, 0.1, 0.25, 1],
           }}
         >
-          <img src={logo} alt="Urban Hub" className="h-10 w-auto md:h-14" width={160} height={56} fetchPriority="high" />
+          <img src={logo} alt="Urban Hub" className="h-10 w-auto md:h-14" width={160} height={56} fetchpriority="high" />
         </motion.div>
 
         {/* Progress Bar */}

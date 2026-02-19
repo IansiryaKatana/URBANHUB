@@ -173,6 +173,19 @@ All colors MUST be HSL.
     display: none;
   }
 
+  /* Admin layout: all cards (any with .rounded-lg and .border) get larger radius, no border, shadow */
+  [data-admin-main] .rounded-lg.border {
+    border-radius: 1.25rem !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06) !important;
+    border: none !important;
+  }
+
+  /* Admin layout: increase radius on buttons in page content */
+  [data-admin-main] button:not([class*="rounded-full"]),
+  [data-admin-main] [role="button"]:not([class*="rounded-full"]) {
+    border-radius: 0.75rem !important;
+  }
+
   /* Hide scrollbar for IE, Edge and Firefox */
   .scrollbar-hide {
     -ms-overflow-style: none;  /* IE and Edge */

@@ -343,7 +343,7 @@ const About = () => {
             src={heroPosterUrl}
             alt={isMobile ? (aboutHeroMobile?.alt_text || "Urban Hub Preston") : (aboutHeroDesktop?.alt_text || "Urban Hub Preston")}
             className="absolute inset-0 h-full w-full object-cover"
-            fetchPriority="high"
+            fetchpriority="high"
           />
         )}
         <video

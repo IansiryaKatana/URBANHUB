@@ -252,13 +252,13 @@ export default function UserManagement() {
       if (error) throw error;
       if (!data.user) throw new Error("Failed to create user");
 
-      // Update profile with role, subrole, and name
-      const profileUpdate: any = { 
+      // Update profile with role, subrole, and name (row is created by Supabase trigger on signup)
+      const profileUpdate: Record<string, unknown> = {
         role,
         first_name: firstName || null,
         last_name: lastName || null,
       };
-      if (staff_subrole) {
+      if (staff_subrole != null && staff_subrole !== "") {
         profileUpdate.staff_subrole = staff_subrole;
       }
 
@@ -267,7 +267,11 @@ export default function UserManagement() {
         .update(profileUpdate)
         .eq("id", data.user.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        const msg = profileError.message + (profileError.details ? ` (${profileError.details})` : "");
+        console.error("Profile update error:", profileError.code, profileError.message, profileError.details);
+        throw new Error(msg);
+      }
 
       return data;
     },

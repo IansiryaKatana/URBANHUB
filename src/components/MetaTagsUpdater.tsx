@@ -78,15 +78,15 @@ const MetaTagsUpdater = () => {
       updateMetaTagByName("twitter:image:alt", pageSeo.twitter_image_alt);
     }
 
-    if (pageSeo?.canonical_url) {
-      let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement("link");
-        link.setAttribute("rel", "canonical");
-        document.head.appendChild(link);
-      }
-      link.setAttribute("href", pageSeo.canonical_url);
+    // Always set canonical so Google has a user-selected canonical (fixes "Duplicate without user-selected canonical")
+    const canonicalHref = pageSeo?.canonical_url?.trim() || `${siteUrl}${location.pathname.replace(/\/+$/, "") || "/"}`;
+    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement("link");
+      link.setAttribute("rel", "canonical");
+      document.head.appendChild(link);
     }
+    link.setAttribute("href", canonicalHref);
 
     if (pageSeo?.robots_meta) {
       updateMetaTagByName("robots", pageSeo.robots_meta);
