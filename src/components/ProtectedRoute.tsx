@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import type { StaffSubrole } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,14 @@ import { getDefaultRouteForRole } from "@/utils/getDefaultRoute";
 
 type ProtectedRouteProps = {
   children: React.ReactNode;
-  allowedRoles: Array<"student" | "staff" | "superadmin" | "partner" | "admin" | "operations_manager" | "reservationist" | "accountant" | "front_desk" | "maintenance_officer" | "housekeeper">;
+  allowedRoles: Array<
+    | "student"
+    | "staff"
+    | "superadmin"
+    | "partner"
+    | "admin"
+    | StaffSubrole
+  >;
   checkDatabase?: boolean; // Optional: if false, skips database check and uses allowedRoles only
 };
 

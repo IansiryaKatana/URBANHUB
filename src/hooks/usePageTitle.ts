@@ -8,7 +8,7 @@ import { usePageSeo } from "@/hooks/usePageSeo";
  * Public website pages use seo_pages via MetaTagsUpdater.
  */
 const routeTitleMap: Record<string, string> = {
-  "/admin/login": "Website Admin Login",
+  "/admin/login": "Urban Hub Login",
   "/admin": "Website Admin",
   "/admin/form-submissions": "Form Submissions",
   "/admin/faqs": "FAQs",

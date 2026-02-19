@@ -43,43 +43,35 @@ export default function AdminLayout() {
   const { user, profile, role, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Get user's subrole
   const userSubrole = profile?.staff_subrole;
+  const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
+  // AuthContext exposes subrole as role for staff (e.g. role === "seo_editor"); sidebar must treat that as website staff
+  const effectiveSubrole = websiteSubroles.includes(role) ? role : userSubrole;
 
-  // Filter nav items based on role and subrole
   const navItems = allNavItems.filter((item) => {
-    // Superadmin only items
     if (item.superadminOnly) {
       return role === "superadmin";
     }
-    
-    // If item has subrole restrictions
     if (item.subroles && item.subroles.length > 0) {
-      // Superadmin and admin see everything
       if (role === "superadmin" || role === "admin") {
         return true;
       }
-      // Staff with website subrole: check if their subrole is in allowed list
       if (role === "staff" && userSubrole) {
         return item.subroles.includes(userSubrole);
       }
-      // Staff without subrole: no access to restricted items
+      if (effectiveSubrole && item.subroles.includes(effectiveSubrole)) {
+        return true;
+      }
       if (role === "staff" && !userSubrole) {
         return false;
       }
-      // Other roles: no access
       return false;
     }
-    
-    // Items without subrole restrictions: visible to all website admins
-    // (superadmin, admin, staff with website subroles)
     if (role === "superadmin" || role === "admin") {
       return true;
     }
-    if (role === "staff") {
-      const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
-      // Staff with website subrole can see unrestricted items
-      return userSubrole ? websiteSubroles.includes(userSubrole) : false;
+    if (role === "staff" || websiteSubroles.includes(role)) {
+      return true;
     }
     return false;
   });

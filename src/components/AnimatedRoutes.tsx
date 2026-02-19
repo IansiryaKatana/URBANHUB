@@ -62,7 +62,18 @@ const AnimatedRoutes = () => {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute allowedRoles={["staff", "superadmin", "admin"]} checkDatabase={false}>
+              <ProtectedRoute
+                allowedRoles={[
+                  "staff",
+                  "superadmin",
+                  "admin",
+                  "seo_editor",
+                  "content_editor",
+                  "marketing_manager",
+                  "customer_support",
+                ]}
+                checkDatabase={false}
+              >
                 <AdminLayout />
               </ProtectedRoute>
             }
