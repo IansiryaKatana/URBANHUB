@@ -234,7 +234,7 @@ export default function AnalyticsManagement() {
 
   const editingTag = tags?.find((t) => t.id === tagEditId);
 
-  const { data: analyticsData, isLoading: analyticsLoading } = useAnalyticsData();
+  const { data: analyticsData, isLoading: analyticsLoading, error: analyticsError } = useAnalyticsData();
   const { data: seoPages } = useQuery({
     queryKey: ["seo-pages-all"],
     queryFn: async () => {
@@ -282,7 +282,12 @@ export default function AnalyticsManagement() {
                 <p className="text-sm text-muted-foreground">Track your site&apos;s traffic over time</p>
               </CardHeader>
               <CardContent>
-                {analyticsLoading ? (
+                {analyticsError ? (
+                  <div className="h-[240px] flex flex-col items-center justify-center text-destructive text-sm gap-1 p-4 text-center">
+                    <span>Failed to load analytics data.</span>
+                    <span className="text-xs text-muted-foreground font-normal">{(analyticsError as Error)?.message || "Check your role has access (staff/superadmin/admin)."}</span>
+                  </div>
+                ) : analyticsLoading ? (
                   <div className="flex h-[240px] items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </div>
@@ -319,7 +324,10 @@ export default function AnalyticsManagement() {
                     </div>
                   </>
                 ) : (
-                  <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">No data yet</div>
+                  <div className="h-[240px] flex flex-col items-center justify-center text-muted-foreground text-sm gap-1">
+                    <span>No data yet</span>
+                    <span className="text-xs">Live data from page views. Use &quot;Test insert page view&quot; below to verify tracking.</span>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -388,7 +396,7 @@ export default function AnalyticsManagement() {
           <Card className="bg-white shadow-sm border-dashed">
             <CardHeader>
               <CardTitle className="text-base">Page view tracking</CardTitle>
-              <p className="text-sm text-muted-foreground">Diagnostic: last recorded page view and test insert</p>
+              <p className="text-sm text-muted-foreground">Live data from <code className="text-xs bg-muted px-1 rounded">website_analytics_page_views</code>. If data stopped after a date, check: (1) Netlify env vars VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, (2) browser console for &quot;[Analytics] Page view insert failed&quot; on the live site.</p>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
@@ -411,7 +419,7 @@ export default function AnalyticsManagement() {
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Search traffic over the last 28 days</CardTitle>
-              <p className="text-sm text-muted-foreground">Connect Google Search Console for search impressions and clicks</p>
+              <p className="text-sm text-muted-foreground">Search Console is not integrated yet. Impressions and clicks are not pulled into this dashboard.</p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
@@ -432,13 +440,14 @@ export default function AnalyticsManagement() {
                   <p className="text-sm text-muted-foreground">Conversions</p>
                 </div>
               </div>
+              <p className="text-sm text-muted-foreground mb-2">View search performance in Google Search Console directly:</p>
               <a
                 href="https://search.google.com/search-console"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline flex items-center gap-1"
               >
-                Connect Search Console
+                Open Search Console
                 <ExternalLink className="h-3 w-3" />
               </a>
             </CardContent>
@@ -594,17 +603,16 @@ export default function AnalyticsManagement() {
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Top search queries for your site</CardTitle>
-              <p className="text-sm text-muted-foreground">Keep track of your most popular pages and how people found them from Search</p>
+              <p className="text-sm text-muted-foreground">Search Console is not integrated yet. View queries and performance in Search Console directly.</p>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground py-4">Connect Google Search Console to see search queries, clicks and impressions.</p>
               <a
                 href="https://search.google.com/search-console"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline flex items-center gap-1"
               >
-                Connect Search Console
+                Open Search Console
                 <ExternalLink className="h-3 w-3" />
               </a>
             </CardContent>
@@ -801,12 +809,14 @@ export default function AnalyticsManagement() {
                 <SelectItem value="/faq">/faq</SelectItem>
                 <SelectItem value="/blog">/blog</SelectItem>
                 <SelectItem value="/about">/about</SelectItem>
+                <SelectItem value="/pay-urban-hub-now">/pay-urban-hub-now</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Click & custom events (last 500)</CardTitle>
+              <p className="text-sm text-muted-foreground">Live data from <code className="text-xs bg-muted px-1 rounded">website_analytics_events</code></p>
             </CardHeader>
             <CardContent>
               {eventsLoading ? (
@@ -864,12 +874,14 @@ export default function AnalyticsManagement() {
                 <SelectItem value="/faq">/faq</SelectItem>
                 <SelectItem value="/blog">/blog</SelectItem>
                 <SelectItem value="/about">/about</SelectItem>
+                <SelectItem value="/pay-urban-hub-now">/pay-urban-hub-now</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Page views (last 500)</CardTitle>
+              <p className="text-sm text-muted-foreground">Live data from <code className="text-xs bg-muted px-1 rounded">website_analytics_page_views</code></p>
             </CardHeader>
             <CardContent>
               {viewsLoading ? (

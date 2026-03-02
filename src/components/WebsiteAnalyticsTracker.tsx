@@ -14,13 +14,21 @@ function getSessionId(): string {
   return s;
 }
 
-function recordPageView(page_path: string) {
-  supabase.from("website_analytics_page_views").insert({
+function recordPageView(page_path: string, retryCount = 0) {
+  const payload = {
     page_path,
     session_id: getSessionId(),
     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
-  }).then(({ error }) => {
-    if (error) console.warn("[Analytics] Page view insert failed:", error.message);
+  };
+  supabase.from("website_analytics_page_views").insert(payload).then(({ error }) => {
+    if (error) {
+      console.warn("[Analytics] Page view insert failed:", error.message, error.code || "");
+      if (retryCount < 1) {
+        setTimeout(() => recordPageView(page_path, retryCount + 1), 1500);
+      } else if (import.meta.env.PROD) {
+        console.warn("[Analytics] If data stopped after a deploy, check Netlify env: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.");
+      }
+    }
   });
 }
 

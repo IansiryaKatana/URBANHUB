@@ -16,7 +16,7 @@ In **Site settings → Environment variables** add:
 
 - `VITE_SUPABASE_URL` – Supabase project URL  
 - `VITE_SUPABASE_PUBLISHABLE_KEY` – Supabase anon/public key  
-- `VITE_STRIPE_PUBLISHABLE_KEY` – **Stripe publishable key (use live `pk_live_...` for production).** Must match the mode of the secret key set in Supabase Edge Function secret `STRIPE_SECRET_KEY` (sk_live_...). If they differ, the Pay page will get 400 from Stripe when loading the card form.  
+- `VITE_STRIPE_PUBLISHABLE_KEY` – **Stripe publishable key (use live `pk_live_...` for production).** Must match the mode of the secret key set in Supabase Edge Function secret `STRIPE_SECRET_KEY` (sk_live_...). If they differ, the Pay page will get 400 from Stripe when loading the card form. **If the Pay page works on localhost but returns 401 in production:** In Stripe Dashboard go to **Developers → Payment method domains** and add your production domains (`urbanhub.uk` and `www.urbanhub.uk`). Without this, Stripe blocks the Elements session request on the live site.  
 - `VITE_PORTAL_URL` – *(optional)* Booking portal base URL (defaults to `https://portal.urbanhub.uk`). Room grade "Book Now" links and sign-in/register links point here.
 
 Use the same names as in `website/.env.example` so Vite can read them at build time. **Stripe:** For production, set `VITE_STRIPE_PUBLISHABLE_KEY` to your live key in Netlify; the build bakes it into the bundle. If you use test keys in `.env.local` locally, that file overrides `.env` (Vite load order), so the app can show "test" locally even when `.env` has live keys.
@@ -56,3 +56,23 @@ Set `VITE_PORTAL_URL=https://portal.urbanhub.uk` in Netlify env vars if your por
 - Confirm old URLs (e.g. `/terms-condition/`, `/urban-hub-keyworkers/`) 301 to the new URLs.
 - Confirm `/short-term?tab=keyworker` opens the Keyworker tab.
 - Check Supabase Auth **Redirect URLs** include: `https://urbanhub.uk`, `https://www.urbanhub.uk`, and `https://<your-site>.netlify.app`.
+
+## 7. Stripe: Google Pay and Apple Pay
+
+The Pay Urban Hub Now page uses the Stripe Payment Element with **automatic payment methods**; no code changes are needed. To show Google Pay and Apple Pay:
+
+1. **Enable the payment methods**
+   - In **Stripe Dashboard** go to **Settings** (cog) → **Payment methods**.
+   - Under **Your account** click **Edit settings** (or **Manage**).
+   - Turn on **Apple Pay** and **Google Pay** if they are not already on (cards and wallets are often enabled by default).
+
+2. **Register your domain (required for Apple Pay and to avoid 401 in production)**
+   - Go to **Developers** → **Payment method domains**.
+   - Add **urbanhub.uk** and **www.urbanhub.uk** (and complete any verification Stripe shows).
+   - Without this, the Payment Element can return 401 on the live site and Apple Pay will not be offered.
+
+3. **Test**
+   - **Apple Pay**: Only appears in Safari on supported Apple devices with a card in Wallet; not in Chrome or most desktop browsers.
+   - **Google Pay**: Appears in Chrome (and other supported browsers) when the customer has Google Pay set up; test in an incognito window with a Google account that has a payment method.
+
+The Payment Element will automatically show Card, Google Pay, and Apple Pay when enabled in the dashboard and when the customer’s device and browser support them.

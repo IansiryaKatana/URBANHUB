@@ -6,6 +6,10 @@
 // The secret key MUST be the same mode as VITE_STRIPE_PUBLISHABLE_KEY (both test or both live).
 // A mismatch causes the frontend Payment Element to fail with 400 Bad Request.
 //
+// Google Pay / Apple Pay: No code change needed. automatic_payment_methods lets Stripe show
+// whatever is enabled in Dashboard → Settings → Payment methods. Enable Apple Pay and Google Pay
+// there, and register your domain in Developers → Payment method domains (required for Apple Pay).
+//
 import Stripe from "https://esm.sh/stripe@17.4.0?target=deno";
 
 const corsHeaders = {

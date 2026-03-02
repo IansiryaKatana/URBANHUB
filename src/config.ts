@@ -17,9 +17,10 @@ export const PORTAL_BASE_URL =
  * or set it to pk_live_ there too). For Netlify, set VITE_STRIPE_PUBLISHABLE_KEY in the
  * dashboard so the deployed site uses your live key.
  *
- * Production 401 / "doesn't work in live": The key is inlined at BUILD time. Set
- * VITE_STRIPE_PUBLISHABLE_KEY in Netlify (pk_live_...) and redeploy. In Supabase
- * Edge Function secrets set STRIPE_SECRET_KEY (sk_live_...). Both must be live.
+ * Production 401 / "doesn't work in live": (1) Set VITE_STRIPE_PUBLISHABLE_KEY in Netlify
+ * (pk_live_...) and STRIPE_SECRET_KEY in Supabase (sk_live_...), then redeploy.
+ * (2) In Stripe Dashboard → Developers → Payment method domains, add urbanhub.uk
+ * and www.urbanhub.uk so Stripe allows the Payment Element on your production site.
  */
 export const STRIPE_PUBLISHABLE_KEY = (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "").trim();
 
