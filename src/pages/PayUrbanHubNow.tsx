@@ -1,16 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useSearchParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useBrandingSettings } from "@/hooks/useBranding";
 import { useSlotUrl } from "@/hooks/useWebsiteImageSlots";
 import { usePayUrbanHub, getPaymentTypeDescription, type PayUrbanHubFormData } from "@/hooks/usePayUrbanHub";
 import { SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
-import { STRIPE_PUBLISHABLE_KEY, getStripePublishableKeyMode } from "@/config";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -80,120 +78,18 @@ const TAB_OPTIONS: { value: PaymentTab; label: string }[] = [
   { value: "keyworker_pay", label: "Keyworker pay" },
 ];
 
-// Single Stripe instance for the page (avoids "Stripe() was called many times" warning)
-const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
-
-function StripePaymentForm({
-  clientSecret,
-  onSuccess,
-  onCancel,
-  onLoadError,
-  variant = "dark",
-}: {
-  clientSecret: string;
-  onSuccess: () => void;
-  onCancel: () => void;
-  onLoadError?: () => void;
-  variant?: "dark" | "light";
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [isConfirming, setIsConfirming] = useState(false);
-  const isLight = variant === "light";
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  const handleLoadError = () => {
-    const isProd = typeof window !== "undefined" && !window.location.hostname.includes("localhost");
-    toast.error(
-      isProd
-        ? "Payment form could not load (often a 401 from Stripe). Click «Pay securely» again to try with a new link. If it keeps failing: Stripe Dashboard → Developers → Logs (find the 401 for the exact reason); confirm this page is loaded from urbanhub.uk or www.urbanhub.uk; confirm the site uses the same Stripe account where Payment method domains are set. Or use bank transfer."
-        : "Payment form could not load. Ensure your Stripe keys match (both test or both live). Click «Pay securely» again or use bank transfer."
-    );
-    onLoadError?.();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    if (!mountedRef.current) return;
-    setIsConfirming(true);
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/pay-urban-hub-now`,
-        },
-      });
-      if (!mountedRef.current) return;
-      if (error) {
-        toast.error(error.message || "Payment failed");
-        return;
-      }
-      onSuccess();
-    } catch (err) {
-      if (!mountedRef.current) return;
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("destroyed") || msg.includes("already been destroyed")) {
-        toast.error("Payment form was closed. Please fill the form again and try paying.");
-        onLoadError?.();
-      } else {
-        toast.error("Something went wrong. Please try again.");
-      }
-    } finally {
-      if (mountedRef.current) setIsConfirming(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement options={{ layout: "tabs" }} onLoadError={handleLoadError} />
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          className={isLight ? "border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900" : "bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white"}
-          onClick={onCancel}
-        >
-          Back
-        </Button>
-        <Button
-          type="submit"
-          disabled={!stripe || isConfirming}
-          className="bg-primary text-white hover:bg-primary/90"
-        >
-          {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Pay now
-        </Button>
-      </div>
-    </form>
-  );
-}
+const PAY_PAGE_PATH = "/pay-urban-hub-now";
 
 function PayUrbanHubFormSection({
   paymentType,
   isCreatingIntent,
-  onCreateIntent,
-  clientSecret,
-  onSuccess,
-  onCancelStripe,
-  onPaymentElementLoadError,
+  onSubmitCheckout,
   createIntentError,
   variant = "dark",
 }: {
   paymentType: PaymentTab;
   isCreatingIntent: boolean;
-  onCreateIntent: (values: PayFormValues) => Promise<void>;
-  clientSecret: string | null;
-  onSuccess: () => void;
-  onCancelStripe: () => void;
-  onPaymentElementLoadError?: () => void;
+  onSubmitCheckout: (values: PayFormValues) => Promise<void>;
   createIntentError: string | null;
   variant?: "dark" | "light";
 }) {
@@ -223,29 +119,9 @@ function PayUrbanHubFormSection({
     },
   });
 
-  if (clientSecret && stripePromise) {
-    const options = { clientSecret, appearance: { theme: isLight ? "stripe" as const : "night" as const } };
-    return (
-      <div className="min-h-[320px] flex flex-col" role="region" aria-label="Card payment form">
-        <p className={`text-sm mb-2 ${isLight ? "text-gray-600" : "text-white"}`}>
-          Enter your card details below to complete payment.
-        </p>
-        <Elements stripe={stripePromise} options={options} key={clientSecret}>
-          <StripePaymentForm
-            clientSecret={clientSecret}
-            onSuccess={onSuccess}
-            onCancel={onCancelStripe}
-            onLoadError={onPaymentElementLoadError}
-            variant={variant}
-          />
-        </Elements>
-      </div>
-    );
-  }
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onCreateIntent)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmitCheckout)} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <FormField
             control={form.control}
@@ -338,7 +214,7 @@ function PayUrbanHubFormSection({
           className="w-full h-12 rounded-lg bg-primary text-white font-semibold text-sm uppercase tracking-wide hover:bg-primary/90"
         >
           {isCreatingIntent && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-          Pay securely
+          Pay securely (redirects to Stripe)
         </Button>
       </form>
     </Form>
@@ -348,11 +224,11 @@ function PayUrbanHubFormSection({
 type DrawerStep = "choose" | PaymentTab;
 
 const PayUrbanHubNow = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: brandingSettings } = useBrandingSettings();
   const heroSlotUrl = useSlotUrl("hero_shortterm", brandingSettings?.studio_catalog_hero_image);
   const heroImagePath = heroSlotUrl || "https://urbanhub.uk/wp-content/uploads/2025/05/URBAN-HUB-OUTSIDE-A-3-of-1-scaled-1.webp";
-  const { createPaymentIntent, isCreatingIntent, error: createIntentError } = usePayUrbanHub();
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const { createCheckoutSession, isCreatingIntent, error: createIntentError } = usePayUrbanHub();
   const [paymentType, setPaymentType] = useState<PaymentTab>("current_student");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bankDetailsOpen, setBankDetailsOpen] = useState(false);
@@ -360,69 +236,45 @@ const PayUrbanHubNow = () => {
   const [payDrawerOpen, setPayDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("choose");
 
-  const handleCreateIntent = (paymentTypeValue: PaymentTab) => async (values: PayFormValues) => {
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      setSuccessDialogOpen(true);
+      setSearchParams({}, { replace: true });
+    } else if (payment === "cancelled") {
+      toast.info("Payment was cancelled. You can try again whenever you're ready.");
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleCheckoutSubmit = (paymentTypeValue: PaymentTab) => async (values: PayFormValues) => {
+    const baseUrl = window.location.origin + PAY_PAGE_PATH;
     const formData: PayUrbanHubFormData = {
       ...values,
       amountPounds: values.amountPounds,
       paymentType: paymentTypeValue,
     };
-    const result = await createPaymentIntent(formData, SUPABASE_PUBLISHABLE_KEY);
-    if (result) {
-      setClientSecret(result.clientSecret);
+    const result = await createCheckoutSession(
+      formData,
+      SUPABASE_PUBLISHABLE_KEY,
+      `${baseUrl}?payment=success`,
+      `${baseUrl}?payment=cancelled`
+    );
+    if (result?.url) {
+      window.location.href = result.url;
     }
   };
-
-  const handlePaymentSuccess = (closeDrawerFirst?: boolean) => {
-    setClientSecret(null);
-    if (closeDrawerFirst) {
-      setPayDrawerOpen(false);
-      // Open success dialog after drawer has closed so focus moves into dialog (avoids aria-hidden focus issue)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setSuccessDialogOpen(true));
-      });
-    } else {
-      setSuccessDialogOpen(true);
-    }
-  };
-
-  const handleCancelStripe = () => {
-    setClientSecret(null);
-  };
-
-  const handlePaymentElementLoadError = () => {
-    setClientSecret(null);
-  };
-
-  // Log Stripe key mode when loading Payment Element (401/400 = key missing or test/live mismatch)
-  useEffect(() => {
-    if (!clientSecret) return;
-    const mode = getStripePublishableKeyMode();
-    if (mode === "missing") {
-      console.warn("[Stripe] VITE_STRIPE_PUBLISHABLE_KEY is not set. Add it to .env and to Netlify env for production, then redeploy.");
-    } else if (mode !== "unknown" && (import.meta.env.DEV || import.meta.env.PROD)) {
-      console.info(
-        `[Stripe] Publishable key mode: ${mode}. Supabase STRIPE_SECRET_KEY must be the same (sk_${mode}_...). 401 in production? Set both keys to live in Netlify + Supabase and redeploy.`
-      );
-    }
-  }, [clientSecret]);
 
   const handleDrawerOpenChange = (open: boolean) => {
     setPayDrawerOpen(open);
-    if (!open) {
-      setDrawerStep("choose");
-      setClientSecret(null);
-    }
+    if (!open) setDrawerStep("choose");
   };
 
   const formSection = (
     <PayUrbanHubFormSection
       paymentType={paymentType}
       isCreatingIntent={isCreatingIntent}
-      onCreateIntent={handleCreateIntent(paymentType)}
-      clientSecret={clientSecret}
-      onSuccess={handlePaymentSuccess}
-      onCancelStripe={handleCancelStripe}
-      onPaymentElementLoadError={handlePaymentElementLoadError}
+      onSubmitCheckout={handleCheckoutSubmit(paymentType)}
       createIntentError={createIntentError}
     />
   );
@@ -488,19 +340,17 @@ const PayUrbanHubNow = () => {
             <div className="hidden md:flex w-full md:max-w-[420px] lg:max-w-[440px] flex-shrink-0 md:ml-auto md:self-end">
               <div className="rounded-2xl bg-black/35 backdrop-blur-md border border-white/10 shadow-2xl p-6 md:p-8 w-full">
                 <Tabs value={paymentType} onValueChange={(v) => setPaymentType(v as PaymentTab)} className="w-full">
-                  {!clientSecret && (
-                    <TabsList className="grid grid-cols-3 w-full rounded-lg bg-black/40 backdrop-blur-md border border-white/10 p-1 gap-0.5 mb-4 min-w-0">
-                      {TAB_OPTIONS.map((tab) => (
-                        <TabsTrigger
-                          key={tab.value}
-                          value={tab.value}
-                          className="min-w-0 rounded-md text-[10px] font-semibold uppercase tracking-wide px-1 sm:px-2 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=inactive]:text-white/90 data-[state=inactive]:hover:bg-white/10 truncate"
-                        >
-                          {tab.label}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  )}
+                  <TabsList className="grid grid-cols-3 w-full rounded-lg bg-black/40 backdrop-blur-md border border-white/10 p-1 gap-0.5 mb-4 min-w-0">
+                    {TAB_OPTIONS.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className="min-w-0 rounded-md text-[10px] font-semibold uppercase tracking-wide px-1 sm:px-2 py-2 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=inactive]:text-white/90 data-[state=inactive]:hover:bg-white/10 truncate"
+                      >
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
                   <div className="mt-0">
                     {formSection}
                   </div>
@@ -567,11 +417,7 @@ const PayUrbanHubNow = () => {
                 <PayUrbanHubFormSection
                   paymentType={drawerStep}
                   isCreatingIntent={isCreatingIntent}
-                  onCreateIntent={handleCreateIntent(drawerStep)}
-                  clientSecret={clientSecret}
-                  onSuccess={() => handlePaymentSuccess(true)}
-                  onCancelStripe={handleCancelStripe}
-                  onPaymentElementLoadError={handlePaymentElementLoadError}
+                  onSubmitCheckout={handleCheckoutSubmit(drawerStep)}
                   createIntentError={createIntentError}
                   variant="light"
                 />

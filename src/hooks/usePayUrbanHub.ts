@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SUPABASE_URL } from "@/integrations/supabase/client";
 
 const CREATE_PAYMENT_INTENT_URL = `${SUPABASE_URL}/functions/v1/website-create-payment-intent`;
+const CREATE_CHECKOUT_SESSION_URL = `${SUPABASE_URL}/functions/v1/website-create-checkout-session`;
 // 400 from Stripe when loading Payment Element = mode mismatch: client_secret (from Supabase STRIPE_SECRET_KEY)
 // was created with test/live, but the page's VITE_STRIPE_PUBLISHABLE_KEY is the other mode. Both must match.
 
@@ -80,5 +81,56 @@ export const usePayUrbanHub = () => {
     }
   };
 
-  return { createPaymentIntent, isCreatingIntent, error };
+  const createCheckoutSession = async (
+    formData: PayUrbanHubFormData,
+    supabaseAnonKey: string,
+    successUrl: string,
+    cancelUrl: string
+  ): Promise<{ url: string } | null> => {
+    setIsCreatingIntent(true);
+    setError(null);
+    try {
+      const amountPence = Math.round(formData.amountPounds * 100);
+      const description = getPaymentTypeDescription(formData.paymentType);
+
+      const response = await fetch(CREATE_CHECKOUT_SESSION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify({
+          amountPence,
+          description,
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          successUrl,
+          cancelUrl,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to create checkout session");
+      }
+
+      const url = typeof data.url === "string" ? data.url.trim() : "";
+      if (!url || !url.startsWith("https://")) {
+        throw new Error("Invalid checkout URL from server");
+      }
+
+      return { url };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
+      return null;
+    } finally {
+      setIsCreatingIntent(false);
+    }
+  };
+
+  return { createPaymentIntent, createCheckoutSession, isCreatingIntent, error };
 };

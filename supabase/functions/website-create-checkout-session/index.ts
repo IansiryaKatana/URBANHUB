@@ -1,9 +1,8 @@
-// Supabase Edge Function: create Stripe PaymentIntent for Urban Hub website rental payments.
-// Uses Stripe REST API (fetch) to avoid Deno/Node compatibility issues (runMicrotasks) with the Stripe SDK.
+// Supabase Edge Function: create Stripe Checkout Session for Urban Hub website.
+// User is redirected to Stripe Checkout (payment form on Stripe's domain), avoiding 401
+// from embedded Payment Element on our domain. Uses REST API (fetch) for Deno compatibility.
 //
-// Required in Supabase Edge Function Secrets (Dashboard > Project Settings > Edge Functions > Secrets):
-//   - STRIPE_SECRET_KEY  (sk_test_... or sk_live_...)
-// The secret key MUST be the same mode as VITE_STRIPE_PUBLISHABLE_KEY (both test or both live).
+// Required secret: STRIPE_SECRET_KEY (sk_live_... or sk_test_...)
 //
 const STRIPE_API = "https://api.stripe.com/v1";
 const STRIPE_API_VERSION = "2025-09-30.clover";
@@ -43,6 +42,8 @@ Deno.serve(async (req) => {
     const firstName = typeof body?.firstName === "string" ? body.firstName : undefined;
     const lastName = typeof body?.lastName === "string" ? body.lastName : undefined;
     const phone = typeof body?.phone === "string" ? body.phone : undefined;
+    const successUrl = typeof body?.successUrl === "string" ? body.successUrl : "";
+    const cancelUrl = typeof body?.cancelUrl === "string" ? body.cancelUrl : "";
 
     if (!Number.isInteger(amountPence) || amountPence < 100) {
       return new Response(
@@ -50,24 +51,33 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    if (!successUrl || !cancelUrl) {
+      return new Response(
+        JSON.stringify({ error: "successUrl and cancelUrl are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const form = formBody({
-      amount: amountPence,
-      currency: "gbp",
-      description,
-      ...(email ? { receipt_email: email } : {}),
+      mode: "payment",
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      "line_items[0][price_data][currency]": "gbp",
+      "line_items[0][price_data][unit_amount]": amountPence,
+      "line_items[0][price_data][product_data][name]": description,
+      "line_items[0][quantity]": 1,
+      ...(email ? { customer_email: email } : {}),
       "metadata[payment_type]": description,
       "metadata[first_name]": firstName ?? "",
       "metadata[last_name]": lastName ?? "",
       "metadata[email]": email ?? "",
       "metadata[phone]": phone ?? "",
-      "automatic_payment_methods[enabled]": "true",
     });
 
-    const stripeRes = await fetch(`${STRIPE_API}/payment_intents`, {
+    const stripeRes = await fetch(`${STRIPE_API}/checkout/sessions`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${stripeSecret}`,
+        Authorization: `Bearer ${stripeSecret}`,
         "Content-Type": "application/x-www-form-urlencoded",
         "Stripe-Version": STRIPE_API_VERSION,
       },
@@ -77,15 +87,15 @@ Deno.serve(async (req) => {
     const data = await stripeRes.json();
 
     if (!stripeRes.ok) {
-      console.error("website-create-payment-intent Stripe error:", data);
+      console.error("website-create-checkout-session Stripe error:", data);
       return new Response(
-        JSON.stringify({ error: data?.error?.message || "Payment intent failed" }),
+        JSON.stringify({ error: data?.error?.message || "Checkout session failed" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const clientSecret = data.client_secret;
-    if (!clientSecret) {
+    const url = data.url;
+    if (!url) {
       return new Response(
         JSON.stringify({ error: "Invalid response from Stripe" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -93,13 +103,13 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ clientSecret }),
+      JSON.stringify({ url }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("website-create-payment-intent error:", err);
+    console.error("website-create-checkout-session error:", err);
     return new Response(
-      JSON.stringify({ error: err?.message || "Payment intent failed" }),
+      JSON.stringify({ error: err?.message || "Checkout session failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
