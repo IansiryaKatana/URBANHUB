@@ -113,8 +113,8 @@ function StripePaymentForm({
     const isProd = typeof window !== "undefined" && !window.location.hostname.includes("localhost");
     toast.error(
       isProd
-        ? "Payment form could not load. In production, set VITE_STRIPE_PUBLISHABLE_KEY in Netlify (pk_live_...) and STRIPE_SECRET_KEY in Supabase (sk_live_...), then redeploy. Both must be the same mode (live). Try again or use bank transfer."
-        : "Payment form could not load. Ensure your Stripe keys match (both test or both live). Try again or use bank transfer."
+        ? "Payment form could not load (often a 401 from Stripe). Click «Pay securely» again to try with a new link. If it keeps failing: Stripe Dashboard → Developers → Logs (find the 401 for the exact reason); confirm this page is loaded from urbanhub.uk or www.urbanhub.uk; confirm the site uses the same Stripe account where Payment method domains are set. Or use bank transfer."
+        : "Payment form could not load. Ensure your Stripe keys match (both test or both live). Click «Pay securely» again or use bank transfer."
     );
     onLoadError?.();
   };

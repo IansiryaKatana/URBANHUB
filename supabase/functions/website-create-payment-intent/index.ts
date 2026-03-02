@@ -1,4 +1,4 @@
-// Supabase Edge Function: create Stripe PaymentIntent for Urban Hub rental payments.
+// Supabase Edge Function: create Stripe PaymentIntent for Urban Hub website rental payments.
 //
 // Required in Supabase Edge Function Secrets (Dashboard > Project Settings > Edge Functions > Secrets):
 //   - STRIPE_SECRET_KEY  (sk_test_... or sk_live_...)
@@ -47,8 +47,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use SDK default API version so it matches what Stripe.js Payment Element expects
-    const stripe = new Stripe(stripeSecret);
+    // Pin API version to match Stripe.js Payment Element (avoids 401 from version mismatch)
+    const stripe = new Stripe(stripeSecret, { apiVersion: "2025-09-30.clover" });
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountPence,
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("create-payment-intent error:", err);
+    console.error("website-create-payment-intent error:", err);
     return new Response(
       JSON.stringify({ error: err?.message || "Payment intent failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
