@@ -23,11 +23,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { FileText, Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet, ImageIcon, AlertCircle } from "lucide-react";
+import { FileText, Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet, ImageIcon, AlertCircle, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import WordPressImport from "@/components/admin/WordPressImport";
 import CsvBlogImport from "@/components/admin/CsvBlogImport";
+import { useAuth } from "@/contexts/AuthContext";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type BlogPostRow = {
   id: string;
@@ -43,18 +45,40 @@ const POSTS_PER_PAGE = 12;
 export default function BlogAdmin() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { role } = useAuth();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [importOpen, setImportOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
+  const isSuperAdmin = role === "superadmin";
 
   // Fetch total count
   const { data: totalCount } = useQuery({
-    queryKey: ["admin-blog-posts-count"],
+    queryKey: ["admin-blog-posts-count", statusFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from("blog_posts")
+        .select("*", { count: "exact", head: true });
+
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      const { count, error } = await query;
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  // Fetch total draft count (for "Publish all drafts" button)
+  const { data: draftCount = 0 } = useQuery({
+    queryKey: ["admin-blog-draft-count"],
     queryFn: async () => {
       const { count, error } = await supabase
         .from("blog_posts")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("status", "draft");
       if (error) throw error;
       return count || 0;
     },
@@ -62,16 +86,22 @@ export default function BlogAdmin() {
 
   // Fetch paginated posts
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["admin-blog-posts", currentPage],
+    queryKey: ["admin-blog-posts", currentPage, statusFilter],
     queryFn: async () => {
       const from = (currentPage - 1) * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
       
-      const { data, error } = await supabase
+      let query = supabase
         .from("blog_posts")
         .select("id, title, slug, status, published_at, featured_image_url")
         .order("published_at", { ascending: false })
         .range(from, to);
+
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       return (data || []) as BlogPostRow[];
@@ -121,6 +151,7 @@ export default function BlogAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-draft-count"] });
       toast.success("All drafts published.");
     },
     onError: () => toast.error("Failed to publish drafts."),
@@ -134,6 +165,7 @@ export default function BlogAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-draft-count"] });
       toast.success("Post published.");
     },
     onError: () => toast.error("Failed to publish."),
@@ -148,6 +180,7 @@ export default function BlogAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-draft-count"] });
       setSelectedIds(new Set());
       toast.success("Selected posts published.");
     },
@@ -163,6 +196,7 @@ export default function BlogAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-draft-count"] });
       setSelectedIds(new Set());
       toast.success("Selected posts set to draft.");
     },
@@ -179,6 +213,7 @@ export default function BlogAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-draft-count"] });
       setSelectedIds(new Set());
       // Reset to page 1 if current page becomes empty
       if (posts && posts.length <= selectedArray.length && currentPage > 1) {
@@ -401,6 +436,7 @@ export default function BlogAdmin() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts-count"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-draft-count"] });
       if (result) {
         if (result.fixed > 0) {
           toast.success(`Fixed ${result.fixed} of ${result.total} image(s). ${result.failed > 0 ? `${result.failed} failed (likely CORS blocked). Use Node script for those.` : ""}`);
@@ -419,7 +455,6 @@ export default function BlogAdmin() {
     },
   });
 
-  const draftCount = posts?.filter((p) => p.status === "draft").length ?? 0;
   const selectedArray = Array.from(selectedIds);
 
   return (
@@ -434,25 +469,37 @@ export default function BlogAdmin() {
             <PlusCircle className="h-4 w-4 mr-2" />
             New post
           </Button>
-          <Button variant="outline" className="w-fit" onClick={() => setImportOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import WordPress
-          </Button>
-          <Button variant="outline" className="w-fit" onClick={() => setCsvImportOpen(true)}>
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Import from CSV
-          </Button>
-          <Link to="/blog">
-            <Button variant="outline" className="w-fit">
-              <Eye className="h-4 w-4 mr-2" />
-              View blog on site
+          {isSuperAdmin && (
+            <>
+              <Button variant="outline" className="w-fit" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import WordPress
+              </Button>
+              <Button variant="outline" className="w-fit" onClick={() => setCsvImportOpen(true)}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Import from CSV
+              </Button>
+            </>
+          )}
+          <Link to="/blog" target="_blank" rel="noopener noreferrer">
+            <Button
+              variant="default"
+              size="icon"
+              className="w-9 h-9 rounded-full bg-black text-white hover:bg-black/90"
+              aria-label="View blog on site"
+            >
+              <ArrowUpRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>
       </div>
 
-      <WordPressImport open={importOpen} onOpenChange={setImportOpen} />
-      <CsvBlogImport open={csvImportOpen} onOpenChange={setCsvImportOpen} />
+      {isSuperAdmin && (
+        <>
+          <WordPressImport open={importOpen} onOpenChange={setImportOpen} />
+          <CsvBlogImport open={csvImportOpen} onOpenChange={setCsvImportOpen} />
+        </>
+      )}
 
       <Card>
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -463,6 +510,19 @@ export default function BlogAdmin() {
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Tabs
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value as "all" | "draft" | "published");
+                setCurrentPage(1);
+              }}
+            >
+              <TabsList className="h-9">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="published">Published</TabsTrigger>
+                <TabsTrigger value="draft">Drafts</TabsTrigger>
+              </TabsList>
+            </Tabs>
             {draftCount > 0 && (
               <Button
                 variant="secondary"
@@ -715,10 +775,14 @@ export default function BlogAdmin() {
           <p className="text-sm text-muted-foreground mb-4">
             Click a row to edit page content (WYSIWYG). Use &quot;New post&quot; to create a post or import from WordPress above.
           </p>
-          <Link to="/blog">
-            <Button variant="secondary">
-              <FileText className="h-4 w-4 mr-2" />
-              View blog on site
+          <Link to="/blog" target="_blank" rel="noopener noreferrer">
+            <Button
+              variant="default"
+              size="icon"
+              className="w-9 h-9 rounded-full bg-black text-white hover:bg-black/90"
+              aria-label="View blog on site"
+            >
+              <ArrowUpRight className="h-4 w-4" />
             </Button>
           </Link>
         </CardContent>
