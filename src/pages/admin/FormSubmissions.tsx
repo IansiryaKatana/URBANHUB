@@ -44,7 +44,7 @@ import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 
-type FormType = "contact" | "callback" | "viewing" | "inquiry" | "resident_support" | "short_term";
+type FormType = "contact" | "callback" | "viewing" | "inquiry" | "resident_support" | "short_term" | "refer_friend";
 type Status = "new" | "read" | "replied" | "archived";
 
 const formTypeLabels: Record<string, string> = {
@@ -54,6 +54,7 @@ const formTypeLabels: Record<string, string> = {
   inquiry: "Inquiry",
   resident_support: "Resident support",
   short_term: "Short term",
+  refer_friend: "Refer a Friend",
 };
 
 const statusLabels: Record<Status, string> = {

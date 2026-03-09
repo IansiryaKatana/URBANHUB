@@ -38,6 +38,7 @@ const Navigation = () => {
   const [viewingDialogOpen, setViewingDialogOpen] = useState(false);
 
   const isHomePage = location.pathname === "/" || location.pathname.startsWith("/studios");
+  const isLandingPage = location.pathname.startsWith("/landing/");
   const isContactOrFAQ = location.pathname === "/contact" || location.pathname === "/faq";
   const topLevelReserved = ["studios", "contact", "faq", "blog", "about", "short-term", "pay-urban-hub-now", "reviews", "privacy", "terms", "admin"];
   const pathSegment = location.pathname.replace(/^\/|\/$/g, "").split("/")[0];
@@ -58,6 +59,13 @@ const Navigation = () => {
     { id: "faq", title: "FAQ", url: "/faq", display_order: 6, is_active: true, location: "header" as const, opens_in_new_tab: false },
     { id: "contact", title: "Contact Us", url: "/contact", display_order: 7, is_active: true, location: "header" as const, opens_in_new_tab: false },
   ];
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   const initials = (() => {
     const first = profile?.first_name?.[0];
@@ -224,24 +232,48 @@ const Navigation = () => {
 
             {/* Nav items in center */}
             <div className="hidden lg:flex items-center gap-3 flex-1 justify-center">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.url || (item.url === "/" && (location.pathname === "/" || location.pathname.startsWith("/studios")));
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.url}
-                    className={`text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ${
-                      isActive
-                        ? "bg-[#1a1a1a] text-accent-yellow shadow-md"
-                        : isBlogPage
-                        ? "text-white hover:bg-white/10 hover:text-accent-yellow"
-                        : "text-white hover:bg-white/10 hover:text-accent-yellow"
-                    }`}
-                  >
-                    {item.title}
-                  </Link>
-                );
-              })}
+              {isLandingPage
+                ? (
+                  <>
+                    {[
+                      { id: "hero-link", label: "Overview", target: "hero" },
+                      { id: "grades-link", label: "Room Grades", target: "grades" },
+                      { id: "why-link", label: "Why Urban Hub", target: "why" },
+                      { id: "results-link", label: "Real Results", target: "results" },
+                      { id: "findus-link", label: "Find Us", target: "find-us" },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => scrollToSection(item.target)}
+                        className="text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 text-white hover:bg-white/10 hover:text-accent-yellow"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </>
+                )
+                : navItems.map((item) => {
+                    const isActive =
+                      location.pathname === item.url ||
+                      (item.url === "/" &&
+                        (location.pathname === "/" || location.pathname.startsWith("/studios")));
+                    return (
+                      <Link
+                        key={item.id}
+                        to={item.url}
+                        className={`text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ${
+                          isActive
+                            ? "bg-[#1a1a1a] text-accent-yellow shadow-md"
+                            : isBlogPage
+                            ? "text-white hover:bg-white/10 hover:text-accent-yellow"
+                            : "text-white hover:bg-white/10 hover:text-accent-yellow"
+                        }`}
+                      >
+                        {item.title}
+                      </Link>
+                    );
+                  })}
             </div>
 
             {/* Button on right */}
@@ -297,23 +329,50 @@ const Navigation = () => {
 
                     {/* Navigation Links */}
                     <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                      {navItems.map((item) => {
-                        const isActive = location.pathname === item.url || (item.url === "/" && (location.pathname === "/" || location.pathname.startsWith("/studios")));
-                        return (
-                          <Link
-                            key={item.id}
-                            to={item.url}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className={`block text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 ${
-                              isActive
-                                ? "bg-[#1a1a1a] text-accent-yellow shadow-sm"
-                                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                            }`}
-                          >
-                            {item.title}
-                          </Link>
-                        );
-                      })}
+                      {isLandingPage
+                        ? (
+                          <>
+                            {[
+                              { id: "hero-link-m", label: "Overview", target: "hero" },
+                              { id: "grades-link-m", label: "Room Grades", target: "grades" },
+                              { id: "why-link-m", label: "Why Urban Hub", target: "why" },
+                              { id: "results-link-m", label: "Real Results", target: "results" },
+                              { id: "findus-link-m", label: "Find Us", target: "find-us" },
+                            ].map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  setMobileMenuOpen(false);
+                                  scrollToSection(item.target);
+                                }}
+                                className="w-full text-left text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+                          </>
+                        )
+                        : navItems.map((item) => {
+                            const isActive =
+                              location.pathname === item.url ||
+                              (item.url === "/" &&
+                                (location.pathname === "/" || location.pathname.startsWith("/studios")));
+                            return (
+                              <Link
+                                key={item.id}
+                                to={item.url}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`block text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                                  isActive
+                                    ? "bg-[#1a1a1a] text-accent-yellow shadow-sm"
+                                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                }`}
+                              >
+                                {item.title}
+                              </Link>
+                            );
+                          })}
                     </nav>
 
                     {/* Action Buttons Section */}
@@ -364,22 +423,46 @@ const Navigation = () => {
 
             {/* Nav items in center */}
             <div className="hidden lg:flex items-center gap-3 flex-1 justify-center">
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.url || (item.url === "/" && (location.pathname === "/" || location.pathname.startsWith("/studios")));
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.url}
-                    className={`text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ${
-                      isActive
-                        ? "bg-[#1a1a1a] text-accent-yellow shadow-md"
-                        : "text-white hover:bg-white/10 hover:text-accent-yellow"
-                    }`}
-                  >
-                    {item.title}
-                  </Link>
-                );
-              })}
+              {isLandingPage
+                ? (
+                  <>
+                    {[
+                      { id: "hero-link", label: "Overview", target: "hero" },
+                      { id: "grades-link", label: "Room Grades", target: "grades" },
+                      { id: "why-link", label: "Why Urban Hub", target: "why" },
+                      { id: "results-link", label: "Real Results", target: "results" },
+                      { id: "findus-link", label: "Find Us", target: "find-us" },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => scrollToSection(item.target)}
+                        className="text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 text-white hover:bg-white/10 hover:text-accent-yellow"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </>
+                )
+                : navItems.map((item) => {
+                    const isActive =
+                      location.pathname === item.url ||
+                      (item.url === "/" &&
+                        (location.pathname === "/" || location.pathname.startsWith("/studios")));
+                    return (
+                      <Link
+                        key={item.id}
+                        to={item.url}
+                        className={`text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ${
+                          isActive
+                            ? "bg-[#1a1a1a] text-accent-yellow shadow-md"
+                            : "text-white hover:bg-white/10 hover:text-accent-yellow"
+                        }`}
+                      >
+                        {item.title}
+                      </Link>
+                    );
+                  })}
             </div>
 
             {/* Buttons on right */}
@@ -460,23 +543,50 @@ const Navigation = () => {
 
                     {/* Navigation Links */}
                     <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                      {navItems.map((item) => {
-                        const isActive = location.pathname === item.url || (item.url === "/" && (location.pathname === "/" || location.pathname.startsWith("/studios")));
-                        return (
-                          <Link
-                            key={item.id}
-                            to={item.url}
-                            onClick={() => setMobileMenuOpen(false)}
-                            className={`block text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 ${
-                              isActive
-                                ? "bg-[#1a1a1a] text-accent-yellow shadow-sm"
-                                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                            }`}
-                          >
-                            {item.title}
-                          </Link>
-                        );
-                      })}
+                      {isLandingPage
+                        ? (
+                          <>
+                            {[
+                              { id: "hero-link-m", label: "Overview", target: "hero" },
+                              { id: "grades-link-m", label: "Room Grades", target: "grades" },
+                              { id: "why-link-m", label: "Why Urban Hub", target: "why" },
+                              { id: "results-link-m", label: "Real Results", target: "results" },
+                              { id: "findus-link-m", label: "Find Us", target: "find-us" },
+                            ].map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  setMobileMenuOpen(false);
+                                  scrollToSection(item.target);
+                                }}
+                                className="w-full text-left text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+                          </>
+                        )
+                        : navItems.map((item) => {
+                            const isActive =
+                              location.pathname === item.url ||
+                              (item.url === "/" &&
+                                (location.pathname === "/" || location.pathname.startsWith("/studios")));
+                            return (
+                              <Link
+                                key={item.id}
+                                to={item.url}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`block text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                                  isActive
+                                    ? "bg-[#1a1a1a] text-accent-yellow shadow-sm"
+                                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                }`}
+                              >
+                                {item.title}
+                              </Link>
+                            );
+                          })}
                     </nav>
 
                     {/* Action Buttons Section */}
