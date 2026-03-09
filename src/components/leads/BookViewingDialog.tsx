@@ -18,9 +18,11 @@ import { LeadForm } from "./LeadForm";
 interface BookViewingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Optional landing page slug or label for tracking source. */
+  landingPageSlug?: string;
 }
 
-export const BookViewingDialog = ({ open, onOpenChange }: BookViewingDialogProps) => {
+export const BookViewingDialog = ({ open, onOpenChange, landingPageSlug }: BookViewingDialogProps) => {
   const isMobile = useIsMobile();
 
   const title = "Book a Viewing";
@@ -42,7 +44,8 @@ export const BookViewingDialog = ({ open, onOpenChange }: BookViewingDialogProps
             <LeadForm 
               formType="booking" 
               onSuccess={() => onOpenChange(false)} 
-              onCancel={() => onOpenChange(false)} 
+              onCancel={() => onOpenChange(false)}
+              landingPage={landingPageSlug}
             />
           </div>
         </DrawerContent>
@@ -65,7 +68,8 @@ export const BookViewingDialog = ({ open, onOpenChange }: BookViewingDialogProps
           <LeadForm 
             formType="booking" 
             onSuccess={() => onOpenChange(false)} 
-            onCancel={() => onOpenChange(false)} 
+            onCancel={() => onOpenChange(false)}
+            landingPage={landingPageSlug}
           />
         </div>
       </DialogContent>
