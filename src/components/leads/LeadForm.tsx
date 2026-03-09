@@ -53,6 +53,8 @@ interface LeadFormProps {
   submitLabel?: string;
   compact?: boolean;
   className?: string;
+  /** Optional label used to tag submissions with the originating landing page or context. */
+  landingPage?: string;
 }
 
 export const LeadForm = ({
@@ -63,6 +65,7 @@ export const LeadForm = ({
   submitLabel,
   compact = false,
   className,
+  landingPage,
 }: LeadFormProps) => {
   const { user, profile } = useAuth();
   const { submitToLeadsCRM, isSubmitting } = useLeadsCRM();
@@ -80,7 +83,7 @@ export const LeadForm = ({
       preferred_time: "" as any,
       studio_type: formType === "booking" ? "silver" : undefined,
       message: "",
-      landing_page: "Urbanhub Portal",
+      landing_page: landingPage || "Urbanhub Portal",
     },
   });
 
@@ -95,10 +98,10 @@ export const LeadForm = ({
         preferred_time: "" as any,
         studio_type: formType === "booking" ? "silver" : undefined,
         message: "",
-        landing_page: "Urbanhub Portal",
+        landing_page: landingPage || "Urbanhub Portal",
       });
     }
-  }, [user, profile, form, formType]);
+  }, [user, profile, form, formType, landingPage]);
 
   const onSubmit = async (values: LeadFormValues) => {
     const payload: LeadFormData = {

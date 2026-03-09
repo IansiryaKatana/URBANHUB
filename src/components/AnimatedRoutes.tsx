@@ -17,8 +17,10 @@ const ShortTerm = lazy(() => import("../pages/ShortTerm"));
 const PayUrbanHubNow = lazy(() => import("../pages/PayUrbanHubNow"));
 const Privacy = lazy(() => import("../pages/Privacy"));
 const Terms = lazy(() => import("../pages/Terms"));
+const ReferAFriendTerms = lazy(() => import("../pages/ReferAFriendTerms"));
 const Reviews = lazy(() => import("../pages/Reviews"));
 const StudioGradeRedirect = lazy(() => import("../pages/StudioGradeRedirect"));
+const LandingPage = lazy(() => import("../pages/LandingPage"));
 // Admin
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin"));
 const AdminLayout = lazy(() => import("../pages/admin/AdminLayout"));
@@ -35,6 +37,7 @@ const ReviewsList = lazy(() => import("../pages/admin/ReviewsList"));
 const MediaList = lazy(() => import("../pages/admin/MediaList"));
 const NewsletterAdmin = lazy(() => import("../pages/admin/NewsletterAdmin"));
 const UserManagement = lazy(() => import("../pages/admin/UserManagement"));
+const LandingPages = lazy(() => import("../pages/admin/LandingPages"));
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -47,6 +50,7 @@ const AnimatedRoutes = () => {
           <Route path="/studios" element={<PageTransition key={location.pathname}><StudiosHome /></PageTransition>} />
           <Route path="/studios/:year" element={<PageTransition key={location.pathname}><StudiosHome /></PageTransition>} />
           <Route path="/studios/:year/:slug" element={<PageTransition key={location.pathname}><StudioGradeRedirect /></PageTransition>} />
+          <Route path="/landing/:slug" element={<PageTransition key={location.pathname}><LandingPage /></PageTransition>} />
           <Route path="/contact" element={<PageTransition key={location.pathname}><Contact /></PageTransition>} />
           <Route path="/faq" element={<PageTransition key={location.pathname}><FAQ /></PageTransition>} />
           <Route path="/blog" element={<PageTransition key={location.pathname}><Blog /></PageTransition>} />
@@ -55,6 +59,7 @@ const AnimatedRoutes = () => {
           <Route path="/pay-urban-hub-now" element={<PageTransition key={location.pathname}><PayUrbanHubNow /></PageTransition>} />
           <Route path="/privacy" element={<PageTransition key={location.pathname}><Privacy /></PageTransition>} />
           <Route path="/terms" element={<PageTransition key={location.pathname}><Terms /></PageTransition>} />
+          <Route path="/refer-a-friend-terms" element={<PageTransition key={location.pathname}><ReferAFriendTerms /></PageTransition>} />
           <Route path="/reviews" element={<PageTransition key={location.pathname}><Reviews /></PageTransition>} />
           {/* Website admin: login (public) */}
           <Route path="/admin/login" element={<PageTransition key={location.pathname}><AdminLogin /></PageTransition>} />
@@ -91,6 +96,7 @@ const AnimatedRoutes = () => {
             <Route path="media" element={<MediaList />} />
             <Route path="newsletter" element={<NewsletterAdmin />} />
             <Route path="users" element={<UserManagement />} />
+            <Route path="landing-pages" element={<LandingPages />} />
           </Route>
           {/* Blog detail: siteurl/slug (no /blog/ prefix); must be after other top-level routes */}
           <Route path="/:slug" element={<PageTransition key={location.pathname}><BlogDetail /></PageTransition>} />
