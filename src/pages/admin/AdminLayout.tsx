@@ -19,6 +19,7 @@ import {
   Mail,
   Users,
   ArrowUpRight,
+  PanelsTopLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,7 @@ const allNavItems = [
   { path: "/admin/faqs", label: "FAQs", icon: HelpCircle, subroles: ["customer_support", "content_editor"] },
   { path: "/admin/amenities", label: "Amenities", icon: Building2, subroles: ["content_editor", "marketing_manager"] },
   { path: "/admin/why-us", label: "Why Us", icon: Sparkles, subroles: ["content_editor", "marketing_manager"] },
+  { path: "/admin/landing-pages", label: "Landing Pages", icon: PanelsTopLeft, subroles: ["marketing_manager", "seo_editor", "content_editor"] },
   { path: "/admin/reviews", label: "Reviews", icon: Star, subroles: ["customer_support", "content_editor", "marketing_manager"] },
   { path: "/admin/blog", label: "Blog", icon: FileText, subroles: ["content_editor", "marketing_manager", "seo_editor"] },
   { path: "/admin/media", label: "Media", icon: ImageIcon, subroles: ["content_editor", "marketing_manager"] },

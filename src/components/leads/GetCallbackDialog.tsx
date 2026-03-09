@@ -18,9 +18,11 @@ import { LeadForm } from "./LeadForm";
 interface GetCallbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Optional landing page slug or label for tracking source. */
+  landingPageSlug?: string;
 }
 
-export const GetCallbackDialog = ({ open, onOpenChange }: GetCallbackDialogProps) => {
+export const GetCallbackDialog = ({ open, onOpenChange, landingPageSlug }: GetCallbackDialogProps) => {
   const isMobile = useIsMobile();
 
   const title = "Get a Callback";
@@ -42,7 +44,8 @@ export const GetCallbackDialog = ({ open, onOpenChange }: GetCallbackDialogProps
             <LeadForm 
               formType="callback" 
               onSuccess={() => onOpenChange(false)} 
-              onCancel={() => onOpenChange(false)} 
+              onCancel={() => onOpenChange(false)}
+              landingPage={landingPageSlug}
             />
           </div>
         </DrawerContent>
@@ -65,7 +68,8 @@ export const GetCallbackDialog = ({ open, onOpenChange }: GetCallbackDialogProps
           <LeadForm 
             formType="callback" 
             onSuccess={() => onOpenChange(false)} 
-            onCancel={() => onOpenChange(false)} 
+            onCancel={() => onOpenChange(false)}
+            landingPage={landingPageSlug}
           />
         </div>
       </DialogContent>
