@@ -17,19 +17,18 @@ const FaviconUpdater = () => {
       link.href = faviconPath;
       document.head.appendChild(link);
 
-      // Also update og:image and twitter:image meta tags
-      const updateMetaTag = (property: string, content: string) => {
-        let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+      const ensureMetaTag = (selector: string, attr: "property" | "name", key: string, content: string) => {
+        let meta = document.querySelector(selector) as HTMLMetaElement | null;
         if (!meta) {
           meta = document.createElement("meta");
-          meta.setAttribute("property", property);
+          meta.setAttribute(attr, key);
+          meta.setAttribute("content", content);
           document.head.appendChild(meta);
         }
-        meta.setAttribute("content", content);
       };
 
-      updateMetaTag("og:image", faviconPath);
-      updateMetaTag("twitter:image", faviconPath);
+      ensureMetaTag('meta[property="og:image"]', "property", "og:image", faviconPath);
+      ensureMetaTag('meta[name="twitter:image"]', "name", "twitter:image", faviconPath);
     }
   }, [faviconPath]);
 

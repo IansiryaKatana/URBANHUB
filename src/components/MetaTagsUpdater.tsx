@@ -16,18 +16,26 @@ const MetaTagsUpdater = () => {
     const companyName = seoSettings?.site_name ?? brandingSettings?.company_name ?? "Urban Hub";
     const defaultMetaDesc = seoSettings?.default_meta_description ?? brandingSettings?.meta_description ??
       `Modern student accommodation in Preston. Book your studio apartment for the academic year. Premium amenities and convenient location.`;
-    const defaultOgImage = brandingSettings?.favicon_path ?? "/favicon.png";
-    const defaultOg = seoSettings?.default_og_image_url || defaultOgImage;
+    const defaultOgImage = seoSettings?.default_og_image_url || brandingSettings?.favicon_path || "/favicon.png";
     const twitterHandle = seoSettings?.twitter_handle ?? brandingSettings?.twitter_handle ?? "@UrbanHubBooking";
     const siteUrl = typeof window !== "undefined" ? window.location.origin : "https://urbanhub.uk";
 
     const metaDescription = pageSeo?.meta_description ?? defaultMetaDesc;
     const ogTitle = pageSeo?.og_title ?? `${companyName} | Student Accommodation`;
     const ogDescription = pageSeo?.og_description ?? metaDescription;
-    const ogImage = pageSeo?.og_image_url ?? defaultOg;
+    const ogImage = pageSeo?.og_image_url ?? defaultOgImage;
     const twitterTitle = pageSeo?.twitter_title ?? ogTitle;
     const twitterDescription = pageSeo?.twitter_description ?? ogDescription;
-    const twitterImage = pageSeo?.twitter_image_url ?? ogImage;
+    const toAbsoluteUrl = (url: string | null | undefined) => {
+      if (!url) return "";
+      if (/^https?:\/\//i.test(url)) return url;
+      if (url.startsWith("//")) return `https:${url}`;
+      const base = siteUrl.replace(/\/+$/, "");
+      return `${base}${url.startsWith("/") ? url : `/${url}`}`;
+    };
+
+    const ogImageUrl = toAbsoluteUrl(ogImage);
+    const twitterImage = toAbsoluteUrl(pageSeo?.twitter_image_url ?? ogImageUrl);
 
     const updateMetaTagByProperty = (property: string, content: string) => {
       let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
@@ -64,7 +72,9 @@ const MetaTagsUpdater = () => {
 
     updateMetaTagByProperty("og:title", ogTitle);
     updateMetaTagByProperty("og:description", ogDescription);
-    updateMetaTagByProperty("og:image", ogImage);
+    if (ogImageUrl) {
+      updateMetaTagByProperty("og:image", ogImageUrl);
+    }
     if (pageSeo?.og_image_alt) {
       updateMetaTagByProperty("og:image:alt", pageSeo.og_image_alt);
     }
@@ -73,7 +83,9 @@ const MetaTagsUpdater = () => {
     updateMetaTagByName("twitter:site", twitterHandle);
     updateMetaTagByName("twitter:title", twitterTitle);
     updateMetaTagByName("twitter:description", twitterDescription);
-    updateMetaTagByName("twitter:image", twitterImage);
+    if (twitterImage) {
+      updateMetaTagByName("twitter:image", twitterImage);
+    }
     if (pageSeo?.twitter_image_alt) {
       updateMetaTagByName("twitter:image:alt", pageSeo.twitter_image_alt);
     }
