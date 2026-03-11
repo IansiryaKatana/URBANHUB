@@ -82,20 +82,69 @@ So you can measure:
 
 ---
 
-## 5. GTM setup (summary)
+## 5. GTM naming convention (use these exact names)
+
+**Container:** Use `GTM-P7BR3CH2` (set in Admin → Analytics).
+
+| Prefix | Use for | Example |
+|--------|--------|--------|
+| **DLV -** | Data Layer Variable (one-time) | `DLV - page_path` |
+| **EV -** | Trigger = Custom Event | `EV - page_view` |
+| **GA4 -** | GA4 Event tag (short, clear) | `GA4 - Page View (SPA)` |
+
+**GA4 Configuration tag (create first, fire on All Pages):**  
+Name: `GA4 Config` — Type: Google Analytics: GA4 Configuration — Measurement ID: `G-ZWBWT1PJQL`.
+
+---
+
+### 5a. All names in priority order (copy-paste)
+
+**Variables (Variables → New → Data Layer Variable)**
+
+| GTM name | Data Layer Variable Name |
+|----------|---------------------------|
+| DLV - page_path | page_path |
+| DLV - form_type | form_type |
+| DLV - cta_source | cta_source |
+| DLV - element_id | element_id |
+| DLV - event_category | event_category |
+| DLV - event_action | event_action |
+| DLV - event_label | event_label |
+
+**Triggers (Triggers → New → Custom Event)**
+
+| GTM name | Event name (exact) |
+|----------|--------------------|
+| EV - page_view | page_view |
+| EV - form_submit | form_submit |
+| EV - whatsapp_click | whatsapp_click |
+| EV - book_now_click | book_now_click |
+| EV - lead_form_open | lead_form_open |
+
+**Tags (Tags → New → GA4 Event)**
+
+| GTM name | Event Name | Parameters | Trigger |
+|----------|------------|------------|---------|
+| GA4 - Page View (SPA) | page_view | page_path → {{DLV - page_path}} | EV - page_view |
+| GA4 - Form Submit | form_submit | page_path, form_type | EV - form_submit |
+| GA4 - WhatsApp Click | whatsapp_click | page_path, element_id | EV - whatsapp_click |
+| GA4 - Book Now Click | book_now_click | page_path, element_id | EV - book_now_click |
+| GA4 - Lead Form Open | lead_form_open | page_path, form_type, cta_source | EV - lead_form_open |
+
+---
+
+## 6. GTM setup (summary)
 
 **When the site loads GTM**, GA4 does **not** load from the site directly. Add a **GA4 Configuration** tag in your GTM container with your Measurement ID (e.g. `G-ZWBWT1PJQL`), firing on **All Pages**, so page views and events are sent to GA4.
 
 1. **Data Layer Variables**  
-   Create variables for: `page_path`, `form_type`, `cta_source`, `element_id`, `event_category`, `event_action`, `event_label` (Data Layer Variable, set the data layer variable name to the parameter name).
+   Create variables for: `page_path`, `form_type`, `cta_source`, `element_id`, `event_category`, `event_action`, `event_label` (Data Layer Variable, set the data layer variable name to the parameter name). Use names from table 5a above.
 
 2. **Triggers**  
-   - **Custom Event** triggers for each event name above (e.g. `lead_form_open`, `form_submit`, `cta_click`, `page_view`, `back_to_top`, `whatsapp_click`, `vr_click`, `book_now_click`, etc.).
+   - **Custom Event** triggers for each event name (e.g. `EV - page_view` with event name `page_view`). Use names from table 5a.
 
 3. **GA4 Event tags**  
-   - Create a GA4 tag per event (or one tag with dynamic event name from `{{Event}}`).
-   - Add Event Parameters: `page_path`, `form_type`, `cta_source`, `element_id`, etc., using the variables from step 1.
-   - Fire on the corresponding Custom Event trigger.
+   - Create a GA4 tag per event using names and parameters from table 5a. Fire on the corresponding trigger.
 
 4. **SPA page views**  
    - Trigger: Custom Event, Event name = `page_view`.
@@ -106,7 +155,7 @@ So you can measure:
 
 ---
 
-## 6. Database: tracked elements (website_analytics_tags)
+## 7. Database: tracked elements (website_analytics_tags)
 
 The app also records the same clicks to **Supabase** (`website_analytics_events`) for the in-app Analytics dashboard. The **element_selector** in `website_analytics_tags` matches buttons; **element_id** stored in events is taken from `data-analytics` (or `id`) so floating buttons get page-specific IDs.
 
@@ -119,7 +168,7 @@ After migration `025_analytics_gtm_floating_and_landing.sql`:
 
 ---
 
-## 7. Naming alignment
+## 8. Naming alignment
 
 - **Tags in DB:** e.g. “Get a Callback”, “Book Viewing”, “WhatsApp” – used for internal dashboard and selector matching.
 - **GTM:** Use **event names** (e.g. `cta_click`, `form_submit`, `lead_form_open`) and **parameters** (`page_path`, `form_type`, `cta_source`, `element_id`) for triggers and GA4.
