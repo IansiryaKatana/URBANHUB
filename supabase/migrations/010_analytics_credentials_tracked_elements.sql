@@ -1,4 +1,4 @@
--- Configure Google Analytics (G-ZWBWT1PJQL) and Tag Manager (GTM-M2V5FHT5) for urbanhub.uk
+-- Configure Google Analytics (G-ZWBWT1PJQL) and Tag Manager (GTM-P7BR3CH2) for urbanhub.uk
 -- Seed all tracked elements for website analytics
 
 -- ============================================
@@ -7,14 +7,14 @@
 UPDATE website_analytics_settings
 SET
   google_analytics_id = 'G-ZWBWT1PJQL',
-  google_tag_manager_id = 'GTM-M2V5FHT5',
+  google_tag_manager_id = 'GTM-P7BR3CH2',
   is_active = true,
   updated_at = now()
-WHERE id = (SELECT id FROM website_analytics_settings LIMIT 1);
+WHERE id = (SELECT id FROM website_analytics_settings ORDER BY updated_at DESC NULLS LAST LIMIT 1);
 
 -- If no row exists, insert one
 INSERT INTO website_analytics_settings (id, google_analytics_id, google_tag_manager_id, is_active)
-SELECT gen_random_uuid(), 'G-ZWBWT1PJQL', 'GTM-M2V5FHT5', true
+SELECT gen_random_uuid(), 'G-ZWBWT1PJQL', 'GTM-P7BR3CH2', true
 WHERE NOT EXISTS (SELECT 1 FROM website_analytics_settings LIMIT 1);
 
 -- ============================================

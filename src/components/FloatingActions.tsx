@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ArrowUp, Eye } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
@@ -6,9 +6,19 @@ import { supabase } from "@/integrations/supabase/client";
 
 const VR_URL = "https://vr.urbanhub.uk/";
 
+/** Page slug for analytics: which page the floating buttons belong to (for conversion attribution). */
+function getFloatingPageSlug(pathname: string): string {
+  if (!pathname || pathname === "/") return "home";
+  if (pathname.startsWith("/studios")) return "studios";
+  if (pathname.startsWith("/landing/")) return "landing-" + pathname.replace("/landing/", "").replace(/\//g, "-").slice(0, 32);
+  const segment = pathname.replace(/^\//, "").split("/")[0] || "home";
+  return segment.replace(/[^a-z0-9-]/gi, "-").slice(0, 24) || "page";
+}
+
 export default function FloatingActions() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
+  const pageSlug = useMemo(() => getFloatingPageSlug(location.pathname), [location.pathname]);
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
@@ -46,7 +56,7 @@ export default function FloatingActions() {
           onClick={scrollToTop}
           className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all duration-300 hover:scale-110 flex items-center justify-center"
           aria-label="Back to top"
-          data-analytics="back-to-top"
+          data-analytics={`float-back-to-top-${pageSlug}`}
         >
           <ArrowUp className="h-6 w-6" />
         </button>
@@ -57,6 +67,7 @@ export default function FloatingActions() {
         rel="noopener noreferrer"
         className="h-14 w-14 rounded-full bg-zinc-800 text-white shadow-lg hover:bg-zinc-700 transition-all duration-300 hover:scale-110 flex items-center justify-center animate-blink"
         aria-label="Explore building in VR"
+        data-analytics={`float-vr-${pageSlug}`}
       >
         <Eye className="h-6 w-6" />
       </a>
@@ -65,7 +76,7 @@ export default function FloatingActions() {
           onClick={() => window.open(whatsappUrl, "_blank")}
           className="h-14 w-14 rounded-full bg-[#25D366] text-white shadow-lg hover:bg-[#128C7E] transition-all duration-300 hover:scale-110 flex items-center justify-center"
           aria-label="Contact us on WhatsApp"
-          data-analytics="whatsapp"
+          data-analytics={`float-whatsapp-${pageSlug}`}
         >
           <FaWhatsapp className="h-7 w-7" />
         </button>

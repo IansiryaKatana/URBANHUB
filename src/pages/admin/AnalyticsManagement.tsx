@@ -100,6 +100,7 @@ export default function AnalyticsManagement() {
       const { data, error } = await supabase
         .from("website_analytics_settings")
         .select("id, google_analytics_id, google_tag_manager_id, is_active")
+        .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -396,7 +397,7 @@ export default function AnalyticsManagement() {
           <Card className="bg-white shadow-sm border-dashed">
             <CardHeader>
               <CardTitle className="text-base">Page view tracking</CardTitle>
-              <p className="text-sm text-muted-foreground">Live data from <code className="text-xs bg-muted px-1 rounded">website_analytics_page_views</code>. If data stopped after a date, check: (1) Netlify env vars VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, (2) browser console for &quot;[Analytics] Page view insert failed&quot; on the live site.</p>
+              <p className="text-sm text-muted-foreground">Traffic/Content here come from <strong>Supabase</strong> (<code className="text-xs bg-muted px-1 rounded">website_analytics_page_views</code>), not from Google Analytics. The live site inserts a page view on each visit. If you see 0 or old dates: (1) Netlify env vars <code className="text-xs bg-muted px-1 rounded">VITE_SUPABASE_URL</code> and <code className="text-xs bg-muted px-1 rounded">VITE_SUPABASE_PUBLISHABLE_KEY</code> must be set and the site rebuilt, (2) open the live site in a normal tab and check the browser console for &quot;[Analytics] Page view insert failed&quot;.</p>
             </CardHeader>
             <CardContent className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">

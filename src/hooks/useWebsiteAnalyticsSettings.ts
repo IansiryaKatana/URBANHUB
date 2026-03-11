@@ -15,6 +15,7 @@ export function useWebsiteAnalyticsSettings() {
       const { data, error } = await supabase
         .from("website_analytics_settings")
         .select("id, google_analytics_id, google_tag_manager_id, is_active")
+        .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;

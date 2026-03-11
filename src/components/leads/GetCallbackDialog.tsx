@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,16 +15,34 @@ import {
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LeadForm } from "./LeadForm";
+import { pushDataLayer } from "@/utils/dataLayer";
+
+/** Source that opened the form (for conversion attribution in GTM/GA). */
+export type LeadFormOpenSource = "nav" | "landing_hero" | "studios_hero" | "landing_grade" | "inline";
 
 interface GetCallbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Optional landing page slug or label for tracking source. */
   landingPageSlug?: string;
+  /** Where the form was opened from (e.g. nav = nav menu). Used for GTM/GA. */
+  openSource?: LeadFormOpenSource;
 }
 
-export const GetCallbackDialog = ({ open, onOpenChange, landingPageSlug }: GetCallbackDialogProps) => {
+export const GetCallbackDialog = ({ open, onOpenChange, landingPageSlug, openSource = "inline" }: GetCallbackDialogProps) => {
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (open && typeof window !== "undefined") {
+      pushDataLayer("lead_form_open", {
+        event_action: "lead_form_open",
+        event_label: "callback",
+        form_type: "callback",
+        cta_source: openSource,
+        page_path: window.location.pathname || "/",
+      });
+    }
+  }, [open, openSource]);
 
   const title = "Get a Callback";
   const description = "Fill in your details and our team will give you a call at your preferred time.";

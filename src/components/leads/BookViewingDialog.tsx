@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,16 +15,32 @@ import {
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LeadForm } from "./LeadForm";
+import { pushDataLayer } from "@/utils/dataLayer";
+import type { LeadFormOpenSource } from "./GetCallbackDialog";
 
 interface BookViewingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Optional landing page slug or label for tracking source. */
   landingPageSlug?: string;
+  /** Where the form was opened from (e.g. nav = nav menu). Used for GTM/GA. */
+  openSource?: LeadFormOpenSource;
 }
 
-export const BookViewingDialog = ({ open, onOpenChange, landingPageSlug }: BookViewingDialogProps) => {
+export const BookViewingDialog = ({ open, onOpenChange, landingPageSlug, openSource = "inline" }: BookViewingDialogProps) => {
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (open && typeof window !== "undefined") {
+      pushDataLayer("lead_form_open", {
+        event_action: "lead_form_open",
+        event_label: "viewing",
+        form_type: "viewing",
+        cta_source: openSource,
+        page_path: window.location.pathname || "/",
+      });
+    }
+  }, [open, openSource]);
 
   const title = "Book a Viewing";
   const description = "Schedule a visit to see our studios. Choose your preferred date and time below.";

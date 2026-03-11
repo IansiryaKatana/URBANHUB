@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useWebsiteAnalyticsTags } from "@/hooks/useWebsiteAnalyticsTags";
+import { pushDataLayer } from "@/utils/dataLayer";
 
 const SESSION_KEY = "website_session_id";
 
@@ -51,9 +52,11 @@ export default function WebsiteAnalyticsTracker() {
   const { data: tags } = useWebsiteAnalyticsTags();
   const clickHandlerAttached = useRef(false);
 
-  // Record page view on route change
+  // Record page view on route change (Supabase + dataLayer for GTM/GA4 SPA)
   useEffect(() => {
-    recordPageView(location.pathname || "/");
+    const path = location.pathname || "/";
+    recordPageView(path);
+    pushDataLayer("page_view", { page_path: path, event_action: "page_view" });
   }, [location.pathname]);
 
   // Attach delegated click listener for tracked elements
@@ -67,16 +70,25 @@ export default function WebsiteAnalyticsTracker() {
       for (const tag of tags) {
         try {
           if (target.matches?.(tag.element_selector) || target.closest?.(tag.element_selector)) {
-            const el = target.matches?.(tag.element_selector) ? target : target.closest(tag.element_selector);
-            const element_id = el?.id ?? null;
+            const el = target.matches?.(tag.element_selector) ? target : target.closest(tag.element_selector) as HTMLElement | null;
+            const element_id = el?.id ?? el?.getAttribute?.("data-analytics") ?? null;
             const element_text = (el?.textContent ?? "").trim().slice(0, 200) || null;
+            const page_path = window.location.pathname || "/";
             recordEvent(
               tag.event_name,
-              window.location.pathname || "/",
+              page_path,
               element_id,
               element_text,
               { tag_name: tag.tag_name, category: tag.category ?? undefined }
             );
+            pushDataLayer(tag.event_name, {
+              event_category: tag.category ?? undefined,
+              event_action: tag.event_name,
+              event_label: element_id ?? tag.tag_name,
+              page_path,
+              element_id: element_id ?? undefined,
+              tag_name: tag.tag_name,
+            });
             break;
           }
         } catch {

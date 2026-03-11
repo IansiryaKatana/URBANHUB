@@ -1439,7 +1439,7 @@ const StudiosHome = () => {
       <FindUsMap />
 
       <Footer />
-      <BookViewingDialog open={viewingDialogOpen} onOpenChange={setViewingDialogOpen} />
+      <BookViewingDialog open={viewingDialogOpen} onOpenChange={setViewingDialogOpen} openSource="studios_hero" />
     </div>
   );
 };

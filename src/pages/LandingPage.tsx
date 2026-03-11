@@ -964,11 +964,13 @@ const LandingPage = () => {
         open={callbackDialogOpen}
         onOpenChange={setCallbackDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
+        openSource="landing_hero"
       />
       <BookViewingDialog
         open={viewingDialogOpen}
         onOpenChange={setViewingDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
+        openSource="landing_hero"
       />
       <ReferFriendDialog
         open={referFriendDialogOpen}

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { pushDataLayer } from "@/utils/dataLayer";
 
 const SESSION_KEY = "website_session_id";
 
@@ -13,11 +14,12 @@ function getSessionId(): string {
 }
 
 export function recordFormSubmitEvent(form_type: string, page_path: string) {
+  const path = page_path || "/";
   supabase
     .from("website_analytics_events")
     .insert({
       event_name: "form_submit",
-      page_path: page_path || "/",
+      page_path: path,
       metadata: { form_type },
       session_id: getSessionId(),
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
@@ -25,4 +27,10 @@ export function recordFormSubmitEvent(form_type: string, page_path: string) {
     .then(({ error }) => {
       if (error) console.warn("[Analytics] Form submit event failed:", error.message);
     });
+  pushDataLayer("form_submit", {
+    event_action: "form_submit",
+    event_label: form_type,
+    page_path: path,
+    form_type,
+  });
 }

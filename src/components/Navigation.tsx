@@ -622,8 +622,8 @@ const Navigation = () => {
           </div>
         )}
       </nav>
-      <GetCallbackDialog open={callbackDialogOpen} onOpenChange={setCallbackDialogOpen} />
-      <BookViewingDialog open={viewingDialogOpen} onOpenChange={setViewingDialogOpen} />
+      <GetCallbackDialog open={callbackDialogOpen} onOpenChange={setCallbackDialogOpen} openSource="nav" />
+      <BookViewingDialog open={viewingDialogOpen} onOpenChange={setViewingDialogOpen} openSource="nav" />
     </header>
   );
 };
