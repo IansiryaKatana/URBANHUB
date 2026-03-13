@@ -41,7 +41,12 @@ import { useAllStudioAvailability, getAvailabilityTag, isFullyBooked } from "@/h
 import { useWebsiteAmenities } from "@/hooks/useWebsiteAmenities";
 import { useWhyUsCards } from "@/hooks/useWhyUsCards";
 import { useTestimonials } from "@/hooks/useTestimonials";
-import { AnimatedHeading, AnimatedText, AnimatedParagraph, AnimatedCard } from "@/components/animations/AnimatedText";
+import {
+  AnimatedHeading,
+  AnimatedText,
+  AnimatedParagraph,
+  AnimatedCard,
+} from "@/components/animations/AnimatedText";
 import Noise from "@/components/Noise";
 import TypingTitle from "@/components/TypingTitle";
 import { LeadForm } from "@/components/leads/LeadForm";
@@ -94,6 +99,9 @@ const HeroDots = ({ className = "" }: { className?: string }) => {
 };
 import type { Database } from "@/integrations/supabase/types";
 import { BookViewingDialog } from "@/components/leads/BookViewingDialog";
+import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
+import { ReferFriendDialog } from "@/components/leads/ReferFriendDialog";
+import { CreatorFormDialog } from "@/components/leads/CreatorFormDialog";
 import { portalStudiosUrl } from "@/config";
 
 // Import amenity images
@@ -134,7 +142,7 @@ type HomepageLandingHeroSlideRow = {
   desktop_image_url: string | null;
   mobile_image_url: string | null;
   cta_label: string | null;
-  cta_type: "viewing" | "callback" | "refer_friend" | null;
+  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | null;
   cta_tracking_key: string | null;
   homepage_order: number | null;
   h1_image_url: string | null;
@@ -151,7 +159,7 @@ type HomepageHeroSlide = {
   subtitle?: string | null;
   subtitleLinkUrl?: string | null;
   ctaLabel?: string | null;
-  ctaType?: "viewing" | "callback" | "refer_friend" | null;
+  ctaType?: "viewing" | "callback" | "refer_friend" | "content_creator" | null;
   ctaTrackingKey?: string | null;
   h1ImageUrl?: string | null;
   h1ImageAlt?: string | null;
@@ -518,13 +526,19 @@ const StudiosHome = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewingDialogOpen, setViewingDialogOpen] = useState(false);
+  const [callbackDialogOpen, setCallbackDialogOpen] = useState(false);
+  const [referFriendDialogOpen, setReferFriendDialogOpen] = useState(false);
+  const [creatorDialogOpen, setCreatorDialogOpen] = useState(false);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
   const [contractLength, setContractLength] = useState<"45" | "51">("45");
   const brandingHero = useBrandingSetting("studio_catalog_hero_image");
   const { data: imageSlots } = useWebsiteImageSlots();
-  const hero1 = getSlotUrl(imageSlots?.find((s) => s.slot_key === "hero_studios_1")) || brandingHero || "https://urbanhub.uk/wp-content/uploads/2025/05/URBAN-HUB-OUTSIDE-A-3-of-1-scaled-1.webp";
-  const hero2 = getSlotUrl(imageSlots?.find((s) => s.slot_key === "hero_studios_2")) || amenitySocial;
-  const hero3 = getSlotUrl(imageSlots?.find((s) => s.slot_key === "hero_studios_3")) || amenityStudy;
+  const hero1 =
+    getSlotUrl(imageSlots?.find((s) => s.slot_key === "hero_studios_1")) ||
+    brandingHero ||
+    "https://urbanhub.uk/wp-content/uploads/2025/05/URBAN-HUB-OUTSIDE-A-3-of-1-scaled-1.webp";
+  const hero2 =
+    getSlotUrl(imageSlots?.find((s) => s.slot_key === "hero_studios_2")) || amenitySocial;
   const { data: brandingSettings } = useBrandingSettings();
   const companyName = brandingSettings?.company_name || "StudentStaySolutions";
   const { data: dbAmenities } = useWebsiteAmenities();
@@ -614,10 +628,9 @@ const StudiosHome = () => {
     const staticSlides: HomepageHeroSlide[] = [
       { id: "static-1", variant: "static-cta", background: hero1 },
       { id: "static-2", variant: "static-form", background: hero2 },
-      { id: "static-3", variant: "static-cta", background: hero3 },
     ];
     return [...staticSlides, ...landingHeroSlides];
-  }, [hero1, hero2, hero3, landingHeroSlides]);
+  }, [hero1, hero2, landingHeroSlides]);
 
   const pricingPlans = [
     {
@@ -1087,11 +1100,28 @@ const StudiosHome = () => {
                       )}
                       <AnimatedText delay={0.4}>
                         <Button
-                          onClick={() => setViewingDialogOpen(true)}
+                          onClick={() => {
+                            if (slide.ctaType === "callback") {
+                              setCallbackDialogOpen(true);
+                            } else if (slide.ctaType === "refer_friend") {
+                              setReferFriendDialogOpen(true);
+                            } else if (slide.ctaType === "content_creator") {
+                              setCreatorDialogOpen(true);
+                            } else {
+                              setViewingDialogOpen(true);
+                            }
+                          }}
                           className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
                           data-analytics={slide.ctaTrackingKey || "homepage-landing-hero-cta"}
                         >
-                          {slide.ctaLabel || "Book a Viewing"}
+                          {slide.ctaLabel ||
+                            (slide.ctaType === "callback"
+                              ? "Get a callback"
+                              : slide.ctaType === "refer_friend"
+                              ? "Refer a friend"
+                              : slide.ctaType === "content_creator"
+                              ? "Apply as content creator"
+                              : "Book a viewing")}
                         </Button>
                       </AnimatedText>
                     </div>
@@ -1592,7 +1622,27 @@ const StudiosHome = () => {
       <FindUsMap />
 
       <Footer />
-      <BookViewingDialog open={viewingDialogOpen} onOpenChange={setViewingDialogOpen} openSource="studios_hero" />
+      <BookViewingDialog
+        open={viewingDialogOpen}
+        onOpenChange={setViewingDialogOpen}
+        openSource="studios_hero"
+      />
+      <GetCallbackDialog
+        open={callbackDialogOpen}
+        onOpenChange={setCallbackDialogOpen}
+        landingPageSlug="/studios"
+        openSource="studios_hero"
+      />
+      <ReferFriendDialog
+        open={referFriendDialogOpen}
+        onOpenChange={setReferFriendDialogOpen}
+        landingPageSlug="/studios"
+      />
+      <CreatorFormDialog
+        open={creatorDialogOpen}
+        onOpenChange={setCreatorDialogOpen}
+        landingPageSlug="/studios"
+      />
     </div>
   );
 };
