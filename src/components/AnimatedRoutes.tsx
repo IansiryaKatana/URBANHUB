@@ -14,6 +14,7 @@ const Blog = lazy(() => import("../pages/Blog"));
 const BlogDetail = lazy(() => import("../pages/BlogDetail"));
 const About = lazy(() => import("../pages/About"));
 const ShortTerm = lazy(() => import("../pages/ShortTerm"));
+const CreatorTerms = lazy(() => import("../pages/CreatorTerms"));
 const PayUrbanHubNow = lazy(() => import("../pages/PayUrbanHubNow"));
 const Privacy = lazy(() => import("../pages/Privacy"));
 const Terms = lazy(() => import("../pages/Terms"));
@@ -59,6 +60,7 @@ const AnimatedRoutes = () => {
           <Route path="/pay-urban-hub-now" element={<PageTransition key={location.pathname}><PayUrbanHubNow /></PageTransition>} />
           <Route path="/privacy" element={<PageTransition key={location.pathname}><Privacy /></PageTransition>} />
           <Route path="/terms" element={<PageTransition key={location.pathname}><Terms /></PageTransition>} />
+          <Route path="/content-creator-terms" element={<PageTransition key={location.pathname}><CreatorTerms /></PageTransition>} />
           <Route path="/refer-a-friend-terms" element={<PageTransition key={location.pathname}><ReferAFriendTerms /></PageTransition>} />
           <Route path="/reviews" element={<PageTransition key={location.pathname}><Reviews /></PageTransition>} />
           {/* Website admin: login (public) */}

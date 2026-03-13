@@ -44,7 +44,15 @@ import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 
-type FormType = "contact" | "callback" | "viewing" | "inquiry" | "resident_support" | "short_term" | "refer_friend";
+type FormType =
+  | "contact"
+  | "callback"
+  | "viewing"
+  | "inquiry"
+  | "resident_support"
+  | "short_term"
+  | "refer_friend"
+  | "content_creator";
 type Status = "new" | "read" | "replied" | "archived";
 
 const formTypeLabels: Record<string, string> = {
@@ -55,6 +63,7 @@ const formTypeLabels: Record<string, string> = {
   resident_support: "Resident support",
   short_term: "Short term",
   refer_friend: "Refer a Friend",
+  content_creator: "Content Creator",
 };
 
 const statusLabels: Record<Status, string> = {
@@ -204,7 +213,10 @@ export default function FormSubmissions() {
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Form Submissions</h1>
-          <p className="text-muted-foreground">View and manage contact, callback, viewing, and short-term submissions.</p>
+          <p className="text-muted-foreground">
+            View and manage contact, callback, viewing, short-term, refer-a-friend, and content creator
+            submissions.
+          </p>
         </div>
       </div>
       <Card>
@@ -241,6 +253,7 @@ export default function FormSubmissions() {
               <span className="text-sm font-medium">{selectedArray.length} selected</span>
               <Button
                 variant="secondary"
+                className="bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
                 size="sm"
                 onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedArray, status: "read" })}
                 disabled={isPending}
@@ -250,6 +263,7 @@ export default function FormSubmissions() {
               </Button>
               <Button
                 variant="secondary"
+                className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
                 size="sm"
                 onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedArray, status: "replied" })}
                 disabled={isPending}
@@ -259,6 +273,7 @@ export default function FormSubmissions() {
               </Button>
               <Button
                 variant="secondary"
+                className="bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-800"
                 size="sm"
                 onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedArray, status: "archived" })}
                 disabled={isPending}
@@ -354,39 +369,81 @@ export default function FormSubmissions() {
       </Card>
 
       <Dialog open={!!selectedId} onOpenChange={(open) => !open && setSelectedId(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" aria-describedby="submission-details-desc">
+        <DialogContent
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          aria-describedby="submission-details-desc"
+        >
           <DialogHeader>
             <DialogTitle>Submission details</DialogTitle>
-            <DialogDescription id="submission-details-desc" className="sr-only">View and update status of this form submission.</DialogDescription>
+            <DialogDescription id="submission-details-desc" className="sr-only">
+              View and update status of this form submission.
+            </DialogDescription>
           </DialogHeader>
           {selected && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <span className="text-muted-foreground">Date</span>
-                <span>{format(new Date(selected.created_at), "dd MMM yyyy, HH:mm")}</span>
-                <span className="text-muted-foreground">Type</span>
-                <span>{formTypeLabels[selected.form_type] ?? selected.form_type}</span>
-                <span className="text-muted-foreground">Status</span>
-                <span><Badge variant={selected.status === "new" ? "default" : "secondary"}>{statusLabels[selected.status]}</Badge></span>
-                <span className="text-muted-foreground">Name</span>
-                <span>{selected.name}</span>
-                <span className="text-muted-foreground">Email</span>
-                <span>{selected.email}</span>
-                <span className="text-muted-foreground">Phone</span>
-                <span>{selected.phone ?? "—"}</span>
+            <div className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2 text-sm">
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Type</p>
+                    <p className="font-medium">
+                      {formTypeLabels[selected.form_type] ?? selected.form_type}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <Badge variant={selected.status === "new" ? "default" : "secondary"}>
+                      {statusLabels[selected.status]}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Submitted</p>
+                    <p>{format(new Date(selected.created_at), "dd MMM yyyy, HH:mm")}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Name</p>
+                    <p className="font-medium break-words">{selected.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="break-all">{selected.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <p>{selected.phone ?? "—"}</p>
+                  </div>
+                </div>
               </div>
+
               {selected.message && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Message</span>
-                  <p className="mt-1 rounded border bg-muted/30 p-3 text-sm">{selected.message}</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Message</p>
+                  <div className="rounded-xl border bg-muted/40 px-3 py-2 text-sm whitespace-pre-wrap">
+                    {selected.message}
+                  </div>
                 </div>
               )}
+
               {selected.metadata && Object.keys(selected.metadata).length > 0 && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Details</span>
-                  <pre className="mt-1 rounded border bg-muted/30 p-3 text-xs overflow-x-auto">
-                    {JSON.stringify(selected.metadata, null, 2)}
-                  </pre>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Details</p>
+                  <div className="rounded-xl border bg-muted/40 p-3 space-y-1 max-h-64 overflow-y-auto">
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      {Object.entries(selected.metadata).map(([key, value]) => (
+                        <div key={key} className="space-y-0.5 min-w-0">
+                          <dt className="font-medium text-muted-foreground truncate">
+                            {key.replace(/_/g, " ")}
+                          </dt>
+                          <dd className="text-foreground break-words">
+                            {typeof value === "string" || typeof value === "number"
+                              ? String(value)
+                              : JSON.stringify(value)}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
                 </div>
               )}
             </div>
@@ -403,6 +460,7 @@ export default function FormSubmissions() {
                       <Button
                         variant="secondary"
                         size="sm"
+                        className="bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
                         disabled={updateStatus.isPending}
                         onClick={() => updateStatus.mutate({ id: selected.id, status: "read" })}
                       >
@@ -414,6 +472,7 @@ export default function FormSubmissions() {
                       <Button
                         variant="secondary"
                         size="sm"
+                        className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
                         disabled={updateStatus.isPending}
                         onClick={() => updateStatus.mutate({ id: selected.id, status: "replied" })}
                       >
@@ -424,6 +483,7 @@ export default function FormSubmissions() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="border-slate-300 text-slate-700 hover:bg-slate-50"
                       disabled={updateStatus.isPending}
                       onClick={() => updateStatus.mutate({ id: selected.id, status: "archived" })}
                     >

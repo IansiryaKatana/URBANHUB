@@ -20,6 +20,7 @@ import FindUsMap from "@/components/FindUsMap";
 import Noise from "@/components/Noise";
 import { BookViewingDialog } from "@/components/leads/BookViewingDialog";
 import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
+import { CreatorFormDialog } from "@/components/leads/CreatorFormDialog";
 import { ReferFriendDialog } from "@/components/leads/ReferFriendDialog";
 import { useAllStudioAvailability, getAvailabilityTag, isFullyBooked } from "@/hooks/useStudioAvailability";
 import { portalStudiosUrl } from "@/config";
@@ -35,7 +36,7 @@ type LandingPageRecord = {
   hero_heading: string | null;
   hero_subheading: string | null;
   default_cta_label: string | null;
-  default_cta_type: "viewing" | "callback" | "refer_friend";
+  default_cta_type: "viewing" | "callback" | "refer_friend" | "content_creator";
   default_cta_tracking_key: string | null;
   room_grades_heading: string | null;
   room_grades_description: string | null;
@@ -47,7 +48,7 @@ type HeroSlideRecord = {
   subtitle: string | null;
   subtitle_link_url: string | null;
   cta_label: string | null;
-  cta_type: "viewing" | "callback" | "refer_friend";
+  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator";
   cta_tracking_key: string | null;
   desktop_image_url: string | null;
   desktop_image_alt: string | null;
@@ -218,6 +219,7 @@ const LandingPage = () => {
   const [viewingDialogOpen, setViewingDialogOpen] = useState(false);
   const [callbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [referFriendDialogOpen, setReferFriendDialogOpen] = useState(false);
+  const [creatorDialogOpen, setCreatorDialogOpen] = useState(false);
 
   const [academicYears, setAcademicYears] = useState<AcademicYearRow[]>([]);
   const [selectedYear, setSelectedYear] = useState<AcademicYearRow | null>(null);
@@ -423,11 +425,15 @@ const LandingPage = () => {
     return slides;
   }, [slides, landing]);
 
-  const handleHeroCta = (ctaType: "viewing" | "callback" | "refer_friend") => {
+  const handleHeroCta = (
+    ctaType: "viewing" | "callback" | "refer_friend" | "content_creator"
+  ) => {
     if (ctaType === "callback") {
       setCallbackDialogOpen(true);
     } else if (ctaType === "refer_friend") {
       setReferFriendDialogOpen(true);
+    } else if (ctaType === "content_creator") {
+      setCreatorDialogOpen(true);
     } else {
       setViewingDialogOpen(true);
     }
@@ -596,6 +602,8 @@ const LandingPage = () => {
                                 ? "Get a callback"
                                 : slide.cta_type === "refer_friend"
                                 ? "Refer a friend"
+                                : slide.cta_type === "content_creator"
+                                ? "Apply as content creator"
                                 : "Book a viewing")}
                           </Button>
                         </AnimatedText>
@@ -975,6 +983,11 @@ const LandingPage = () => {
       <ReferFriendDialog
         open={referFriendDialogOpen}
         onOpenChange={setReferFriendDialogOpen}
+        landingPageSlug={`/landing/${landing.slug}`}
+      />
+      <CreatorFormDialog
+        open={creatorDialogOpen}
+        onOpenChange={setCreatorDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
       />
     </div>

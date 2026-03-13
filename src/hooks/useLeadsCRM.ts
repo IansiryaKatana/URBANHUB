@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { recordFormSubmitEvent } from "@/utils/recordAnalyticsEvent";
+import { format, parseISO } from "date-fns";
 
 export const WEBHOOK_URL = 'https://btbsslznsexidjnzizre.supabase.co/functions/v1/wordpress-webhook';
 
@@ -21,8 +22,25 @@ async function saveLeadToDb(formData: LeadFormData) {
   const formType = formData.form_type === "booking" ? "viewing" : "callback";
   const message =
     formData.form_type === "booking"
-      ? [formData.preferred_date, formData.preferred_time, formData.studio_type].filter(Boolean).join(" · ") || null
-      : (formData.message ?? null);
+      ? (() => {
+          const parts: string[] = [];
+          if (formData.preferred_date) {
+            try {
+              const humanDate = format(parseISO(formData.preferred_date), "do MMMM yyyy");
+              parts.push(humanDate);
+            } catch {
+              parts.push(formData.preferred_date);
+            }
+          }
+          if (formData.preferred_time) {
+            parts.push(formData.preferred_time);
+          }
+          if (formData.studio_type) {
+            parts.push(formData.studio_type);
+          }
+          return parts.join(" · ") || null;
+        })()
+      : formData.message ?? null;
   await supabase.from("website_form_submissions").insert({
     form_type: formType,
     name: formData.full_name,

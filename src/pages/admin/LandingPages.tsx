@@ -35,7 +35,7 @@ type LandingPageRow = {
   hero_heading: string | null;
   hero_subheading: string | null;
   default_cta_label: string | null;
-  default_cta_type: "viewing" | "callback" | "refer_friend";
+  default_cta_type: "viewing" | "callback" | "refer_friend" | "content_creator";
   default_cta_tracking_key: string | null;
   room_grades_heading: string | null;
   room_grades_description: string | null;
@@ -48,7 +48,7 @@ type HeroSlideRow = {
   subtitle: string | null;
   subtitle_link_url: string | null;
   cta_label: string | null;
-  cta_type: "viewing" | "callback" | "refer_friend";
+  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator";
   cta_tracking_key: string | null;
   desktop_image_url: string | null;
   desktop_image_alt: string | null;
@@ -341,7 +341,9 @@ function LandingPageForm({
   const [heroHeading, setHeroHeading] = useState(initial?.hero_heading ?? "");
   const [heroSubheading, setHeroSubheading] = useState(initial?.hero_subheading ?? "");
   const [defaultCtaLabel, setDefaultCtaLabel] = useState(initial?.default_cta_label ?? "");
-  const [defaultCtaType, setDefaultCtaType] = useState<"viewing" | "callback" | "refer_friend">(
+  const [defaultCtaType, setDefaultCtaType] = useState<
+    "viewing" | "callback" | "refer_friend" | "content_creator"
+  >(
     initial?.default_cta_type ?? "viewing",
   );
   const [defaultCtaTrackingKey, setDefaultCtaTrackingKey] = useState(
@@ -448,12 +450,17 @@ function LandingPageForm({
             <select
               id="landing-cta-type"
               value={defaultCtaType}
-              onChange={(e) => setDefaultCtaType(e.target.value as "viewing" | "callback" | "refer_friend")}
+              onChange={(e) =>
+                setDefaultCtaType(
+                  e.target.value as "viewing" | "callback" | "refer_friend" | "content_creator",
+                )
+              }
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
               <option value="viewing">Book a viewing</option>
               <option value="callback">Get a callback</option>
               <option value="refer_friend">Refer a friend</option>
+              <option value="content_creator">Content creator form</option>
             </select>
           </div>
         </div>
@@ -690,7 +697,9 @@ function HeroSlideForm({
   const [subtitle, setSubtitle] = useState(initial?.subtitle ?? "");
   const [subtitleLinkUrl, setSubtitleLinkUrl] = useState(initial?.subtitle_link_url ?? "");
   const [ctaLabel, setCtaLabel] = useState(initial?.cta_label ?? "");
-  const [ctaType, setCtaType] = useState<"viewing" | "callback" | "refer_friend">(initial?.cta_type ?? "viewing");
+  const [ctaType, setCtaType] = useState<"viewing" | "callback" | "refer_friend" | "content_creator">(
+    initial?.cta_type ?? "viewing",
+  );
   const [ctaTrackingKey, setCtaTrackingKey] = useState(initial?.cta_tracking_key ?? "");
   const [desktopImageUrl, setDesktopImageUrl] = useState(initial?.desktop_image_url ?? "");
   const [desktopImageAlt, setDesktopImageAlt] = useState(initial?.desktop_image_alt ?? "");
@@ -783,12 +792,17 @@ function HeroSlideForm({
           <select
             id="hero-cta-type"
             value={ctaType}
-              onChange={(e) => setCtaType(e.target.value as "viewing" | "callback" | "refer_friend")}
+            onChange={(e) =>
+              setCtaType(
+                e.target.value as "viewing" | "callback" | "refer_friend" | "content_creator",
+              )
+            }
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
             <option value="viewing">Book a viewing</option>
             <option value="callback">Get a callback</option>
-              <option value="refer_friend">Refer a friend</option>
+            <option value="refer_friend">Refer a friend</option>
+            <option value="content_creator">Content creator form</option>
           </select>
         </div>
       </div>
