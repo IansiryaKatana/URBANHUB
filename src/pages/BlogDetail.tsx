@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, User, ArrowLeft, Share2 } from "lucide-react";
 import { format } from "date-fns";
-import { AnimatedHeading, AnimatedParagraph, AnimatedCard } from "@/components/animations/AnimatedText";
+import { AnimatedText, AnimatedParagraph, AnimatedCard } from "@/components/animations/AnimatedText";
 
 interface BlogTag {
   name: string;
@@ -228,7 +228,13 @@ const BlogDetail = () => {
       <div className="min-h-screen bg-white">
         <Navigation />
         <div className="container mx-auto px-4 py-16 max-w-4xl text-center">
-          <AnimatedHeading delay={0.1} className="text-2xl font-bold mb-4">Blog Post Not Found</AnimatedHeading>
+          <AnimatedText
+            as="h1"
+            delay={0.1}
+            className="text-2xl font-bold mb-4"
+          >
+            Blog Post Not Found
+          </AnimatedText>
           <Link to="/blog" className="text-primary hover:underline">
             ← Back to Blog
           </Link>
@@ -266,9 +272,13 @@ const BlogDetail = () => {
                   Back to Blog
                 </Button>
               </div>
-              <AnimatedHeading delay={0.1} className="text-3xl md:text-4xl lg:text-5xl font-display font-black uppercase tracking-wide text-gray-900 mb-4">
+              <AnimatedText
+                as="h1"
+                delay={0.1}
+                className="text-3xl md:text-4xl lg:text-5xl font-display font-black uppercase tracking-wide text-gray-900 mb-4"
+              >
                 {blogPost.title}
-              </AnimatedHeading>
+              </AnimatedText>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
                 <span className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />

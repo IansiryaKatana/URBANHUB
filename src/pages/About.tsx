@@ -369,6 +369,18 @@ const About = () => {
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
 
+        {/* Hero Content with primary H1 (hidden visually but crawlable & screen-reader accessible) */}
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16 md:pb-0 max-w-5xl">
+            <div className="max-w-2xl">
+              <h1 className="sr-only">About Urban Hub Preston</h1>
+              <p className="sr-only">
+                Discover our student community, facilities, and flexible studio rentals in the heart of Preston.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Mute/Unmute Toggle */}
         <button
           onClick={toggleMute}

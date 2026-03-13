@@ -55,6 +55,8 @@ interface LeadFormProps {
   className?: string;
   /** Optional label used to tag submissions with the originating landing page or context. */
   landingPage?: string;
+  /** Hide the optional message field when not needed (e.g. compact hero forms). */
+  hideMessageField?: boolean;
 }
 
 export const LeadForm = ({
@@ -66,6 +68,7 @@ export const LeadForm = ({
   compact = false,
   className,
   landingPage,
+  hideMessageField = false,
 }: LeadFormProps) => {
   const { user, profile } = useAuth();
   const { submitToLeadsCRM, isSubmitting } = useLeadsCRM();
@@ -288,23 +291,25 @@ export const LeadForm = ({
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="message"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel className={compact ? "sr-only" : undefined}>Additional Message (Optional)</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder={compact ? "Any additional information..." : "Add any additional information or questions..."}
-                  className={`min-h-[100px] resize-none ${compact ? "bg-white/0 text-white placeholder:text-white/55 border-white/35" : ""}`}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {!hideMessageField && (
+          <FormField
+            control={form.control}
+            name="message"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className={compact ? "sr-only" : undefined}>Additional Message (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder={compact ? "Any additional information..." : "Add any additional information or questions..."}
+                    className={`min-h-[100px] resize-none ${compact ? "bg-white/0 text-white placeholder:text-white/55 border-white/35" : ""}`}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className={`flex ${showCancel ? "flex-col-reverse md:flex-row md:justify-end" : "flex-col"} gap-3 pt-4`}>
           {showCancel && (

@@ -60,6 +60,8 @@ type HeroSlideRow = {
   h1_image_scale_mobile: number | null;
   sort_order: number;
   is_active: boolean;
+  show_on_homepage: boolean;
+  homepage_order: number | null;
 };
 
 export default function LandingPages() {
@@ -147,7 +149,7 @@ export default function LandingPages() {
       const { data: slides, error: slidesError } = await supabase
         .from("website_landing_hero_slides")
         .select(
-          "title, subtitle, cta_label, cta_type, cta_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, sort_order, is_active",
+          "title, subtitle, subtitle_link_url, cta_label, cta_type, cta_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order, is_active, show_on_homepage, homepage_order",
         )
         .eq("landing_page_id", page.id);
       if (slidesError) throw slidesError;
@@ -515,7 +517,7 @@ function HeroSlidesManager({ landingPageId }: { landingPageId: string }) {
       const { data, error } = await supabase
         .from("website_landing_hero_slides")
         .select(
-          "id, landing_page_id, title, subtitle, subtitle_link_url, cta_label, cta_type, cta_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order, is_active",
+          "id, landing_page_id, title, subtitle, subtitle_link_url, cta_label, cta_type, cta_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order, is_active, show_on_homepage, homepage_order",
         )
         .eq("landing_page_id", landingPageId)
         .order("sort_order", { ascending: true });
@@ -702,6 +704,8 @@ function HeroSlideForm({
   );
   const [sortOrder, setSortOrder] = useState(initial?.sort_order ?? 0);
   const [isActive, setIsActive] = useState(initial?.is_active ?? true);
+  const [showOnHomepage, setShowOnHomepage] = useState(initial?.show_on_homepage ?? false);
+  const [homepageOrder, setHomepageOrder] = useState<number | "">(initial?.homepage_order ?? "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -730,6 +734,9 @@ function HeroSlideForm({
       h1_image_scale_mobile: Number.isFinite(h1ImageScaleMobile) ? h1ImageScaleMobile : Number.isFinite(h1ImageScale) ? h1ImageScale : 1,
       sort_order: Number(sortOrder) || 0,
       is_active: isActive,
+      show_on_homepage: showOnHomepage,
+      homepage_order:
+        showOnHomepage && homepageOrder !== "" ? Number(homepageOrder) || null : null,
     };
     onSubmit(payload);
   };
@@ -881,11 +888,41 @@ function HeroSlideForm({
             onChange={(e) => setSortOrder(Number(e.target.value) || 0)}
           />
         </div>
-        <div className="flex items-center gap-2 pt-6">
-          <Switch id="hero-active" checked={isActive} onCheckedChange={setIsActive} />
-          <Label htmlFor="hero-active">Active (shown in carousel)</Label>
+        <div className="flex flex-col gap-3 pt-2">
+          <div className="flex items-center gap-2">
+            <Switch id="hero-active" checked={isActive} onCheckedChange={setIsActive} />
+            <Label htmlFor="hero-active">Active (shown on landing page)</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="hero-homepage"
+              checked={showOnHomepage}
+              onCheckedChange={setShowOnHomepage}
+            />
+            <Label htmlFor="hero-homepage">Also show on homepage hero</Label>
+          </div>
         </div>
       </div>
+
+      {showOnHomepage && (
+        <div className="space-y-2">
+          <Label htmlFor="hero-homepage-order">Homepage order</Label>
+          <Input
+            id="hero-homepage-order"
+            type="number"
+            min={1}
+            value={homepageOrder}
+            onChange={(e) =>
+              setHomepageOrder(e.target.value === "" ? "" : Number(e.target.value) || 1)
+            }
+            placeholder="1, 2, 3…"
+          />
+          <p className="text-xs text-muted-foreground">
+            Controls the order of this slide among other homepage hero slides. Existing homepage
+            slides keep their current position.
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-2 justify-end pt-2 border-t">
         <Button type="button" variant="outline" onClick={onCancel}>

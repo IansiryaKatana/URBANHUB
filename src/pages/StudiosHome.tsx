@@ -126,6 +126,39 @@ type StudioGradeSummary = {
   weeklyPrice: number | null;
 };
 
+type HomepageLandingHeroSlideRow = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  subtitle_link_url: string | null;
+  desktop_image_url: string | null;
+  mobile_image_url: string | null;
+  cta_label: string | null;
+  cta_type: "viewing" | "callback" | "refer_friend" | null;
+  cta_tracking_key: string | null;
+  homepage_order: number | null;
+  h1_image_url: string | null;
+  h1_image_alt: string | null;
+  h1_image_scale: number | null;
+  h1_image_scale_mobile: number | null;
+};
+
+type HomepageHeroSlide = {
+  id: string;
+  variant: "static-cta" | "static-form" | "landing";
+  background: string;
+  title?: string | null;
+  subtitle?: string | null;
+  subtitleLinkUrl?: string | null;
+  ctaLabel?: string | null;
+  ctaType?: "viewing" | "callback" | "refer_friend" | null;
+  ctaTrackingKey?: string | null;
+  h1ImageUrl?: string | null;
+  h1ImageAlt?: string | null;
+  h1ImageScale?: number | null;
+  h1ImageScaleMobile?: number | null;
+};
+
 const AmenitiesDots = () => {
   const { api } = useCarousel();
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -477,6 +510,7 @@ type GradePricesBySlug = Record<string, { price45: number; price51: number }>;
 const StudiosHome = () => {
   const { year } = useParams<{ year?: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [grades, setGrades] = useState<StudioGradeSummary[]>([]);
   const [gradePricesBySlug, setGradePricesBySlug] = useState<GradePricesBySlug>({});
   const [academicYears, setAcademicYears] = useState<AcademicYearRow[]>([]);
@@ -495,6 +529,7 @@ const StudiosHome = () => {
   const companyName = brandingSettings?.company_name || "StudentStaySolutions";
   const { data: dbAmenities } = useWebsiteAmenities();
   const { data: dbWhyUsCards } = useWhyUsCards();
+  const [landingHeroSlides, setLandingHeroSlides] = useState<HomepageHeroSlide[]>([]);
 
   const amenitiesFallback = [
     { title: "Chill Spot", image: lifestyleChillSpot },
@@ -574,6 +609,15 @@ const StudiosHome = () => {
   
   // Fallback to empty array if loading or no data
   const testimonials = testimonialsData || [];
+
+  const heroSlides: HomepageHeroSlide[] = useMemo(() => {
+    const staticSlides: HomepageHeroSlide[] = [
+      { id: "static-1", variant: "static-cta", background: hero1 },
+      { id: "static-2", variant: "static-form", background: hero2 },
+      { id: "static-3", variant: "static-cta", background: hero3 },
+    ];
+    return [...staticSlides, ...landingHeroSlides];
+  }, [hero1, hero2, hero3, landingHeroSlides]);
 
   const pricingPlans = [
     {
@@ -779,6 +823,61 @@ const StudiosHome = () => {
     };
   }, [year, navigate]);
 
+  // Load landing-hero slides that should also appear on the homepage hero
+  useEffect(() => {
+    let mounted = true;
+
+    const loadHomepageLandingHeroSlides = async () => {
+      const { data, error } = await supabase
+        .from("website_landing_hero_slides")
+        .select(
+          "id, title, subtitle, subtitle_link_url, desktop_image_url, mobile_image_url, cta_label, cta_type, cta_tracking_key, homepage_order, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, show_on_homepage, is_active",
+        )
+        .eq("show_on_homepage", true)
+        .eq("is_active", true)
+        .order("homepage_order", { ascending: true });
+
+      if (error) {
+        console.error("Unable to load homepage landing hero slides:", error);
+        return;
+      }
+
+      if (!mounted) return;
+
+      const rows = (data || []) as HomepageLandingHeroSlideRow[];
+      const mapped: HomepageHeroSlide[] =
+        rows
+          .map((row) => {
+            const bg = row.desktop_image_url || row.mobile_image_url;
+            if (!bg) return null;
+            return {
+              id: row.id,
+              variant: "landing",
+              background: bg,
+              title: row.title,
+              subtitle: row.subtitle,
+              subtitleLinkUrl: row.subtitle_link_url,
+              ctaLabel: row.cta_label,
+              ctaType: row.cta_type,
+              ctaTrackingKey: row.cta_tracking_key,
+              h1ImageUrl: row.h1_image_url,
+              h1ImageAlt: row.h1_image_alt,
+              h1ImageScale: row.h1_image_scale,
+              h1ImageScaleMobile: row.h1_image_scale_mobile,
+            } as HomepageHeroSlide;
+          })
+          .filter(Boolean) as HomepageHeroSlide[];
+
+      setLandingHeroSlides(mapped);
+    };
+
+    void loadHomepageLandingHeroSlides();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Load studio grades filtered by selected academic year
   useEffect(() => {
     if (!selectedYear) return;
@@ -898,20 +997,22 @@ const StudiosHome = () => {
       <section aria-label="Urban Hub Preston student accommodation hero carousel" className="studios-hero-section relative overflow-hidden h-[100dvh] min-h-[280px] md:h-[100vh]">
         <Carousel opts={{ loop: true }} className="w-full h-full">
           <CarouselContent className="-ml-0 h-full">
-            {[hero1, hero2, hero3].map((bg, idx) => (
-              <CarouselItem key={`hero-${idx}`} className="pl-0 h-full flex-[0_0_100%]">
+            {heroSlides.map((slide, idx) => (
+              <CarouselItem key={slide.id} className="pl-0 h-full flex-[0_0_100%]">
                 <div
-                  className={`relative flex items-center h-full min-h-0 ${idx === 1 ? "justify-start" : "justify-center"}`}
+                  className={`relative flex items-center h-full min-h-0 ${
+                    slide.variant === "static-form" ? "justify-start" : "justify-center"
+                  }`}
                   style={{
                     height: "100%",
-                    backgroundImage: `linear-gradient(180deg, rgba(5, 6, 9, 0.7) 0%, rgba(5, 6, 9, 0.35) 65%, rgba(5, 6, 9, 0.7) 100%), url('${bg}')`,
+                    backgroundImage: `linear-gradient(180deg, rgba(5, 6, 9, 0.7) 0%, rgba(5, 6, 9, 0.35) 65%, rgba(5, 6, 9, 0.7) 100%), url('${slide.background}')`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
                   }}
                 >
-                  {idx === 1 ? (
-                    <div className="container mx-auto px-4 text-white py-12 md:py-24 h-full overflow-y-auto min-h-0 flex flex-col">
-                      <div className="px-4 md:px-6 space-y-6 text-left flex-shrink-0">
+                  {slide.variant === "static-form" ? (
+                    <div className="container mx-auto px-4 text-white py-12 md:py-24 h-full flex flex-col justify-center">
+                      <div className="px-4 md:px-6 space-y-6 text-left">
                         <AnimatedText delay={0.1}>
                           <p className="text-[11px] uppercase tracking-[0.5em] text-white/70 font-normal">
                             THE MOST EQUIPPED, MOST CONNECTED,
@@ -936,11 +1037,63 @@ const StudiosHome = () => {
                             onCancel={() => {}}
                             showCancel={false}
                             compact
+                            hideMessageField
                             submitLabel="BOOK YOUR VIEWING"
                             className="[&_*]:text-white [&_input]:bg-white/0 [&_input]:text-white [&_input]:placeholder:text-white/55 [&_input]:border-white/35 [&_textarea]:bg-white/0 [&_textarea]:text-white [&_textarea]:placeholder:text-white/55 [&_textarea]:border-white/35 [&_[data-slot=select-trigger]]:bg-white/0 [&_[data-slot=select-trigger]]:text-white [&_[data-slot=select-trigger]]:border-white/35 [&_[data-slot=select-trigger]]:placeholder:text-white [&_[data-slot=select-trigger]>span]:!text-white [&_input[type=tel]]:bg-white/0 [&_input[type=tel]]:text-white [&_input[type=tel]]:placeholder:text-white/55 [&_input[type=tel]]:border-white/35"
                           />
                         </div>
                       </div>
+                    </div>
+                  ) : slide.variant === "landing" ? (
+                    <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-12 md:py-24">
+                      {slide.subtitle && (
+                        <AnimatedText delay={0.1}>
+                          <p className="text-xs md:text-sm uppercase tracking-[0.35em] text-white/70">
+                            {slide.subtitleLinkUrl ? (
+                              <a
+                                href={slide.subtitleLinkUrl}
+                                className="underline hover:text-white"
+                              >
+                                {slide.subtitle}
+                              </a>
+                            ) : (
+                              slide.subtitle
+                            )}
+                          </p>
+                        </AnimatedText>
+                      )}
+                      <AnimatedHeading
+                        delay={0.2}
+                        className="text-3xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
+                      >
+                        <span className={slide.h1ImageUrl ? "sr-only" : ""}>{slide.title}</span>
+                      </AnimatedHeading>
+                      {slide.h1ImageUrl && (
+                        <div className="flex justify-center">
+                          <img
+                            src={slide.h1ImageUrl}
+                            alt={slide.h1ImageAlt || slide.title || undefined}
+                            className="max-w-full h-auto"
+                            style={{
+                              transform: `scale(${
+                                isMobile
+                                  ? slide.h1ImageScaleMobile ?? slide.h1ImageScale ?? 1
+                                  : slide.h1ImageScale ?? 1
+                              })`,
+                              transformOrigin: "center",
+                            }}
+                          />
+                        </div>
+                      )}
+                      <AnimatedText delay={0.4}>
+                        <Button
+                          onClick={() => setViewingDialogOpen(true)}
+                          className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
+                          data-analytics={slide.ctaTrackingKey || "homepage-landing-hero-cta"}
+                        >
+                          {slide.ctaLabel || "Book a Viewing"}
+                        </Button>
+                      </AnimatedText>
                     </div>
                   ) : (
                     <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-12 md:py-24">
