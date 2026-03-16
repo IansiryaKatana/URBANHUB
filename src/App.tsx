@@ -17,6 +17,7 @@ import NewsletterPopup from "./components/NewsletterPopup";
 import FloatingActions from "./components/FloatingActions";
 import LegacyRedirects from "./components/LegacyRedirects";
 import AnimatedRoutes from "./components/AnimatedRoutes";
+import MicrosoftClarity from "./components/MicrosoftClarity";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               <AnimatedRoutes />
               <NewsletterPopup />
               <FloatingActions />
+              <MicrosoftClarity />
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>

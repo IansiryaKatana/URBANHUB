@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, User, ArrowLeft, Share2 } from "lucide-react";
 import { format } from "date-fns";
-import { AnimatedText, AnimatedParagraph, AnimatedCard } from "@/components/animations/AnimatedText";
+import { AnimatedText, AnimatedParagraph, AnimatedCard, AnimatedHeading } from "@/components/animations/AnimatedText";
 
 interface BlogTag {
   name: string;
