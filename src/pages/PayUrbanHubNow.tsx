@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
-import { useSearchParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useBrandingSettings } from "@/hooks/useBranding";
 import { useSlotUrl } from "@/hooks/useWebsiteImageSlots";
 import { usePayUrbanHub, getPaymentTypeDescription, type PayUrbanHubFormData } from "@/hooks/usePayUrbanHub";
 import { SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { STRIPE_PUBLISHABLE_KEY } from "@/config";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -47,6 +47,8 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 const payFormSchema = zod.object({
   firstName: zod.string().min(2, "First name must be at least 2 characters"),
@@ -78,7 +80,7 @@ const TAB_OPTIONS: { value: PaymentTab; label: string }[] = [
   { value: "keyworker_pay", label: "Keyworker pay" },
 ];
 
-const PAY_PAGE_PATH = "/pay-urban-hub-now";
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY || "");
 
 function PayUrbanHubFormSection({
   paymentType,
@@ -214,70 +216,116 @@ function PayUrbanHubFormSection({
           className="w-full h-12 rounded-lg bg-primary text-white font-semibold text-sm uppercase tracking-wide hover:bg-primary/90"
         >
           {isCreatingIntent && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-          Pay securely (redirects to Stripe)
+          Pay securely
         </Button>
       </form>
     </Form>
   );
 }
 
+function PayUrbanHubPaymentStep({ onSuccess }: { onSuccess: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setSubmitting(true);
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
+      });
+      if (error) {
+        toast.error(error.message || "Payment failed. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+      if (paymentIntent && paymentIntent.status === "succeeded") {
+        onSuccess();
+      } else {
+        toast.error("Payment was not completed. Please try again.");
+        setSubmitting(false);
+      }
+    } catch (_err) {
+      toast.error("Payment failed. Please try again.");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+      <PaymentElement />
+      <Button
+        type="submit"
+        disabled={submitting || !stripe}
+        className="w-full h-12 rounded-lg bg-primary text-white font-semibold text-sm uppercase tracking-wide hover:bg-primary/90"
+      >
+        {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+        Pay securely
+      </Button>
+    </form>
+  );
+}
+
 type DrawerStep = "choose" | PaymentTab;
 
 const PayUrbanHubNow = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { data: brandingSettings } = useBrandingSettings();
   const heroSlotUrl = useSlotUrl("hero_shortterm", brandingSettings?.studio_catalog_hero_image);
   const heroImagePath = heroSlotUrl || "https://urbanhub.uk/wp-content/uploads/2025/05/URBAN-HUB-OUTSIDE-A-3-of-1-scaled-1.webp";
-  const { createCheckoutSession, isCreatingIntent, error: createIntentError } = usePayUrbanHub();
+  const { createPaymentIntent, isCreatingIntent, error: createIntentError } = usePayUrbanHub();
   const [paymentType, setPaymentType] = useState<PaymentTab>("current_student");
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [bankDetailsOpen, setBankDetailsOpen] = useState(false);
   const isMobile = useIsMobile();
   const [payDrawerOpen, setPayDrawerOpen] = useState(false);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("choose");
+  const [phase, setPhase] = useState<"details" | "payment">("details");
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-  useEffect(() => {
-    const payment = searchParams.get("payment");
-    if (payment === "success") {
-      setSuccessDialogOpen(true);
-      setSearchParams({}, { replace: true });
-    } else if (payment === "cancelled") {
-      toast.info("Payment was cancelled. You can try again whenever you're ready.");
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  const handleCheckoutSubmit = (paymentTypeValue: PaymentTab) => async (values: PayFormValues) => {
-    const baseUrl = window.location.origin + PAY_PAGE_PATH;
+  const handleEmbeddedSubmit = (paymentTypeValue: PaymentTab) => async (values: PayFormValues) => {
     const formData: PayUrbanHubFormData = {
       ...values,
       amountPounds: values.amountPounds,
       paymentType: paymentTypeValue,
     };
-    const result = await createCheckoutSession(
-      formData,
-      SUPABASE_PUBLISHABLE_KEY,
-      `${baseUrl}?payment=success`,
-      `${baseUrl}?payment=cancelled`
-    );
-    if (result?.url) {
-      window.location.href = result.url;
+    const result = await createPaymentIntent(formData, SUPABASE_PUBLISHABLE_KEY);
+    if (result?.clientSecret) {
+      setClientSecret(result.clientSecret);
+      setPhase("payment");
     }
+  };
+
+  const handleEmbeddedPaymentSuccess = () => {
+    setSuccessDialogOpen(true);
+    setClientSecret(null);
+    setPhase("details");
   };
 
   const handleDrawerOpenChange = (open: boolean) => {
     setPayDrawerOpen(open);
-    if (!open) setDrawerStep("choose");
+    if (!open) {
+      setDrawerStep("choose");
+      setPhase("details");
+      setClientSecret(null);
+    }
   };
 
-  const formSection = (
-    <PayUrbanHubFormSection
-      paymentType={paymentType}
-      isCreatingIntent={isCreatingIntent}
-      onSubmitCheckout={handleCheckoutSubmit(paymentType)}
-      createIntentError={createIntentError}
-    />
-  );
+  const formSection =
+    phase === "payment" && clientSecret && stripePromise ? (
+      <Elements stripe={stripePromise} options={{ clientSecret }}>
+        <PayUrbanHubPaymentStep onSuccess={handleEmbeddedPaymentSuccess} />
+      </Elements>
+    ) : (
+      <PayUrbanHubFormSection
+        paymentType={paymentType}
+        isCreatingIntent={isCreatingIntent}
+        onSubmitCheckout={handleEmbeddedSubmit(paymentType)}
+        createIntentError={createIntentError}
+      />
+    );
 
   return (
     <div className="min-h-screen bg-background">
@@ -414,13 +462,19 @@ const PayUrbanHubNow = () => {
                 </span>
               </div>
               <div className="flex-1 overflow-auto px-4 pb-8 pt-2 bg-white">
-                <PayUrbanHubFormSection
-                  paymentType={drawerStep}
-                  isCreatingIntent={isCreatingIntent}
-                  onSubmitCheckout={handleCheckoutSubmit(drawerStep)}
-                  createIntentError={createIntentError}
-                  variant="light"
-                />
+                {phase === "payment" && clientSecret && stripePromise ? (
+                  <Elements stripe={stripePromise} options={{ clientSecret }}>
+                    <PayUrbanHubPaymentStep onSuccess={handleEmbeddedPaymentSuccess} />
+                  </Elements>
+                ) : (
+                  <PayUrbanHubFormSection
+                    paymentType={drawerStep as PaymentTab}
+                    isCreatingIntent={isCreatingIntent}
+                    onSubmitCheckout={handleEmbeddedSubmit(drawerStep as PaymentTab)}
+                    createIntentError={createIntentError}
+                    variant="light"
+                  />
+                )}
               </div>
             </div>
           )}
