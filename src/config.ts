@@ -22,7 +22,18 @@ export const PORTAL_BASE_URL =
  * (2) In Stripe Dashboard → Developers → Payment method domains, add urbanhub.uk
  * and www.urbanhub.uk so Stripe allows the Payment Element on your production site.
  */
-export const STRIPE_PUBLISHABLE_KEY = (import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "").trim();
+function normalizeStripePublishableKey(raw: string): string {
+  const key = (raw || "").trim();
+  // Guardrail: publishable keys are pk_test_... / pk_live_...
+  // If someone accidentally pasted k_live_... / k_test_... (missing leading "p"),
+  // Stripe Elements will 401 and the PaymentElement won't render.
+  if (key.startsWith("k_live_") || key.startsWith("k_test_")) return `p${key}`;
+  return key;
+}
+
+export const STRIPE_PUBLISHABLE_KEY = normalizeStripePublishableKey(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "",
+);
 
 /** Dev-only: "test" | "live" | "unknown" | "missing" for debugging 400 errors */
 export function getStripePublishableKeyMode(): "test" | "live" | "unknown" | "missing" {
