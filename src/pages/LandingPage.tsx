@@ -22,6 +22,7 @@ import { BookViewingDialog } from "@/components/leads/BookViewingDialog";
 import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
 import { CreatorFormDialog } from "@/components/leads/CreatorFormDialog";
 import { ReferFriendDialog } from "@/components/leads/ReferFriendDialog";
+import { SecureBookingDialog } from "@/components/leads/SecureBookingDialog";
 import { useAllStudioAvailability, getAvailabilityTag, isFullyBooked } from "@/hooks/useStudioAvailability";
 import { portalStudiosUrl } from "@/config";
 import type { Database } from "@/integrations/supabase/types";
@@ -36,7 +37,7 @@ type LandingPageRecord = {
   hero_heading: string | null;
   hero_subheading: string | null;
   default_cta_label: string | null;
-  default_cta_type: "viewing" | "callback" | "refer_friend" | "content_creator";
+  default_cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking";
   default_cta_tracking_key: string | null;
   room_grades_heading: string | null;
   room_grades_description: string | null;
@@ -48,7 +49,7 @@ type HeroSlideRecord = {
   subtitle: string | null;
   subtitle_link_url: string | null;
   cta_label: string | null;
-  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator";
+  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking";
   cta_tracking_key: string | null;
   desktop_image_url: string | null;
   desktop_image_alt: string | null;
@@ -220,6 +221,7 @@ const LandingPage = () => {
   const [callbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [referFriendDialogOpen, setReferFriendDialogOpen] = useState(false);
   const [creatorDialogOpen, setCreatorDialogOpen] = useState(false);
+  const [secureBookingDialogOpen, setSecureBookingDialogOpen] = useState(false);
 
   const [academicYears, setAcademicYears] = useState<AcademicYearRow[]>([]);
   const [selectedYear, setSelectedYear] = useState<AcademicYearRow | null>(null);
@@ -426,7 +428,7 @@ const LandingPage = () => {
   }, [slides, landing]);
 
   const handleHeroCta = (
-    ctaType: "viewing" | "callback" | "refer_friend" | "content_creator"
+    ctaType: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking"
   ) => {
     if (ctaType === "callback") {
       setCallbackDialogOpen(true);
@@ -434,6 +436,8 @@ const LandingPage = () => {
       setReferFriendDialogOpen(true);
     } else if (ctaType === "content_creator") {
       setCreatorDialogOpen(true);
+    } else if (ctaType === "secure_booking") {
+      setSecureBookingDialogOpen(true);
     } else {
       setViewingDialogOpen(true);
     }
@@ -604,6 +608,8 @@ const LandingPage = () => {
                                 ? "Refer a friend"
                                 : slide.cta_type === "content_creator"
                                 ? "Apply as content creator"
+                                : slide.cta_type === "secure_booking"
+                                ? "Secure your booking"
                                 : "Book a viewing")}
                           </Button>
                         </AnimatedText>
@@ -988,6 +994,11 @@ const LandingPage = () => {
       <CreatorFormDialog
         open={creatorDialogOpen}
         onOpenChange={setCreatorDialogOpen}
+        landingPageSlug={`/landing/${landing.slug}`}
+      />
+      <SecureBookingDialog
+        open={secureBookingDialogOpen}
+        onOpenChange={setSecureBookingDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
       />
     </div>

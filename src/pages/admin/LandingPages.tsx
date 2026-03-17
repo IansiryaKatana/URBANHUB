@@ -35,7 +35,7 @@ type LandingPageRow = {
   hero_heading: string | null;
   hero_subheading: string | null;
   default_cta_label: string | null;
-  default_cta_type: "viewing" | "callback" | "refer_friend" | "content_creator";
+  default_cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking";
   default_cta_tracking_key: string | null;
   room_grades_heading: string | null;
   room_grades_description: string | null;
@@ -48,7 +48,7 @@ type HeroSlideRow = {
   subtitle: string | null;
   subtitle_link_url: string | null;
   cta_label: string | null;
-  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator";
+  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking";
   cta_tracking_key: string | null;
   desktop_image_url: string | null;
   desktop_image_alt: string | null;
@@ -342,7 +342,7 @@ function LandingPageForm({
   const [heroSubheading, setHeroSubheading] = useState(initial?.hero_subheading ?? "");
   const [defaultCtaLabel, setDefaultCtaLabel] = useState(initial?.default_cta_label ?? "");
   const [defaultCtaType, setDefaultCtaType] = useState<
-    "viewing" | "callback" | "refer_friend" | "content_creator"
+    "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking"
   >(
     initial?.default_cta_type ?? "viewing",
   );
@@ -461,6 +461,7 @@ function LandingPageForm({
               <option value="callback">Get a callback</option>
               <option value="refer_friend">Refer a friend</option>
               <option value="content_creator">Content creator form</option>
+              <option value="secure_booking">Secure booking payment</option>
             </select>
           </div>
         </div>
@@ -697,9 +698,9 @@ function HeroSlideForm({
   const [subtitle, setSubtitle] = useState(initial?.subtitle ?? "");
   const [subtitleLinkUrl, setSubtitleLinkUrl] = useState(initial?.subtitle_link_url ?? "");
   const [ctaLabel, setCtaLabel] = useState(initial?.cta_label ?? "");
-  const [ctaType, setCtaType] = useState<"viewing" | "callback" | "refer_friend" | "content_creator">(
-    initial?.cta_type ?? "viewing",
-  );
+  const [ctaType, setCtaType] = useState<
+    "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking"
+  >(initial?.cta_type ?? "viewing");
   const [ctaTrackingKey, setCtaTrackingKey] = useState(initial?.cta_tracking_key ?? "");
   const [desktopImageUrl, setDesktopImageUrl] = useState(initial?.desktop_image_url ?? "");
   const [desktopImageAlt, setDesktopImageAlt] = useState(initial?.desktop_image_alt ?? "");
@@ -803,6 +804,7 @@ function HeroSlideForm({
             <option value="callback">Get a callback</option>
             <option value="refer_friend">Refer a friend</option>
             <option value="content_creator">Content creator form</option>
+            <option value="secure_booking">Secure booking payment</option>
           </select>
         </div>
       </div>

@@ -29,6 +29,7 @@ import { STRIPE_PUBLISHABLE_KEY } from "@/config";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { toast } from "sonner";
+import { CONTACT_WEBHOOK_URL } from "@/hooks/useContactForm";
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY || "");
 
@@ -164,6 +165,33 @@ export const ReferFriendDialog = ({ open, onOpenChange, landingPageSlug }: Refer
   const handlePaymentSuccess = async (paymentIntentId: string) => {
     try {
       const values = form.getValues();
+      const webhookPayload = {
+        form_type: "refer_friend",
+        full_name: values.full_name,
+        email: values.email,
+        phone: values.phone,
+        studio_type: values.studio_type,
+        friend_name: values.referrer_name,
+        friend_studio_number: values.referrer_studio_number,
+        payment_intent_id: paymentIntentId,
+        amount_pence: REFER_FRIEND_AMOUNT_PENCE,
+        landing_page: landingPageSlug || null,
+      };
+      try {
+        const response = await fetch(CONTACT_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(webhookPayload),
+        });
+        if (!response.ok) {
+          // eslint-disable-next-line no-console
+          console.error("Refer-a-friend CRM webhook error", await response.text());
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("Refer-a-friend CRM webhook network error", err);
+      }
+
       await supabase.from("website_form_submissions").insert({
         form_type: "refer_friend",
         name: values.full_name,
