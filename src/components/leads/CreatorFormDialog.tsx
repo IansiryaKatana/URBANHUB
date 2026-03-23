@@ -32,7 +32,9 @@ import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 import { useState } from "react";
+import { useEffect } from "react";
 import { useCreatorForm } from "@/hooks/useCreatorForm";
+import { pushDataLayer } from "@/utils/dataLayer";
 
 const contentTypeOptions = [
   "Lifestyle",
@@ -95,12 +97,18 @@ interface CreatorFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   landingPageSlug?: string;
+  ctaTrackingKey?: string;
+  ctaType?: string;
+  ctaSource?: string;
 }
 
 export const CreatorFormDialog = ({
   open,
   onOpenChange,
   landingPageSlug,
+  ctaTrackingKey,
+  ctaType,
+  ctaSource = "inline",
 }: CreatorFormDialogProps) => {
   const isMobile = useIsMobile();
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -132,6 +140,19 @@ export const CreatorFormDialog = ({
     },
   });
 
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+    pushDataLayer("lp_form_start", {
+      event_action: "lp_form_start",
+      form_type: "content_creator",
+      page_path: window.location.pathname || "/",
+      landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+      cta_tracking_key: ctaTrackingKey,
+      cta_type: ctaType,
+      cta_source: ctaSource,
+    });
+  }, [open, landingPageSlug, ctaTrackingKey, ctaType, ctaSource]);
+
   const resetState = () => {
     setStep(1);
     setIsCompleted(false);
@@ -151,6 +172,9 @@ export const CreatorFormDialog = ({
     await submitCreatorForm({
       ...values,
       landing_page: landingPageSlug,
+      tracking_key: ctaTrackingKey,
+      cta_type: ctaType,
+      cta_source: ctaSource,
     });
     setIsCompleted(true);
   };

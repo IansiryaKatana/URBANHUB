@@ -5,6 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Carousel,
   CarouselContent,
   CarouselItem,
@@ -27,6 +33,7 @@ import { useAllStudioAvailability, getAvailabilityTag, isFullyBooked } from "@/h
 import { portalStudiosUrl } from "@/config";
 import type { Database } from "@/integrations/supabase/types";
 import { Play, Volume2, VolumeX, ArrowUpRight } from "lucide-react";
+import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
 
 type AcademicYearRow = Database["public"]["Tables"]["academic_years"]["Row"];
 
@@ -41,6 +48,14 @@ type LandingPageRecord = {
   default_cta_tracking_key: string | null;
   room_grades_heading: string | null;
   room_grades_description: string | null;
+  info_stack_items: { title: string; description: string }[];
+  faq_items: { question: string; answer: string }[];
+  meta_pixel_id: string | null;
+  tiktok_pixel_id: string | null;
+  snapchat_pixel_id: string | null;
+  google_ads_conversion_id: string | null;
+  google_ads_conversion_label_lead: string | null;
+  google_ads_conversion_label_purchase: string | null;
 };
 
 type HeroSlideRecord = {
@@ -222,6 +237,7 @@ const LandingPage = () => {
   const [referFriendDialogOpen, setReferFriendDialogOpen] = useState(false);
   const [creatorDialogOpen, setCreatorDialogOpen] = useState(false);
   const [secureBookingDialogOpen, setSecureBookingDialogOpen] = useState(false);
+  const [ctaTrackingContext, setCtaTrackingContext] = useState<{ key?: string; ctaType?: string }>({});
 
   const [academicYears, setAcademicYears] = useState<AcademicYearRow[]>([]);
   const [selectedYear, setSelectedYear] = useState<AcademicYearRow | null>(null);
@@ -246,7 +262,7 @@ const LandingPage = () => {
       const { data, error } = await supabase
         .from("website_landing_pages")
         .select(
-          "id, name, slug, hero_heading, hero_subheading, default_cta_label, default_cta_type, default_cta_tracking_key, room_grades_heading, room_grades_description",
+          "id, name, slug, hero_heading, hero_subheading, default_cta_label, default_cta_type, default_cta_tracking_key, room_grades_heading, room_grades_description, info_stack_items, faq_items, meta_pixel_id, tiktok_pixel_id, snapchat_pixel_id, google_ads_conversion_id, google_ads_conversion_label_lead, google_ads_conversion_label_purchase",
         )
         .eq("slug", slug)
         .eq("is_active", true)
@@ -267,6 +283,28 @@ const LandingPage = () => {
         default_cta_tracking_key: data.default_cta_tracking_key,
         room_grades_heading: data.room_grades_heading,
         room_grades_description: data.room_grades_description,
+        meta_pixel_id: data.meta_pixel_id,
+        tiktok_pixel_id: data.tiktok_pixel_id,
+        snapchat_pixel_id: data.snapchat_pixel_id,
+        google_ads_conversion_id: data.google_ads_conversion_id,
+        google_ads_conversion_label_lead: data.google_ads_conversion_label_lead,
+        google_ads_conversion_label_purchase: data.google_ads_conversion_label_purchase,
+        info_stack_items: Array.isArray(data.info_stack_items)
+          ? data.info_stack_items
+              .map((item: any) => ({
+                title: String(item?.title ?? "").trim(),
+                description: String(item?.description ?? "").trim(),
+              }))
+              .filter((item: { title: string; description: string }) => item.title && item.description)
+          : [],
+        faq_items: Array.isArray(data.faq_items)
+          ? data.faq_items
+              .map((item: any) => ({
+                question: String(item?.question ?? "").trim(),
+                answer: String(item?.answer ?? "").trim(),
+              }))
+              .filter((item: { question: string; answer: string }) => item.question && item.answer)
+          : [],
       });
 
       const { data: slideRows, error: slidesError } = await supabase
@@ -428,8 +466,24 @@ const LandingPage = () => {
   }, [slides, landing]);
 
   const handleHeroCta = (
-    ctaType: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking"
+    ctaType: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking",
+    trackingKey?: string | null,
   ) => {
+    setCtaTrackingContext({
+      key: trackingKey || landing.default_cta_tracking_key || "landing-hero-cta",
+      ctaType,
+    });
+    const eventId = createTrackingEventId("lp-cta");
+    pushDataLayer("lp_cta_click", {
+      event_action: "lp_cta_click",
+      event_label: trackingKey || landing.default_cta_tracking_key || "landing-hero-cta",
+      page_path: typeof window !== "undefined" ? window.location.pathname : `/landing/${landing.slug}`,
+      landing_slug: landing.slug,
+      cta_tracking_key: trackingKey || landing.default_cta_tracking_key || "landing-hero-cta",
+      cta_type: ctaType,
+      cta_source: "landing_hero",
+      event_id: eventId,
+    });
     if (ctaType === "callback") {
       setCallbackDialogOpen(true);
     } else if (ctaType === "refer_friend") {
@@ -442,6 +496,21 @@ const LandingPage = () => {
       setViewingDialogOpen(true);
     }
   };
+
+  useEffect(() => {
+    if (!landing || typeof window === "undefined") return;
+    const eventId = createTrackingEventId("lp-view");
+    pushDataLayer("lp_view", {
+      event_action: "lp_view",
+      page_path: window.location.pathname || `/landing/${landing.slug}`,
+      landing_slug: landing.slug,
+      meta_pixel_id: landing.meta_pixel_id ?? undefined,
+      tiktok_pixel_id: landing.tiktok_pixel_id ?? undefined,
+      snapchat_pixel_id: landing.snapchat_pixel_id ?? undefined,
+      google_ads_conversion_id: landing.google_ads_conversion_id ?? undefined,
+      event_id: eventId,
+    });
+  }, [landing]);
 
   const formatYearForDisplay = (yearName: string) => yearName;
 
@@ -465,6 +534,11 @@ const LandingPage = () => {
       };
     });
   }, [grades, availabilityData, gradePricesBySlug]);
+
+  const infoStackItems = landing?.info_stack_items || [];
+  const faqItems = landing?.faq_items || [];
+  const hasInfoStack = infoStackItems.length > 0;
+  const hasFaqs = faqItems.length > 0;
 
   if (loading) {
     return null;
@@ -596,7 +670,12 @@ const LandingPage = () => {
                         )}
                         <AnimatedText delay={0.4}>
                           <Button
-                            onClick={() => handleHeroCta(slide.cta_type || landing.default_cta_type)}
+                            onClick={() =>
+                              handleHeroCta(
+                                slide.cta_type || landing.default_cta_type,
+                                slide.cta_tracking_key || landing.default_cta_tracking_key,
+                              )
+                            }
                             className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
                             data-analytics={slide.cta_tracking_key || landing.default_cta_tracking_key || "landing-hero-cta"}
                           >
@@ -799,6 +878,75 @@ const LandingPage = () => {
         )}
       </main>
 
+      {(hasInfoStack || hasFaqs) && (
+        <section className="bg-[#faf7f1] py-16 md:py-24">
+          <div className="container mx-auto px-4">
+            {hasInfoStack && hasFaqs ? (
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-5 lg:gap-10">
+                <div className="lg:col-span-2 space-y-4">
+                  {infoStackItems.map((item, index) => (
+                    <article key={`${item.title}-${index}`} className="rounded-2xl border border-black/10 bg-white p-6">
+                      <h3 className="text-xl md:text-2xl font-display font-black uppercase tracking-wide text-black">
+                        {item.title}
+                      </h3>
+                      <p className="mt-3 text-sm md:text-base text-black/70 leading-relaxed">{item.description}</p>
+                    </article>
+                  ))}
+                </div>
+                <div className="lg:col-span-3 rounded-2xl border border-black/10 bg-white p-4 md:p-6">
+                  <Accordion type="single" collapsible className="w-full space-y-3">
+                    {faqItems.map((item, index) => (
+                      <AccordionItem
+                        key={`${item.question}-${index}`}
+                        value={`landing-faq-${index}`}
+                        className="border rounded-xl px-4"
+                      >
+                        <AccordionTrigger className="text-left font-semibold text-base md:text-lg py-4 hover:no-underline">
+                          <span className="pr-4">{item.question}</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-sm md:text-base text-black/70 leading-relaxed pb-4">
+                          {item.answer}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              </div>
+            ) : hasInfoStack ? (
+              <div className="max-w-5xl mx-auto space-y-4">
+                {infoStackItems.map((item, index) => (
+                  <article key={`${item.title}-${index}`} className="rounded-2xl border border-black/10 bg-white p-6 md:p-8">
+                    <h3 className="text-2xl md:text-3xl font-display font-black uppercase tracking-wide text-black">
+                      {item.title}
+                    </h3>
+                    <p className="mt-3 text-sm md:text-base text-black/70 leading-relaxed">{item.description}</p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="max-w-5xl mx-auto rounded-2xl border border-black/10 bg-white p-4 md:p-6">
+                <Accordion type="single" collapsible className="w-full space-y-3">
+                  {faqItems.map((item, index) => (
+                    <AccordionItem
+                      key={`${item.question}-${index}`}
+                      value={`landing-faq-only-${index}`}
+                      className="border rounded-xl px-4"
+                    >
+                      <AccordionTrigger className="text-left font-semibold text-base md:text-lg py-4 hover:no-underline">
+                        <span className="pr-4">{item.question}</span>
+                      </AccordionTrigger>
+                      <AccordionContent className="text-sm md:text-base text-black/70 leading-relaxed pb-4">
+                        {item.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Why Choose section */}
       <section id="why" className="bg-black py-24 md:py-32">
         <div className="container mx-auto px-4">
@@ -979,27 +1127,40 @@ const LandingPage = () => {
         onOpenChange={setCallbackDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
         openSource="landing_hero"
+        ctaTrackingKey={ctaTrackingContext.key}
+        ctaType={ctaTrackingContext.ctaType}
       />
       <BookViewingDialog
         open={viewingDialogOpen}
         onOpenChange={setViewingDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
         openSource="landing_hero"
+        ctaTrackingKey={ctaTrackingContext.key}
+        ctaType={ctaTrackingContext.ctaType}
       />
       <ReferFriendDialog
         open={referFriendDialogOpen}
         onOpenChange={setReferFriendDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
+        ctaTrackingKey={ctaTrackingContext.key}
+        ctaType={ctaTrackingContext.ctaType}
+        ctaSource="landing_hero"
       />
       <CreatorFormDialog
         open={creatorDialogOpen}
         onOpenChange={setCreatorDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
+        ctaTrackingKey={ctaTrackingContext.key}
+        ctaType={ctaTrackingContext.ctaType}
+        ctaSource="landing_hero"
       />
       <SecureBookingDialog
         open={secureBookingDialogOpen}
         onOpenChange={setSecureBookingDialogOpen}
         landingPageSlug={`/landing/${landing.slug}`}
+        ctaTrackingKey={ctaTrackingContext.key}
+        ctaType={ctaTrackingContext.ctaType}
+        ctaSource="landing_hero"
       />
     </div>
   );

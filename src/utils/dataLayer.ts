@@ -27,6 +27,13 @@ export type DataLayerEventParams = {
   /** Tag name from website_analytics_tags (internal) */
   tag_name?: string;
   /** Extra key-value for GTM/GA */
+  landing_slug?: string;
+  cta_tracking_key?: string;
+  cta_type?: string;
+  event_id?: string;
+  value?: number;
+  currency?: string;
+  payment_intent_id?: string;
   [key: string]: string | number | boolean | undefined;
 };
 
@@ -43,4 +50,11 @@ export function pushDataLayer(eventName: string, params?: DataLayerEventParams):
     ...(params && Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))),
   };
   window.dataLayer.push(payload);
+}
+
+export function createTrackingEventId(prefix = "evt"): string {
+  const base = typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${base}`;
 }

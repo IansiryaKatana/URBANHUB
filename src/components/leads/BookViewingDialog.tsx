@@ -25,9 +25,18 @@ interface BookViewingDialogProps {
   landingPageSlug?: string;
   /** Where the form was opened from (e.g. nav = nav menu). Used for GTM/GA. */
   openSource?: LeadFormOpenSource;
+  ctaTrackingKey?: string;
+  ctaType?: string;
 }
 
-export const BookViewingDialog = ({ open, onOpenChange, landingPageSlug, openSource = "inline" }: BookViewingDialogProps) => {
+export const BookViewingDialog = ({
+  open,
+  onOpenChange,
+  landingPageSlug,
+  openSource = "inline",
+  ctaTrackingKey,
+  ctaType,
+}: BookViewingDialogProps) => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -39,8 +48,17 @@ export const BookViewingDialog = ({ open, onOpenChange, landingPageSlug, openSou
         cta_source: openSource,
         page_path: window.location.pathname || "/",
       });
+      pushDataLayer("lp_form_start", {
+        event_action: "lp_form_start",
+        form_type: "viewing",
+        page_path: window.location.pathname || "/",
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        cta_tracking_key: ctaTrackingKey,
+        cta_type: ctaType,
+        cta_source: openSource,
+      });
     }
-  }, [open, openSource]);
+  }, [open, openSource, landingPageSlug, ctaTrackingKey, ctaType]);
 
   const title = "Book a Viewing";
   const description = "Schedule a visit to see our studios. Choose your preferred date and time below.";
@@ -63,6 +81,9 @@ export const BookViewingDialog = ({ open, onOpenChange, landingPageSlug, openSou
               onSuccess={() => onOpenChange(false)} 
               onCancel={() => onOpenChange(false)}
               landingPage={landingPageSlug}
+              ctaTrackingKey={ctaTrackingKey}
+              ctaType={ctaType}
+              ctaSource={openSource}
             />
           </div>
         </DrawerContent>
@@ -87,6 +108,9 @@ export const BookViewingDialog = ({ open, onOpenChange, landingPageSlug, openSou
             onSuccess={() => onOpenChange(false)} 
             onCancel={() => onOpenChange(false)}
             landingPage={landingPageSlug}
+            ctaTrackingKey={ctaTrackingKey}
+            ctaType={ctaType}
+            ctaSource={openSource}
           />
         </div>
       </DialogContent>

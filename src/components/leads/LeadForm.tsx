@@ -57,6 +57,9 @@ interface LeadFormProps {
   landingPage?: string;
   /** Hide the optional message field when not needed (e.g. compact hero forms). */
   hideMessageField?: boolean;
+  ctaTrackingKey?: string;
+  ctaType?: string;
+  ctaSource?: string;
 }
 
 export const LeadForm = ({
@@ -69,6 +72,9 @@ export const LeadForm = ({
   className,
   landingPage,
   hideMessageField = false,
+  ctaTrackingKey,
+  ctaType,
+  ctaSource,
 }: LeadFormProps) => {
   const { user, profile } = useAuth();
   const { submitToLeadsCRM, isSubmitting } = useLeadsCRM();
@@ -110,6 +116,9 @@ export const LeadForm = ({
     const payload: LeadFormData = {
       ...values,
       form_type: formType,
+      tracking_key: ctaTrackingKey,
+      cta_type: ctaType,
+      cta_source: ctaSource,
     };
     
     try {

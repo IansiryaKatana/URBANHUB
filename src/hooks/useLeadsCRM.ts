@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { recordFormSubmitEvent } from "@/utils/recordAnalyticsEvent";
+import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
 import { format, parseISO } from "date-fns";
 
 export const WEBHOOK_URL = 'https://btbsslznsexidjnzizre.supabase.co/functions/v1/wordpress-webhook';
@@ -16,6 +17,9 @@ export type LeadFormData = {
   studio_type?: string;
   message?: string;
   landing_page?: string;
+  tracking_key?: string;
+  cta_type?: string;
+  cta_source?: string;
 };
 
 async function saveLeadToDb(formData: LeadFormData) {
@@ -78,6 +82,28 @@ export const useLeadsCRM = () => {
       await saveLeadToDb(formData).catch((err) => console.warn("Website form save:", err));
       const dbFormType = formData.form_type === "booking" ? "viewing" : "callback";
       recordFormSubmitEvent(dbFormType, typeof window !== "undefined" ? window.location.pathname : "/");
+      const landingSlug = (formData.landing_page || "").replace(/^\/landing\//, "");
+      const eventId = createTrackingEventId("lp-lead");
+      pushDataLayer("lp_form_submit", {
+        event_action: "lp_form_submit",
+        form_type: dbFormType,
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: landingSlug || undefined,
+        cta_tracking_key: formData.tracking_key,
+        cta_type: formData.cta_type,
+        cta_source: formData.cta_source,
+        event_id: eventId,
+      });
+      pushDataLayer("lp_lead", {
+        event_action: "lp_lead",
+        form_type: dbFormType,
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: landingSlug || undefined,
+        cta_tracking_key: formData.tracking_key,
+        cta_type: formData.cta_type,
+        cta_source: formData.cta_source,
+        event_id: eventId,
+      });
       toast.success(formData.form_type === "booking" ? "Viewing booked successfully!" : "Callback requested successfully!");
       return result;
     } catch (error) {

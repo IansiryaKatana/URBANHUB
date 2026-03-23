@@ -30,6 +30,8 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { toast } from "sonner";
 import { CONTACT_WEBHOOK_URL } from "@/hooks/useContactForm";
+import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
+import { useEffect } from "react";
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY || "");
 
@@ -53,6 +55,9 @@ interface ReferFriendDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   landingPageSlug?: string;
+  ctaTrackingKey?: string;
+  ctaType?: string;
+  ctaSource?: string;
 }
 
 const CREATE_PAYMENT_INTENT_URL = `${SUPABASE_URL}/functions/v1/website-create-payment-intent`;
@@ -105,7 +110,14 @@ function ReferFriendPaymentStep({
   );
 }
 
-export const ReferFriendDialog = ({ open, onOpenChange, landingPageSlug }: ReferFriendDialogProps) => {
+export const ReferFriendDialog = ({
+  open,
+  onOpenChange,
+  landingPageSlug,
+  ctaTrackingKey,
+  ctaType,
+  ctaSource = "inline",
+}: ReferFriendDialogProps) => {
   const isMobile = useIsMobile();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
@@ -123,6 +135,19 @@ export const ReferFriendDialog = ({ open, onOpenChange, landingPageSlug }: Refer
       accept_terms: false,
     },
   });
+
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+    pushDataLayer("lp_form_start", {
+      event_action: "lp_form_start",
+      form_type: "refer_friend",
+      page_path: window.location.pathname || "/",
+      landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+      cta_tracking_key: ctaTrackingKey,
+      cta_type: ctaType,
+      cta_source: ctaSource,
+    });
+  }, [open, landingPageSlug, ctaTrackingKey, ctaType, ctaSource]);
 
   const createPaymentIntent = async (values: ReferFriendValues) => {
     setIsCreatingIntent(true);
@@ -206,6 +231,40 @@ export const ReferFriendDialog = ({ open, onOpenChange, landingPageSlug }: Refer
           payment_intent_id: paymentIntentId,
           amount_pence: REFER_FRIEND_AMOUNT_PENCE,
         },
+      });
+      const eventId = createTrackingEventId("lp-lead");
+      pushDataLayer("lp_form_submit", {
+        event_action: "lp_form_submit",
+        form_type: "refer_friend",
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        cta_tracking_key: ctaTrackingKey,
+        cta_type: ctaType,
+        cta_source: ctaSource,
+        event_id: eventId,
+      });
+      pushDataLayer("lp_lead", {
+        event_action: "lp_lead",
+        form_type: "refer_friend",
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        cta_tracking_key: ctaTrackingKey,
+        cta_type: ctaType,
+        cta_source: ctaSource,
+        event_id: eventId,
+      });
+      pushDataLayer("lp_purchase", {
+        event_action: "lp_purchase",
+        form_type: "refer_friend",
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        cta_tracking_key: ctaTrackingKey,
+        cta_type: ctaType,
+        cta_source: ctaSource,
+        event_id: eventId,
+        value: 99,
+        currency: "GBP",
+        payment_intent_id: paymentIntentId,
       });
       setIsCompleted(true);
       toast.success("Refer-a-Friend submitted successfully!");

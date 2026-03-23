@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { recordFormSubmitEvent } from "@/utils/recordAnalyticsEvent";
+import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
 import { CONTACT_WEBHOOK_URL } from "./useContactForm";
 
 export type CreatorFormData = {
@@ -24,6 +25,9 @@ export type CreatorFormData = {
   collaboration_format: string;
   additional_info?: string;
   landing_page?: string;
+  tracking_key?: string;
+  cta_type?: string;
+  cta_source?: string;
 };
 
 async function saveCreatorToDb(formData: CreatorFormData) {
@@ -84,6 +88,28 @@ export const useCreatorForm = () => {
         "content_creator",
         typeof window !== "undefined" ? window.location.pathname : "/"
       );
+      const eventId = createTrackingEventId("lp-lead");
+      const landingSlug = (formData.landing_page || "").replace(/^\/landing\//, "");
+      pushDataLayer("lp_form_submit", {
+        event_action: "lp_form_submit",
+        form_type: "content_creator",
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: landingSlug || undefined,
+        cta_tracking_key: formData.tracking_key,
+        cta_type: formData.cta_type,
+        cta_source: formData.cta_source,
+        event_id: eventId,
+      });
+      pushDataLayer("lp_lead", {
+        event_action: "lp_lead",
+        form_type: "content_creator",
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: landingSlug || undefined,
+        cta_tracking_key: formData.tracking_key,
+        cta_type: formData.cta_type,
+        cta_source: formData.cta_source,
+        event_id: eventId,
+      });
       toast.success("Thank you! Your creator application has been submitted.");
       return result;
     } catch (error) {

@@ -27,9 +27,18 @@ interface GetCallbackDialogProps {
   landingPageSlug?: string;
   /** Where the form was opened from (e.g. nav = nav menu). Used for GTM/GA. */
   openSource?: LeadFormOpenSource;
+  ctaTrackingKey?: string;
+  ctaType?: string;
 }
 
-export const GetCallbackDialog = ({ open, onOpenChange, landingPageSlug, openSource = "inline" }: GetCallbackDialogProps) => {
+export const GetCallbackDialog = ({
+  open,
+  onOpenChange,
+  landingPageSlug,
+  openSource = "inline",
+  ctaTrackingKey,
+  ctaType,
+}: GetCallbackDialogProps) => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -41,8 +50,17 @@ export const GetCallbackDialog = ({ open, onOpenChange, landingPageSlug, openSou
         cta_source: openSource,
         page_path: window.location.pathname || "/",
       });
+      pushDataLayer("lp_form_start", {
+        event_action: "lp_form_start",
+        form_type: "callback",
+        page_path: window.location.pathname || "/",
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        cta_tracking_key: ctaTrackingKey,
+        cta_type: ctaType,
+        cta_source: openSource,
+      });
     }
-  }, [open, openSource]);
+  }, [open, openSource, landingPageSlug, ctaTrackingKey, ctaType]);
 
   const title = "Get a Callback";
   const description = "Fill in your details and our team will give you a call at your preferred time.";
@@ -65,6 +83,9 @@ export const GetCallbackDialog = ({ open, onOpenChange, landingPageSlug, openSou
               onSuccess={() => onOpenChange(false)} 
               onCancel={() => onOpenChange(false)}
               landingPage={landingPageSlug}
+              ctaTrackingKey={ctaTrackingKey}
+              ctaType={ctaType}
+              ctaSource={openSource}
             />
           </div>
         </DrawerContent>
@@ -89,6 +110,9 @@ export const GetCallbackDialog = ({ open, onOpenChange, landingPageSlug, openSou
             onSuccess={() => onOpenChange(false)} 
             onCancel={() => onOpenChange(false)}
             landingPage={landingPageSlug}
+            ctaTrackingKey={ctaTrackingKey}
+            ctaType={ctaType}
+            ctaSource={openSource}
           />
         </div>
       </DialogContent>

@@ -18,11 +18,22 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Loader2, Pencil, Plus, Trash2, Copy, Eye } from "lucide-react";
 import { toast } from "sonner";
@@ -39,6 +50,14 @@ type LandingPageRow = {
   default_cta_tracking_key: string | null;
   room_grades_heading: string | null;
   room_grades_description: string | null;
+  info_stack_items: { title: string; description: string }[] | null;
+  faq_items: { question: string; answer: string }[] | null;
+  meta_pixel_id: string | null;
+  tiktok_pixel_id: string | null;
+  snapchat_pixel_id: string | null;
+  google_ads_conversion_id: string | null;
+  google_ads_conversion_label_lead: string | null;
+  google_ads_conversion_label_purchase: string | null;
 };
 
 type HeroSlideRow = {
@@ -68,6 +87,24 @@ export default function LandingPages() {
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (!pages?.length) return;
+    if (selectedIds.size === pages.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(pages.map((p) => p.id)));
+  };
 
   const { data: pages, isLoading } = useQuery({
     queryKey: ["admin-website-landing-pages"],
@@ -75,7 +112,7 @@ export default function LandingPages() {
       const { data, error } = await supabase
         .from("website_landing_pages")
         .select(
-          "id, name, slug, is_active, hero_heading, hero_subheading, default_cta_label, default_cta_type, default_cta_tracking_key, room_grades_heading, room_grades_description",
+          "id, name, slug, is_active, hero_heading, hero_subheading, default_cta_label, default_cta_type, default_cta_tracking_key, room_grades_heading, room_grades_description, info_stack_items, faq_items, meta_pixel_id, tiktok_pixel_id, snapchat_pixel_id, google_ads_conversion_id, google_ads_conversion_label_lead, google_ads_conversion_label_purchase",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -118,8 +155,46 @@ export default function LandingPages() {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-pages"] });
       toast.success("Landing page deleted.");
       setEditingId(null);
+      setDeleteConfirmId(null);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (deleteConfirmId) next.delete(deleteConfirmId);
+        return next;
+      });
     },
     onError: () => toast.error("Failed to delete landing page."),
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, isActive }: { ids: string[]; isActive: boolean }) => {
+      if (!ids.length) return;
+      const { error } = await supabase
+        .from("website_landing_pages")
+        .update({ is_active: isActive })
+        .in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-website-landing-pages"] });
+      setSelectedIds(new Set());
+      toast.success(vars.isActive ? "Selected landing pages activated." : "Selected landing pages deactivated.");
+    },
+    onError: () => toast.error("Failed to update selected landing pages."),
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (!ids.length) return;
+      const { error } = await supabase.from("website_landing_pages").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-website-landing-pages"] });
+      setSelectedIds(new Set());
+      setBulkDeleteConfirm(false);
+      toast.success("Selected landing pages deleted.");
+    },
+    onError: () => toast.error("Failed to delete selected landing pages."),
   });
 
   const duplicateMutation = useMutation({
@@ -137,6 +212,14 @@ export default function LandingPages() {
         default_cta_tracking_key: page.default_cta_tracking_key,
         room_grades_heading: page.room_grades_heading,
         room_grades_description: page.room_grades_description,
+        info_stack_items: page.info_stack_items,
+        faq_items: page.faq_items,
+        meta_pixel_id: page.meta_pixel_id,
+        tiktok_pixel_id: page.tiktok_pixel_id,
+        snapchat_pixel_id: page.snapchat_pixel_id,
+        google_ads_conversion_id: page.google_ads_conversion_id,
+        google_ads_conversion_label_lead: page.google_ads_conversion_label_lead,
+        google_ads_conversion_label_purchase: page.google_ads_conversion_label_purchase,
       };
       const { data, error } = await supabase
         .from("website_landing_pages")
@@ -172,6 +255,14 @@ export default function LandingPages() {
   });
 
   const editing = pages?.find((p) => p.id === editingId) ?? null;
+  const selectedArray = Array.from(selectedIds);
+  const isPending =
+    updateMutation.isPending ||
+    createMutation.isPending ||
+    deleteMutation.isPending ||
+    duplicateMutation.isPending ||
+    bulkUpdateMutation.isPending ||
+    bulkDeleteMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -193,6 +284,40 @@ export default function LandingPages() {
           <CardTitle className="text-base">All landing pages</CardTitle>
         </CardHeader>
         <CardContent>
+          {selectedArray.length > 0 ? (
+            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3">
+              <p className="text-sm text-muted-foreground mr-2">
+                {selectedArray.length} selected
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={isPending}
+                onClick={() => bulkUpdateMutation.mutate({ ids: selectedArray, isActive: true })}
+              >
+                Activate
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={isPending}
+                onClick={() => bulkUpdateMutation.mutate({ ids: selectedArray, isActive: false })}
+              >
+                Deactivate
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={isPending}
+                onClick={() => setBulkDeleteConfirm(true)}
+              >
+                Delete selected
+              </Button>
+            </div>
+          ) : null}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -206,6 +331,13 @@ export default function LandingPages() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        aria-label="Select all landing pages"
+                        checked={pages.length > 0 && selectedIds.size === pages.length}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Slug</TableHead>
                     <TableHead>Default CTA</TableHead>
@@ -216,6 +348,13 @@ export default function LandingPages() {
                 <TableBody>
                   {pages.map((page) => (
                     <TableRow key={page.id}>
+                      <TableCell>
+                        <Checkbox
+                          aria-label={`Select ${page.name}`}
+                          checked={selectedIds.has(page.id)}
+                          onCheckedChange={() => toggleSelect(page.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{page.name}</TableCell>
                       <TableCell className="font-mono text-xs">{page.slug}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -262,8 +401,8 @@ export default function LandingPages() {
                           variant="ghost"
                           size="icon"
                           className="text-destructive"
-                          onClick={() => deleteMutation.mutate(page.id)}
-                          disabled={deleteMutation.isPending}
+                          onClick={() => setDeleteConfirmId(page.id)}
+                          disabled={isPending}
                           aria-label="Delete"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -320,6 +459,60 @@ export default function LandingPages() {
           />
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete landing page?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the selected landing page
+              and its linked hero slides.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteConfirmId) {
+                  deleteMutation.mutate(deleteConfirmId);
+                }
+              }}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {selectedArray.length} landing page{selectedArray.length !== 1 ? "s" : ""}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Selected landing pages and their linked hero slides
+              will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                bulkDeleteMutation.mutate(selectedArray);
+              }}
+            >
+              {bulkDeleteMutation.isPending ? "Deleting..." : "Delete selected"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -356,6 +549,26 @@ function LandingPageForm({
     initial?.room_grades_description ??
       "Tailor your stay with five distinct studio grades, each with its own layout and price point.",
   );
+  const [infoStackItems, setInfoStackItems] = useState<{ title: string; description: string }[]>(
+    initial?.info_stack_items && initial.info_stack_items.length > 0
+      ? initial.info_stack_items
+      : [{ title: "", description: "" }],
+  );
+  const [faqItems, setFaqItems] = useState<{ question: string; answer: string }[]>(
+    initial?.faq_items && initial.faq_items.length > 0
+      ? initial.faq_items
+      : Array.from({ length: 6 }, () => ({ question: "", answer: "" })),
+  );
+  const [metaPixelId, setMetaPixelId] = useState(initial?.meta_pixel_id ?? "");
+  const [tiktokPixelId, setTiktokPixelId] = useState(initial?.tiktok_pixel_id ?? "");
+  const [snapchatPixelId, setSnapchatPixelId] = useState(initial?.snapchat_pixel_id ?? "");
+  const [googleAdsConversionId, setGoogleAdsConversionId] = useState(initial?.google_ads_conversion_id ?? "");
+  const [googleAdsConversionLabelLead, setGoogleAdsConversionLabelLead] = useState(
+    initial?.google_ads_conversion_label_lead ?? "",
+  );
+  const [googleAdsConversionLabelPurchase, setGoogleAdsConversionLabelPurchase] = useState(
+    initial?.google_ads_conversion_label_purchase ?? "",
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -368,6 +581,25 @@ function LandingPageForm({
       toast.error("Slug is required.");
       return;
     }
+    const cleanInfoStackItems = infoStackItems
+      .map((item) => ({
+        title: item.title.trim(),
+        description: item.description.trim(),
+      }))
+      .filter((item) => item.title && item.description);
+
+    const cleanFaqItems = faqItems
+      .map((item) => ({
+        question: item.question.trim(),
+        answer: item.answer.trim(),
+      }))
+      .filter((item) => item.question && item.answer);
+
+    if (cleanFaqItems.length > 0 && cleanFaqItems.length < 6) {
+      toast.error("Landing page FAQs require at least 6 complete question and answer pairs.");
+      return;
+    }
+
     const payload: Omit<LandingPageRow, "id"> | Partial<LandingPageRow> = {
       name: name.trim(),
       slug: cleanSlug,
@@ -379,6 +611,14 @@ function LandingPageForm({
       default_cta_tracking_key: defaultCtaTrackingKey.trim() || null,
       room_grades_heading: roomGradesHeading.trim() || null,
       room_grades_description: roomGradesDescription.trim() || null,
+      info_stack_items: cleanInfoStackItems.length > 0 ? cleanInfoStackItems : null,
+      faq_items: cleanFaqItems.length > 0 ? cleanFaqItems : null,
+      meta_pixel_id: metaPixelId.trim() || null,
+      tiktok_pixel_id: tiktokPixelId.trim() || null,
+      snapchat_pixel_id: snapchatPixelId.trim() || null,
+      google_ads_conversion_id: googleAdsConversionId.trim() || null,
+      google_ads_conversion_label_lead: googleAdsConversionLabelLead.trim() || null,
+      google_ads_conversion_label_purchase: googleAdsConversionLabelPurchase.trim() || null,
     };
     onSubmit(payload);
   };
@@ -474,6 +714,66 @@ function LandingPageForm({
             placeholder="e.g. med-landing-hero"
           />
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="landing-meta-pixel-id">Meta pixel ID (optional)</Label>
+            <Input
+              id="landing-meta-pixel-id"
+              value={metaPixelId}
+              onChange={(e) => setMetaPixelId(e.target.value)}
+              placeholder="e.g. 123456789012345"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="landing-tiktok-pixel-id">TikTok pixel ID (optional)</Label>
+            <Input
+              id="landing-tiktok-pixel-id"
+              value={tiktokPixelId}
+              onChange={(e) => setTiktokPixelId(e.target.value)}
+              placeholder="e.g. CXXXXXXXXXXXXX"
+            />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="landing-snap-pixel-id">Snapchat pixel ID (optional)</Label>
+            <Input
+              id="landing-snap-pixel-id"
+              value={snapchatPixelId}
+              onChange={(e) => setSnapchatPixelId(e.target.value)}
+              placeholder="e.g. 11111111-2222-3333-4444-555555555555"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="landing-google-ads-conversion-id">Google Ads conversion ID (optional)</Label>
+            <Input
+              id="landing-google-ads-conversion-id"
+              value={googleAdsConversionId}
+              onChange={(e) => setGoogleAdsConversionId(e.target.value)}
+              placeholder="e.g. AW-1234567890"
+            />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="landing-google-ads-label-lead">Google Ads lead label (optional)</Label>
+            <Input
+              id="landing-google-ads-label-lead"
+              value={googleAdsConversionLabelLead}
+              onChange={(e) => setGoogleAdsConversionLabelLead(e.target.value)}
+              placeholder="Lead conversion label"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="landing-google-ads-label-purchase">Google Ads purchase label (optional)</Label>
+            <Input
+              id="landing-google-ads-label-purchase"
+              value={googleAdsConversionLabelPurchase}
+              onChange={(e) => setGoogleAdsConversionLabelPurchase(e.target.value)}
+              placeholder="Purchase conversion label"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="border-t pt-4 space-y-4">
@@ -495,6 +795,101 @@ function LandingPageForm({
             rows={3}
           />
         </div>
+      </div>
+
+      <div className="border-t pt-4 space-y-4">
+        <h4 className="text-sm font-semibold">Landing info stack (left column)</h4>
+        {infoStackItems.map((item, index) => (
+          <div key={`info-${index}`} className="rounded-lg border p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Item {index + 1}</p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setInfoStackItems((prev) => prev.filter((_, i) => i !== index))
+                }
+                disabled={infoStackItems.length === 1}
+              >
+                Remove
+              </Button>
+            </div>
+            <Input
+              value={item.title}
+              onChange={(e) =>
+                setInfoStackItems((prev) =>
+                  prev.map((it, i) => (i === index ? { ...it, title: e.target.value } : it)),
+                )
+              }
+              placeholder="Title"
+            />
+            <Textarea
+              value={item.description}
+              onChange={(e) =>
+                setInfoStackItems((prev) =>
+                  prev.map((it, i) => (i === index ? { ...it, description: e.target.value } : it)),
+                )
+              }
+              rows={3}
+              placeholder="Description"
+            />
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setInfoStackItems((prev) => [...prev, { title: "", description: "" }])}
+        >
+          Add info stack item
+        </Button>
+      </div>
+
+      <div className="border-t pt-4 space-y-4">
+        <h4 className="text-sm font-semibold">Landing FAQs (right column)</h4>
+        <p className="text-xs text-muted-foreground">Add at least 6 complete FAQs if this side is used.</p>
+        {faqItems.map((item, index) => (
+          <div key={`faq-${index}`} className="rounded-lg border p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">FAQ {index + 1}</p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setFaqItems((prev) => prev.filter((_, i) => i !== index))}
+                disabled={faqItems.length <= 6}
+              >
+                Remove
+              </Button>
+            </div>
+            <Input
+              value={item.question}
+              onChange={(e) =>
+                setFaqItems((prev) =>
+                  prev.map((it, i) => (i === index ? { ...it, question: e.target.value } : it)),
+                )
+              }
+              placeholder="Question"
+            />
+            <Textarea
+              value={item.answer}
+              onChange={(e) =>
+                setFaqItems((prev) =>
+                  prev.map((it, i) => (i === index ? { ...it, answer: e.target.value } : it)),
+                )
+              }
+              rows={3}
+              placeholder="Answer"
+            />
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setFaqItems((prev) => [...prev, { question: "", answer: "" }])}
+        >
+          Add FAQ item
+        </Button>
       </div>
 
       {initial && (

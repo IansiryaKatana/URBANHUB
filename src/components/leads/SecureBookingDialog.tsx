@@ -31,6 +31,7 @@ import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 import { useState } from "react";
+import { useEffect } from "react";
 import { SUPABASE_PUBLISHABLE_KEY, supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { STRIPE_PUBLISHABLE_KEY } from "@/config";
 import { loadStripe } from "@stripe/stripe-js";
@@ -38,6 +39,7 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 import { toast } from "sonner";
 import { ArrowUpRight } from "lucide-react";
 import { CONTACT_WEBHOOK_URL } from "@/hooks/useContactForm";
+import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY || "");
 
@@ -57,10 +59,14 @@ interface SecureBookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   landingPageSlug?: string;
+  ctaTrackingKey?: string;
+  ctaType?: string;
+  ctaSource?: string;
 }
 
 const CREATE_PAYMENT_INTENT_URL = `${SUPABASE_URL}/functions/v1/website-create-payment-intent`;
 const SECURE_BOOKING_AMOUNT_PENCE = 9900; // £99.00
+const SECURE_BOOKING_AMOUNT_GBP = SECURE_BOOKING_AMOUNT_PENCE / 100;
 
 function SecureBookingPaymentStep({
   clientSecret,
@@ -113,7 +119,14 @@ function SecureBookingPaymentStep({
   );
 }
 
-export const SecureBookingDialog = ({ open, onOpenChange, landingPageSlug }: SecureBookingDialogProps) => {
+export const SecureBookingDialog = ({
+  open,
+  onOpenChange,
+  landingPageSlug,
+  ctaTrackingKey,
+  ctaType,
+  ctaSource = "inline",
+}: SecureBookingDialogProps) => {
   const isMobile = useIsMobile();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
@@ -130,6 +143,19 @@ export const SecureBookingDialog = ({ open, onOpenChange, landingPageSlug }: Sec
       studio_preference: "",
     },
   });
+
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+    pushDataLayer("lp_form_start", {
+      event_action: "lp_form_start",
+      form_type: "pay_deposit",
+      page_path: window.location.pathname || "/",
+      landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+      cta_tracking_key: ctaTrackingKey,
+      cta_type: ctaType,
+      cta_source: ctaSource,
+    });
+  }, [open, landingPageSlug, ctaTrackingKey, ctaType, ctaSource]);
 
   const createPaymentIntent = async (values: SecureBookingValues) => {
     setIsCreatingIntent(true);
@@ -173,15 +199,23 @@ export const SecureBookingDialog = ({ open, onOpenChange, landingPageSlug }: Sec
   const handlePaymentSuccess = async (paymentIntentId: string) => {
     try {
       const values = form.getValues();
+      const leadType = "pay_deposit";
       // Send to external Leads CRM webhook
       const webhookPayload = {
-        form_type: "secure_booking",
+        form_type: leadType,
+        lead_type: leadType,
+        inquiry_type: leadType,
+        submission_type: "secure_booking_payment",
+        email_template: "pay_deposit",
         full_name: `${values.first_name} ${values.last_name}`.trim(),
         email: values.email,
         phone: values.phone,
         studio_preference: values.studio_preference,
+        payment_status: "succeeded",
+        payment_description: "Secure booking deposit",
         payment_intent_id: paymentIntentId,
         amount_pence: SECURE_BOOKING_AMOUNT_PENCE,
+        amount_gbp: SECURE_BOOKING_AMOUNT_GBP,
         landing_page: landingPageSlug || null,
       };
       try {
@@ -202,17 +236,55 @@ export const SecureBookingDialog = ({ open, onOpenChange, landingPageSlug }: Sec
 
       // Save to website_form_submissions for internal admin
       await supabase.from("website_form_submissions").insert({
-        form_type: "secure_booking",
+        form_type: leadType,
         name: `${values.first_name} ${values.last_name}`.trim(),
         email: values.email,
         phone: values.phone,
         message: null,
         metadata: {
+          lead_type: leadType,
           studio_preference: values.studio_preference,
           landing_page: landingPageSlug || null,
+          payment_status: "succeeded",
+          payment_description: "Secure booking deposit",
           payment_intent_id: paymentIntentId,
           amount_pence: SECURE_BOOKING_AMOUNT_PENCE,
+          amount_gbp: SECURE_BOOKING_AMOUNT_GBP,
         },
+      });
+      const eventId = createTrackingEventId("lp-purchase");
+      pushDataLayer("lp_form_submit", {
+        event_action: "lp_form_submit",
+        form_type: "pay_deposit",
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        cta_tracking_key: ctaTrackingKey,
+        cta_type: ctaType,
+        cta_source: ctaSource,
+        event_id: eventId,
+      });
+      pushDataLayer("lp_lead", {
+        event_action: "lp_lead",
+        form_type: "pay_deposit",
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        cta_tracking_key: ctaTrackingKey,
+        cta_type: ctaType,
+        cta_source: ctaSource,
+        event_id: eventId,
+      });
+      pushDataLayer("lp_purchase", {
+        event_action: "lp_purchase",
+        form_type: "pay_deposit",
+        page_path: typeof window !== "undefined" ? window.location.pathname : "/",
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        cta_tracking_key: ctaTrackingKey,
+        cta_type: ctaType,
+        cta_source: ctaSource,
+        event_id: eventId,
+        value: SECURE_BOOKING_AMOUNT_GBP,
+        currency: "GBP",
+        payment_intent_id: paymentIntentId,
       });
       setIsCompleted(true);
       toast.success("Your booking has been secured!");
