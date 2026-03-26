@@ -32,6 +32,17 @@ import { toast } from "sonner";
 import { CONTACT_WEBHOOK_URL } from "@/hooks/useContactForm";
 import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
 import { useEffect } from "react";
+import {
+  clearPendingPayment,
+  clearStripeRedirectParamsFromUrl,
+  getIntentIdFromClientSecret,
+  getPendingPayment,
+  getReturnUrlForFlow,
+  getStripeRedirectResultFromUrl,
+  isIntentProcessed,
+  markIntentProcessed,
+  savePendingPayment,
+} from "@/utils/stripeRedirectRecovery";
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY || "");
 
@@ -64,10 +75,10 @@ const CREATE_PAYMENT_INTENT_URL = `${SUPABASE_URL}/functions/v1/website-create-p
 const REFER_FRIEND_AMOUNT_PENCE = 9900; // £99.00
 
 function ReferFriendPaymentStep({
-  clientSecret,
+  returnUrl,
   onSuccess,
 }: {
-  clientSecret: string;
+  returnUrl: string;
   onSuccess: (paymentIntentId: string) => void;
 }) {
   const stripe = useStripe();
@@ -82,6 +93,9 @@ function ReferFriendPaymentStep({
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
+        confirmParams: {
+          return_url: returnUrl,
+        },
       });
       if (error) {
         toast.error(error.message || "Payment failed. Please try again.");
@@ -102,7 +116,14 @@ function ReferFriendPaymentStep({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-      <PaymentElement />
+      <PaymentElement
+        options={{
+          wallets: {
+            applePay: "auto",
+            googlePay: "auto",
+          },
+        }}
+      />
       <Button type="submit" disabled={submitting || !stripe} className="w-full rounded-full uppercase text-xs font-semibold">
         {submitting ? "Processing..." : "Pay £99 Deposit"}
       </Button>
@@ -122,6 +143,7 @@ export const ReferFriendDialog = ({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const flowReturnUrl = getReturnUrlForFlow("refer_friend");
 
   const form = useForm<ReferFriendValues>({
     resolver: zodResolver(referFriendSchema),
@@ -172,7 +194,23 @@ export const ReferFriendDialog = ({
       if (!response.ok || !data?.clientSecret) {
         throw new Error(data?.error || "Failed to start payment");
       }
-      setClientSecret(String(data.clientSecret).trim());
+      const rawClientSecret = String(data.clientSecret).trim();
+      const intentId = getIntentIdFromClientSecret(rawClientSecret);
+      if (intentId) {
+        savePendingPayment({
+          intentId,
+          flow: "refer_friend",
+          createdAt: Date.now(),
+          data: {
+            values,
+            landingPageSlug,
+            ctaTrackingKey,
+            ctaType,
+            ctaSource,
+          },
+        });
+      }
+      setClientSecret(rawClientSecret);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong";
       toast.error(message);
@@ -187,9 +225,8 @@ export const ReferFriendDialog = ({
     }
   };
 
-  const handlePaymentSuccess = async (paymentIntentId: string) => {
+  const finalizeSuccess = async (values: ReferFriendValues, paymentIntentId: string) => {
     try {
-      const values = form.getValues();
       const webhookPayload = {
         form_type: "refer_friend",
         full_name: values.full_name,
@@ -267,12 +304,37 @@ export const ReferFriendDialog = ({
         payment_intent_id: paymentIntentId,
       });
       setIsCompleted(true);
+      markIntentProcessed(paymentIntentId);
+      clearPendingPayment(paymentIntentId);
       toast.success("Refer-a-Friend submitted successfully!");
     } catch (err) {
       toast.error("Submission saved with payment, but admin may need to check records.");
       setIsCompleted(true);
+      markIntentProcessed(paymentIntentId);
+      clearPendingPayment(paymentIntentId);
     }
   };
+
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
+    await finalizeSuccess(form.getValues(), paymentIntentId);
+  };
+
+  useEffect(() => {
+    const redirectResult = getStripeRedirectResultFromUrl();
+    if (!redirectResult) return;
+    const { intentId } = redirectResult;
+    if (isIntentProcessed(intentId)) {
+      clearStripeRedirectParamsFromUrl();
+      return;
+    }
+    const pending = getPendingPayment(intentId, "refer_friend");
+    if (!pending) return;
+    const recoveredValues = pending.data.values as ReferFriendValues | undefined;
+    if (!recoveredValues) return;
+    form.reset(recoveredValues);
+    void finalizeSuccess(recoveredValues, intentId);
+    clearStripeRedirectParamsFromUrl();
+  }, [form]);
 
   const title = "Refer a Friend";
   const description = "Fill in your details and your friend's details below. A £99 deposit is required to complete the referral.";
@@ -466,7 +528,7 @@ export const ReferFriendDialog = ({
                 {formContent}
                 {clientSecret && stripePromise && (
                   <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <ReferFriendPaymentStep clientSecret={clientSecret} onSuccess={handlePaymentSuccess} />
+                    <ReferFriendPaymentStep returnUrl={flowReturnUrl} onSuccess={handlePaymentSuccess} />
                   </Elements>
                 )}
               </>
@@ -496,7 +558,7 @@ export const ReferFriendDialog = ({
               {formContent}
               {clientSecret && stripePromise && (
                 <Elements stripe={stripePromise} options={{ clientSecret }}>
-                  <ReferFriendPaymentStep clientSecret={clientSecret} onSuccess={handlePaymentSuccess} />
+                  <ReferFriendPaymentStep returnUrl={flowReturnUrl} onSuccess={handlePaymentSuccess} />
                 </Elements>
               )}
             </>

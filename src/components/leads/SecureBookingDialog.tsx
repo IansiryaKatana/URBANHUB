@@ -40,6 +40,17 @@ import { toast } from "sonner";
 import { ArrowUpRight } from "lucide-react";
 import { CONTACT_WEBHOOK_URL } from "@/hooks/useContactForm";
 import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
+import {
+  clearPendingPayment,
+  clearStripeRedirectParamsFromUrl,
+  getIntentIdFromClientSecret,
+  getPendingPayment,
+  getReturnUrlForFlow,
+  getStripeRedirectResultFromUrl,
+  isIntentProcessed,
+  markIntentProcessed,
+  savePendingPayment,
+} from "@/utils/stripeRedirectRecovery";
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY || "");
 
@@ -69,10 +80,10 @@ const SECURE_BOOKING_AMOUNT_PENCE = 9900; // £99.00
 const SECURE_BOOKING_AMOUNT_GBP = SECURE_BOOKING_AMOUNT_PENCE / 100;
 
 function SecureBookingPaymentStep({
-  clientSecret,
+  returnUrl,
   onSuccess,
 }: {
-  clientSecret: string;
+  returnUrl: string;
   onSuccess: (paymentIntentId: string) => void;
 }) {
   const stripe = useStripe();
@@ -87,6 +98,9 @@ function SecureBookingPaymentStep({
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
+        confirmParams: {
+          return_url: returnUrl,
+        },
       });
       if (error) {
         toast.error(error.message || "Payment failed. Please try again.");
@@ -107,7 +121,14 @@ function SecureBookingPaymentStep({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-      <PaymentElement />
+      <PaymentElement
+        options={{
+          wallets: {
+            applePay: "auto",
+            googlePay: "auto",
+          },
+        }}
+      />
       <Button
         type="submit"
         disabled={submitting || !stripe}
@@ -132,6 +153,7 @@ export const SecureBookingDialog = ({
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [phase, setPhase] = useState<"details" | "payment">("details");
+  const flowReturnUrl = getReturnUrlForFlow("secure_booking");
 
   const form = useForm<SecureBookingValues>({
     resolver: zodResolver(secureBookingSchema),
@@ -180,7 +202,23 @@ export const SecureBookingDialog = ({
       if (!response.ok || !data?.clientSecret) {
         throw new Error(data?.error || "Failed to start payment");
       }
-      setClientSecret(String(data.clientSecret).trim());
+      const rawClientSecret = String(data.clientSecret).trim();
+      const intentId = getIntentIdFromClientSecret(rawClientSecret);
+      if (intentId) {
+        savePendingPayment({
+          intentId,
+          flow: "secure_booking",
+          createdAt: Date.now(),
+          data: {
+            values,
+            landingPageSlug,
+            ctaTrackingKey,
+            ctaType,
+            ctaSource,
+          },
+        });
+      }
+      setClientSecret(rawClientSecret);
       setPhase("payment");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong";
@@ -196,9 +234,8 @@ export const SecureBookingDialog = ({
     }
   };
 
-  const handlePaymentSuccess = async (paymentIntentId: string) => {
+  const finalizeSuccess = async (values: SecureBookingValues, paymentIntentId: string) => {
     try {
-      const values = form.getValues();
       const leadType = "pay_deposit";
       // Send to external Leads CRM webhook
       const webhookPayload = {
@@ -287,12 +324,37 @@ export const SecureBookingDialog = ({
         payment_intent_id: paymentIntentId,
       });
       setIsCompleted(true);
+      markIntentProcessed(paymentIntentId);
+      clearPendingPayment(paymentIntentId);
       toast.success("Your booking has been secured!");
     } catch (_err) {
       toast.error("Payment completed, but we could not save your details. Our team will check manually.");
       setIsCompleted(true);
+      markIntentProcessed(paymentIntentId);
+      clearPendingPayment(paymentIntentId);
     }
   };
+
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
+    await finalizeSuccess(form.getValues(), paymentIntentId);
+  };
+
+  useEffect(() => {
+    const redirectResult = getStripeRedirectResultFromUrl();
+    if (!redirectResult) return;
+    const { intentId } = redirectResult;
+    if (isIntentProcessed(intentId)) {
+      clearStripeRedirectParamsFromUrl();
+      return;
+    }
+    const pending = getPendingPayment(intentId, "secure_booking");
+    if (!pending) return;
+    const recoveredValues = pending.data.values as SecureBookingValues | undefined;
+    if (!recoveredValues) return;
+    form.reset(recoveredValues);
+    void finalizeSuccess(recoveredValues, intentId);
+    clearStripeRedirectParamsFromUrl();
+  }, [form]);
 
   const title = "Secure your student accommodation";
   const description = "";
@@ -450,7 +512,7 @@ export const SecureBookingDialog = ({
               successContent
             ) : phase === "payment" && clientSecret && stripePromise ? (
               <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <SecureBookingPaymentStep clientSecret={clientSecret} onSuccess={handlePaymentSuccess} />
+                <SecureBookingPaymentStep returnUrl={flowReturnUrl} onSuccess={handlePaymentSuccess} />
               </Elements>
             ) : (
               formContent
@@ -477,7 +539,7 @@ export const SecureBookingDialog = ({
             successContent
           ) : phase === "payment" && clientSecret && stripePromise ? (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <SecureBookingPaymentStep clientSecret={clientSecret} onSuccess={handlePaymentSuccess} />
+              <SecureBookingPaymentStep returnUrl={flowReturnUrl} onSuccess={handlePaymentSuccess} />
             </Elements>
           ) : (
             formContent

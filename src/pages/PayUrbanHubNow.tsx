@@ -49,6 +49,17 @@ import {
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import {
+  clearPendingPayment,
+  clearStripeRedirectParamsFromUrl,
+  getIntentIdFromClientSecret,
+  getPendingPayment,
+  getReturnUrlForFlow,
+  getStripeRedirectResultFromUrl,
+  isIntentProcessed,
+  markIntentProcessed,
+  savePendingPayment,
+} from "@/utils/stripeRedirectRecovery";
 
 const payFormSchema = zod.object({
   firstName: zod.string().min(2, "First name must be at least 2 characters"),
@@ -223,7 +234,7 @@ function PayUrbanHubFormSection({
   );
 }
 
-function PayUrbanHubPaymentStep({ onSuccess }: { onSuccess: () => void }) {
+function PayUrbanHubPaymentStep({ onSuccess, returnUrl }: { onSuccess: (paymentIntentId: string) => void; returnUrl: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -236,6 +247,9 @@ function PayUrbanHubPaymentStep({ onSuccess }: { onSuccess: () => void }) {
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
+        confirmParams: {
+          return_url: returnUrl,
+        },
       });
       if (error) {
         toast.error(error.message || "Payment failed. Please try again.");
@@ -243,7 +257,7 @@ function PayUrbanHubPaymentStep({ onSuccess }: { onSuccess: () => void }) {
         return;
       }
       if (paymentIntent && paymentIntent.status === "succeeded") {
-        onSuccess();
+        onSuccess(paymentIntent.id);
       } else {
         toast.error("Payment was not completed. Please try again.");
         setSubmitting(false);
@@ -256,7 +270,14 @@ function PayUrbanHubPaymentStep({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-      <PaymentElement />
+      <PaymentElement
+        options={{
+          wallets: {
+            applePay: "auto",
+            googlePay: "auto",
+          },
+        }}
+      />
       <Button
         type="submit"
         disabled={submitting || !stripe}
@@ -284,6 +305,7 @@ const PayUrbanHubNow = () => {
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("choose");
   const [phase, setPhase] = useState<"details" | "payment">("details");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const flowReturnUrl = getReturnUrlForFlow("pay_urban_hub");
 
   const handleEmbeddedSubmit = (paymentTypeValue: PaymentTab) => async (values: PayFormValues) => {
     const formData: PayUrbanHubFormData = {
@@ -293,16 +315,45 @@ const PayUrbanHubNow = () => {
     };
     const result = await createPaymentIntent(formData, SUPABASE_PUBLISHABLE_KEY);
     if (result?.clientSecret) {
+      const intentId = getIntentIdFromClientSecret(result.clientSecret);
+      if (intentId) {
+        savePendingPayment({
+          intentId,
+          flow: "pay_urban_hub",
+          createdAt: Date.now(),
+          data: {
+            paymentType: paymentTypeValue,
+          },
+        });
+      }
       setClientSecret(result.clientSecret);
       setPhase("payment");
     }
   };
 
-  const handleEmbeddedPaymentSuccess = () => {
+  const handleEmbeddedPaymentSuccess = (paymentIntentId: string) => {
+    markIntentProcessed(paymentIntentId);
+    clearPendingPayment(paymentIntentId);
     setSuccessDialogOpen(true);
     setClientSecret(null);
     setPhase("details");
   };
+
+  useEffect(() => {
+    const redirectResult = getStripeRedirectResultFromUrl();
+    if (!redirectResult) return;
+    const { intentId } = redirectResult;
+    if (isIntentProcessed(intentId)) {
+      clearStripeRedirectParamsFromUrl();
+      return;
+    }
+    const pending = getPendingPayment(intentId, "pay_urban_hub");
+    if (!pending) return;
+    const pendingType = pending.data.paymentType as PaymentTab | undefined;
+    if (pendingType) setPaymentType(pendingType);
+    handleEmbeddedPaymentSuccess(intentId);
+    clearStripeRedirectParamsFromUrl();
+  }, []);
 
   const handleDrawerOpenChange = (open: boolean) => {
     setPayDrawerOpen(open);
@@ -316,7 +367,7 @@ const PayUrbanHubNow = () => {
   const formSection =
     phase === "payment" && clientSecret && stripePromise ? (
       <Elements stripe={stripePromise} options={{ clientSecret }}>
-        <PayUrbanHubPaymentStep onSuccess={handleEmbeddedPaymentSuccess} />
+        <PayUrbanHubPaymentStep onSuccess={handleEmbeddedPaymentSuccess} returnUrl={flowReturnUrl} />
       </Elements>
     ) : (
       <PayUrbanHubFormSection
@@ -464,7 +515,7 @@ const PayUrbanHubNow = () => {
               <div className="flex-1 overflow-auto px-4 pb-8 pt-2 bg-white">
                 {phase === "payment" && clientSecret && stripePromise ? (
                   <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <PayUrbanHubPaymentStep onSuccess={handleEmbeddedPaymentSuccess} />
+                    <PayUrbanHubPaymentStep onSuccess={handleEmbeddedPaymentSuccess} returnUrl={flowReturnUrl} />
                   </Elements>
                 ) : (
                   <PayUrbanHubFormSection
