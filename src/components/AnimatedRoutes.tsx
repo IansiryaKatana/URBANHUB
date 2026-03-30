@@ -19,6 +19,7 @@ const PayUrbanHubNow = lazy(() => import("../pages/PayUrbanHubNow"));
 const Privacy = lazy(() => import("../pages/Privacy"));
 const Terms = lazy(() => import("../pages/Terms"));
 const ReferAFriendTerms = lazy(() => import("../pages/ReferAFriendTerms"));
+const CashbackCampaignTerms = lazy(() => import("../pages/CashbackCampaignTerms"));
 const Reviews = lazy(() => import("../pages/Reviews"));
 const StudioGradeRedirect = lazy(() => import("../pages/StudioGradeRedirect"));
 const LandingPage = lazy(() => import("../pages/LandingPage"));
@@ -62,6 +63,7 @@ const AnimatedRoutes = () => {
           <Route path="/terms" element={<PageTransition key={location.pathname}><Terms /></PageTransition>} />
           <Route path="/content-creator-terms" element={<PageTransition key={location.pathname}><CreatorTerms /></PageTransition>} />
           <Route path="/refer-a-friend-terms" element={<PageTransition key={location.pathname}><ReferAFriendTerms /></PageTransition>} />
+          <Route path="/cashback-campaign-terms" element={<PageTransition key={location.pathname}><CashbackCampaignTerms /></PageTransition>} />
           <Route path="/reviews" element={<PageTransition key={location.pathname}><Reviews /></PageTransition>} />
           {/* Website admin: login (public) */}
           <Route path="/admin/login" element={<PageTransition key={location.pathname}><AdminLogin /></PageTransition>} />
