@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
@@ -7,7 +7,8 @@ import Footer from "@/components/Footer";
 import { useBrandingSettings } from "@/hooks/useBranding";
 import { useSlotUrl } from "@/hooks/useWebsiteImageSlots";
 import { usePayUrbanHub, getPaymentTypeDescription, type PayUrbanHubFormData } from "@/hooks/usePayUrbanHub";
-import { SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { CONTACT_WEBHOOK_URL } from "@/hooks/useContactForm";
+import { SUPABASE_PUBLISHABLE_KEY, supabase } from "@/integrations/supabase/client";
 import { STRIPE_PUBLISHABLE_KEY } from "@/config";
 import { Button } from "@/components/ui/button";
 import {
@@ -244,6 +245,12 @@ function PayUrbanHubPaymentStep({ onSuccess, returnUrl }: { onSuccess: (paymentI
     if (!stripe || !elements) return;
     setSubmitting(true);
     try {
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        toast.error(submitError.message || "Please check your payment details.");
+        setSubmitting(false);
+        return;
+      }
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
@@ -306,6 +313,7 @@ const PayUrbanHubNow = () => {
   const [phase, setPhase] = useState<"details" | "payment">("details");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const flowReturnUrl = getReturnUrlForFlow("pay_urban_hub");
+  const lastPayAttemptRef = useRef<PayUrbanHubFormData | null>(null);
 
   const handleEmbeddedSubmit = (paymentTypeValue: PaymentTab) => async (values: PayFormValues) => {
     const formData: PayUrbanHubFormData = {
@@ -315,6 +323,7 @@ const PayUrbanHubNow = () => {
     };
     const result = await createPaymentIntent(formData, SUPABASE_PUBLISHABLE_KEY);
     if (result?.clientSecret) {
+      lastPayAttemptRef.current = formData;
       const intentId = getIntentIdFromClientSecret(result.clientSecret);
       if (intentId) {
         savePendingPayment({
@@ -331,9 +340,62 @@ const PayUrbanHubNow = () => {
     }
   };
 
-  const handleEmbeddedPaymentSuccess = (paymentIntentId: string) => {
+  const handleEmbeddedPaymentSuccess = async (paymentIntentId: string) => {
     markIntentProcessed(paymentIntentId);
     clearPendingPayment(paymentIntentId);
+    const fd = lastPayAttemptRef.current;
+    if (fd) {
+      const amountPence = Math.round(fd.amountPounds * 100);
+      const desc = getPaymentTypeDescription(fd.paymentType);
+      const fullName = `${fd.firstName} ${fd.lastName}`.trim();
+      const { error: insertError } = await supabase.from("website_form_submissions").insert({
+        form_type: "urban_hub_payment",
+        name: fullName,
+        email: fd.email,
+        phone: fd.phone,
+        message: null,
+        metadata: {
+          payment_type: desc,
+          payment_type_key: fd.paymentType,
+          payment_intent_id: paymentIntentId,
+          amount_pence: amountPence,
+          currency: "GBP",
+          source: "stripe_client",
+        },
+      });
+      const duplicateIntent = insertError?.code === "23505";
+      if (insertError && !duplicateIntent) {
+        // eslint-disable-next-line no-console
+        console.error("Pay Urban Hub DB insert error", insertError);
+      }
+      if (!insertError) {
+        try {
+          const response = await fetch(CONTACT_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              form_type: "urban_hub_payment",
+              full_name: fullName,
+              email: fd.email,
+              phone: fd.phone,
+              payment_type: desc,
+              payment_type_key: fd.paymentType,
+              payment_intent_id: paymentIntentId,
+              amount_pence: amountPence,
+              currency: "GBP",
+            }),
+          });
+          if (!response.ok) {
+            // eslint-disable-next-line no-console
+            console.error("Pay Urban Hub CRM webhook error", await response.text());
+          }
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error("Pay Urban Hub CRM webhook network error", err);
+        }
+      }
+      lastPayAttemptRef.current = null;
+    }
     setSuccessDialogOpen(true);
     setClientSecret(null);
     setPhase("details");

@@ -22,6 +22,13 @@ function formBody(obj: Record<string, string | number | undefined>): string {
   return params.toString();
 }
 
+/** Stripe metadata values max 500 chars; keep headroom. */
+function metaVal(v: unknown): string {
+  if (v === undefined || v === null) return "";
+  const s = String(v).trim();
+  return s.length > 450 ? s.slice(0, 450) : s;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -43,6 +50,18 @@ Deno.serve(async (req) => {
     const firstName = typeof body?.firstName === "string" ? body.firstName : undefined;
     const lastName = typeof body?.lastName === "string" ? body.lastName : undefined;
     const phone = typeof body?.phone === "string" ? body.phone : undefined;
+    const flow = typeof body?.flow === "string" ? body.flow : undefined;
+    const studioPreference = typeof body?.studio_preference === "string" ? body.studio_preference : undefined;
+    const landingPage = typeof body?.landing_page === "string" ? body.landing_page : undefined;
+    const ctaTrackingKey = typeof body?.cta_tracking_key === "string" ? body.cta_tracking_key : undefined;
+    const ctaType = typeof body?.cta_type === "string" ? body.cta_type : undefined;
+    const ctaSource = typeof body?.cta_source === "string" ? body.cta_source : undefined;
+    const referrerName = typeof body?.referrer_name === "string" ? body.referrer_name : undefined;
+    const referrerStudioNumber = typeof body?.referrer_studio_number === "string"
+      ? body.referrer_studio_number
+      : undefined;
+    const referStudioType = typeof body?.studio_type === "string" ? body.studio_type : undefined;
+    const paymentTypeKey = typeof body?.payment_type_key === "string" ? body.payment_type_key : undefined;
 
     if (!Number.isInteger(amountPence) || amountPence < 100) {
       return new Response(
@@ -56,11 +75,22 @@ Deno.serve(async (req) => {
       currency: "gbp",
       description,
       ...(email ? { receipt_email: email } : {}),
-      "metadata[payment_type]": description,
-      "metadata[first_name]": firstName ?? "",
-      "metadata[last_name]": lastName ?? "",
-      "metadata[email]": email ?? "",
-      "metadata[phone]": phone ?? "",
+      "metadata[payment_type]": metaVal(description),
+      "metadata[first_name]": metaVal(firstName),
+      "metadata[last_name]": metaVal(lastName),
+      "metadata[email]": metaVal(email),
+      "metadata[phone]": metaVal(phone),
+      "metadata[amount_pence]": String(amountPence),
+      "metadata[uh_flow]": metaVal(flow),
+      "metadata[studio_preference]": metaVal(studioPreference),
+      "metadata[landing_page]": metaVal(landingPage),
+      "metadata[cta_tracking_key]": metaVal(ctaTrackingKey),
+      "metadata[cta_type]": metaVal(ctaType),
+      "metadata[cta_source]": metaVal(ctaSource),
+      "metadata[referrer_name]": metaVal(referrerName),
+      "metadata[referrer_studio_number]": metaVal(referrerStudioNumber),
+      "metadata[studio_type]": metaVal(referStudioType),
+      "metadata[payment_type_key]": metaVal(paymentTypeKey),
       "automatic_payment_methods[enabled]": "true",
     });
 

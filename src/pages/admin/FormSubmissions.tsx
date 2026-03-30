@@ -51,8 +51,13 @@ type FormType =
   | "inquiry"
   | "resident_support"
   | "short_term"
+  | "tourist_inquiry"
+  | "keyworker_inquiry"
   | "refer_friend"
-  | "content_creator";
+  | "content_creator"
+  | "secure_booking"
+  | "pay_deposit"
+  | "urban_hub_payment";
 type Status = "new" | "read" | "replied" | "archived";
 
 const formTypeLabels: Record<string, string> = {
@@ -62,8 +67,13 @@ const formTypeLabels: Record<string, string> = {
   inquiry: "Inquiry",
   resident_support: "Resident support",
   short_term: "Short term",
+  tourist_inquiry: "Tourist inquiry",
+  keyworker_inquiry: "Keyworker inquiry",
   refer_friend: "Refer a Friend",
   content_creator: "Content Creator",
+  secure_booking: "Secure booking",
+  pay_deposit: "Pay deposit (£99)",
+  urban_hub_payment: "Urban Hub balance payment",
 };
 
 const statusLabels: Record<Status, string> = {

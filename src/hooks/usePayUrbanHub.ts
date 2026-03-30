@@ -52,6 +52,8 @@ export const usePayUrbanHub = () => {
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone,
+          flow: "pay_urban_hub",
+          payment_type_key: formData.paymentType,
         }),
       });
 

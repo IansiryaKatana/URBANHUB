@@ -95,6 +95,12 @@ function SecureBookingPaymentStep({
     if (!stripe || !elements) return;
     setSubmitting(true);
     try {
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        toast.error(submitError.message || "Please check your payment details.");
+        setSubmitting(false);
+        return;
+      }
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
@@ -195,6 +201,12 @@ export const SecureBookingDialog = ({
           firstName: values.first_name,
           lastName: values.last_name,
           phone: values.phone,
+          flow: "secure_booking",
+          studio_preference: values.studio_preference,
+          landing_page: landingPageSlug ?? undefined,
+          cta_tracking_key: ctaTrackingKey,
+          cta_type: ctaType,
+          cta_source: ctaSource,
         }),
       });
 
@@ -237,7 +249,6 @@ export const SecureBookingDialog = ({
   const finalizeSuccess = async (values: SecureBookingValues, paymentIntentId: string) => {
     try {
       const leadType = "pay_deposit";
-      // Send to external Leads CRM webhook
       const webhookPayload = {
         form_type: leadType,
         lead_type: leadType,
@@ -255,24 +266,8 @@ export const SecureBookingDialog = ({
         amount_gbp: SECURE_BOOKING_AMOUNT_GBP,
         landing_page: landingPageSlug || null,
       };
-      try {
-        const response = await fetch(CONTACT_WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(webhookPayload),
-        });
-        if (!response.ok) {
-          // Don't block the user if CRM is down; log and continue
-          // eslint-disable-next-line no-console
-          console.error("Secure booking CRM webhook error", await response.text());
-        }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error("Secure booking CRM webhook network error", err);
-      }
 
-      // Save to website_form_submissions for internal admin
-      await supabase.from("website_form_submissions").insert({
+      const { error: insertError } = await supabase.from("website_form_submissions").insert({
         form_type: leadType,
         name: `${values.first_name} ${values.last_name}`.trim(),
         email: values.email,
@@ -287,8 +282,30 @@ export const SecureBookingDialog = ({
           payment_intent_id: paymentIntentId,
           amount_pence: SECURE_BOOKING_AMOUNT_PENCE,
           amount_gbp: SECURE_BOOKING_AMOUNT_GBP,
+          source: "stripe_client",
         },
       });
+      const duplicateIntent = insertError?.code === "23505";
+      if (insertError && !duplicateIntent) {
+        // eslint-disable-next-line no-console
+        console.error("Secure booking DB insert error", insertError);
+      }
+      if (!insertError) {
+        try {
+          const response = await fetch(CONTACT_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(webhookPayload),
+          });
+          if (!response.ok) {
+            // eslint-disable-next-line no-console
+            console.error("Secure booking CRM webhook error", await response.text());
+          }
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error("Secure booking CRM webhook network error", err);
+        }
+      }
       const eventId = createTrackingEventId("lp-purchase");
       pushDataLayer("lp_form_submit", {
         event_action: "lp_form_submit",
