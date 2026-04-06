@@ -30,7 +30,6 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerClose,
 } from "@/components/ui/drawer";
 import { ChevronLeft } from "lucide-react";
 import {
@@ -99,12 +98,16 @@ function PayUrbanHubFormSection({
   isCreatingIntent,
   onSubmitCheckout,
   createIntentError,
+  initialValues,
+  onValuesChange,
   variant = "dark",
 }: {
   paymentType: PaymentTab;
   isCreatingIntent: boolean;
   onSubmitCheckout: (values: PayFormValues) => Promise<void>;
   createIntentError: string | null;
+  initialValues: PayFormValues;
+  onValuesChange: (values: PayFormValues) => void;
   variant?: "dark" | "light";
 }) {
   const isLight = variant === "light";
@@ -124,14 +127,26 @@ function PayUrbanHubFormSection({
     : "!h-full !border-none !rounded-l-xl !bg-transparent !px-3 !text-white hover:!bg-white/10";
   const form = useForm<PayFormValues>({
     resolver: zodResolver(payFormSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      amountPounds: 1,
-    },
+    defaultValues: initialValues,
   });
+
+  useEffect(() => {
+    form.reset(initialValues);
+  }, [form, initialValues, paymentType]);
+
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      const current = values as Partial<PayFormValues>;
+      onValuesChange({
+        firstName: current.firstName ?? "",
+        lastName: current.lastName ?? "",
+        email: current.email ?? "",
+        phone: current.phone ?? "",
+        amountPounds: Number(current.amountPounds ?? 1),
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, [form, onValuesChange]);
 
   return (
     <Form {...form}>
@@ -312,6 +327,18 @@ const PayUrbanHubNow = () => {
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("choose");
   const [phase, setPhase] = useState<"details" | "payment">("details");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const defaultFormValues: PayFormValues = {
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    amountPounds: 1,
+  };
+  const [formDraftByType, setFormDraftByType] = useState<Record<PaymentTab, PayFormValues>>({
+    current_student: defaultFormValues,
+    new_student: defaultFormValues,
+    keyworker_pay: defaultFormValues,
+  });
   const flowReturnUrl = getReturnUrlForFlow("pay_urban_hub");
   const lastPayAttemptRef = useRef<PayUrbanHubFormData | null>(null);
 
@@ -375,6 +402,9 @@ const PayUrbanHubNow = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               form_type: "urban_hub_payment",
+              lead_type: "urban_hub_payment",
+              inquiry_type: "urban_hub_payment",
+              email_template: "urban_hub_payment_confirmation",
               full_name: fullName,
               email: fd.email,
               phone: fd.phone,
@@ -426,6 +456,10 @@ const PayUrbanHubNow = () => {
     }
   };
 
+  const handleFormValuesChange = (type: PaymentTab, values: PayFormValues) => {
+    setFormDraftByType((prev) => ({ ...prev, [type]: values }));
+  };
+
   const formSection =
     phase === "payment" && clientSecret && stripePromise ? (
       <Elements stripe={stripePromise} options={{ clientSecret }}>
@@ -437,6 +471,8 @@ const PayUrbanHubNow = () => {
         isCreatingIntent={isCreatingIntent}
         onSubmitCheckout={handleEmbeddedSubmit(paymentType)}
         createIntentError={createIntentError}
+        initialValues={formDraftByType[paymentType]}
+        onValuesChange={(values) => handleFormValuesChange(paymentType, values)}
       />
     );
 
@@ -558,23 +594,28 @@ const PayUrbanHubNow = () => {
               </div>
             </>
           ) : (
-            <div className="bg-white min-h-[70vh] rounded-t-2xl flex flex-col">
+            <div className="bg-white max-h-[90vh] rounded-t-2xl flex flex-col">
               <div className="flex items-center gap-2 px-4 pt-4 pb-2 border-b border-gray-200">
-                <DrawerClose asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-700 hover:bg-gray-100 shrink-0"
-                    onClick={() => setDrawerStep("choose")}
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                </DrawerClose>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-700 hover:bg-gray-100 shrink-0"
+                  onClick={() => {
+                    if (phase === "payment") {
+                      setPhase("details");
+                      setClientSecret(null);
+                      return;
+                    }
+                    setDrawerStep("choose");
+                  }}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
                 <span className="text-gray-900 font-semibold uppercase text-sm">
                   {getPaymentTypeDescription(drawerStep)}
                 </span>
               </div>
-              <div className="flex-1 overflow-auto px-4 pb-8 pt-2 bg-white">
+              <div className="overflow-auto px-4 pb-4 pt-2 bg-white">
                 {phase === "payment" && clientSecret && stripePromise ? (
                   <Elements stripe={stripePromise} options={{ clientSecret }}>
                     <PayUrbanHubPaymentStep onSuccess={handleEmbeddedPaymentSuccess} returnUrl={flowReturnUrl} />
@@ -585,6 +626,8 @@ const PayUrbanHubNow = () => {
                     isCreatingIntent={isCreatingIntent}
                     onSubmitCheckout={handleEmbeddedSubmit(drawerStep as PaymentTab)}
                     createIntentError={createIntentError}
+                    initialValues={formDraftByType[drawerStep as PaymentTab]}
+                    onValuesChange={(values) => handleFormValuesChange(drawerStep as PaymentTab, values)}
                     variant="light"
                   />
                 )}

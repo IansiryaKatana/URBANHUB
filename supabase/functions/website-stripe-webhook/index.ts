@@ -241,6 +241,9 @@ Deno.serve(async (req) => {
     const desc = (md.payment_type || "").trim() || "Urban Hub balance payment";
     const webhookPayload = {
       form_type: "urban_hub_payment",
+      lead_type: "urban_hub_payment",
+      inquiry_type: "urban_hub_payment",
+      email_template: "urban_hub_payment_confirmation",
       full_name: fullName,
       email: email || "unknown@unknown.invalid",
       phone,
