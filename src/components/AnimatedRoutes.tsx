@@ -18,6 +18,8 @@ const CreatorTerms = lazy(() => import("../pages/CreatorTerms"));
 const PayUrbanHubNow = lazy(() => import("../pages/PayUrbanHubNow"));
 const Privacy = lazy(() => import("../pages/Privacy"));
 const Terms = lazy(() => import("../pages/Terms"));
+const ComplaintsPolicy = lazy(() => import("../pages/ComplaintsPolicy"));
+const EqualityDiversityPolicy = lazy(() => import("../pages/EqualityDiversityPolicy"));
 const ReferAFriendTerms = lazy(() => import("../pages/ReferAFriendTerms"));
 const CashbackCampaignTerms = lazy(() => import("../pages/CashbackCampaignTerms"));
 const Reviews = lazy(() => import("../pages/Reviews"));
@@ -61,6 +63,8 @@ const AnimatedRoutes = () => {
           <Route path="/pay-urban-hub-now" element={<PageTransition key={location.pathname}><PayUrbanHubNow /></PageTransition>} />
           <Route path="/privacy" element={<PageTransition key={location.pathname}><Privacy /></PageTransition>} />
           <Route path="/terms" element={<PageTransition key={location.pathname}><Terms /></PageTransition>} />
+          <Route path="/complaints-policy" element={<PageTransition key={location.pathname}><ComplaintsPolicy /></PageTransition>} />
+          <Route path="/equality-diversity-policy" element={<PageTransition key={location.pathname}><EqualityDiversityPolicy /></PageTransition>} />
           <Route path="/content-creator-terms" element={<PageTransition key={location.pathname}><CreatorTerms /></PageTransition>} />
           <Route path="/refer-a-friend-terms" element={<PageTransition key={location.pathname}><ReferAFriendTerms /></PageTransition>} />
           <Route path="/cashback-campaign-terms" element={<PageTransition key={location.pathname}><CashbackCampaignTerms /></PageTransition>} />
