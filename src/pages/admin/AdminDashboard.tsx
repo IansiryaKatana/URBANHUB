@@ -12,6 +12,7 @@ import { ArrowUpRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays } from "date-fns";
+import { formatBlogPostDateShort } from "@/utils/blogDates";
 
 export default function AdminDashboard() {
   const { data: recentBlogs } = useQuery({
@@ -252,9 +253,7 @@ export default function AdminDashboard() {
                         </span>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
-                        {post.published_at
-                          ? format(new Date(post.published_at), "MMM d, yyyy")
-                          : "—"}
+                        {formatBlogPostDateShort(post.published_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Link

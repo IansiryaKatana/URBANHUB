@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { isPlausibleBlogDate } from "@/utils/blogDates";
 
 interface ImportStats {
   total: number;
@@ -275,6 +276,15 @@ export default function WordPressImport({ open, onOpenChange }: WordPressImportP
       .eq('slug', post.slug)
       .maybeSingle();
 
+    let publishedAt: string | null = null;
+    if (post.date) {
+      const d = new Date(post.date);
+      const iso = d.toISOString();
+      if (!Number.isNaN(d.getTime()) && isPlausibleBlogDate(iso)) {
+        publishedAt = iso;
+      }
+    }
+
     const postData = {
       title: post.title,
       slug: post.slug,
@@ -285,7 +295,7 @@ export default function WordPressImport({ open, onOpenChange }: WordPressImportP
       author_name: post.author.displayName,
       author_email: post.author.email,
       status: ['publish', 'published'].includes(String(post.status || '').toLowerCase()) ? 'published' : 'draft',
-      published_at: post.date ? new Date(post.date).toISOString() : null,
+      published_at: publishedAt,
       category_id: categoryId,
       seo_page_id: seoPageId,
       wordpress_id: post.id,

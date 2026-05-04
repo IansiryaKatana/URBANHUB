@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/pagination";
 import { FileText, Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet, ImageIcon, AlertCircle, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { formatBlogPostDateShort } from "@/utils/blogDates";
 import WordPressImport from "@/components/admin/WordPressImport";
 import CsvBlogImport from "@/components/admin/CsvBlogImport";
 import { useAuth } from "@/contexts/AuthContext";
@@ -663,7 +663,7 @@ export default function BlogAdmin() {
                         <Badge variant={row.status === "published" ? "default" : "secondary"}>{row.status}</Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {row.published_at ? format(new Date(row.published_at), "MMM d, yyyy") : "—"}
+                        {formatBlogPostDateShort(row.published_at)}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <Button

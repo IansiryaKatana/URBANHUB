@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import NotFound from "@/pages/NotFound";
 import Navigation from "@/components/Navigation";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, User, ArrowLeft, Share2 } from "lucide-react";
-import { format } from "date-fns";
+import { formatBlogPostDate, isPlausibleBlogDate } from "@/utils/blogDates";
 import { AnimatedText, AnimatedParagraph, AnimatedCard, AnimatedHeading } from "@/components/animations/AnimatedText";
 
 interface BlogTag {
@@ -24,6 +24,7 @@ interface BlogPost {
   content: string;
   featured_image_url: string | null;
   published_at: string | null;
+  updated_at?: string | null;
   author_name?: string;
   category_name?: string;
   category_slug?: string;
@@ -56,6 +57,7 @@ const BlogDetail = () => {
             content,
             featured_image_url,
             published_at,
+            updated_at,
             author_name,
             category_id,
             blog_categories (
@@ -99,6 +101,7 @@ const BlogDetail = () => {
             content: post.content || "",
             featured_image_url: post.featured_image_url,
             published_at: post.published_at,
+            updated_at: post.updated_at ?? null,
             author_name: "Urban Hub Preston",
             category_name: post.blog_categories?.name ?? undefined,
             category_slug: post.blog_categories?.slug ?? undefined,
@@ -166,7 +169,10 @@ const BlogDetail = () => {
       headline: blogPost.title,
       description: blogPost.excerpt,
       image: blogPost.featured_image_url || brandingSettings?.favicon_path || "/favicon.png",
-      datePublished: blogPost.published_at,
+      datePublished:
+        isPlausibleBlogDate(blogPost.published_at)
+          ? blogPost.published_at
+          : blogPost.updated_at || undefined,
       author: {
         "@type": "Person",
         name: "Urban Hub Preston",
@@ -196,14 +202,13 @@ const BlogDetail = () => {
     };
   }, [blogPost, companyName, brandingSettings]);
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "";
-    try {
-      return format(new Date(dateString), "MMMM dd, yyyy");
-    } catch {
-      return dateString;
-    }
-  };
+  const articleDateLabel = useMemo(() => {
+    if (!blogPost) return "";
+    return (
+      formatBlogPostDate(blogPost.published_at) ||
+      formatBlogPostDate(blogPost.updated_at ?? null)
+    );
+  }, [blogPost]);
 
   const handleShare = () => {
     if (navigator.share && blogPost) {
@@ -280,10 +285,12 @@ const BlogDetail = () => {
                 {blogPost.title}
               </AnimatedText>
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
-                <span className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {formatDate(blogPost.published_at)}
-                </span>
+                {articleDateLabel ? (
+                  <span className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {articleDateLabel}
+                  </span>
+                ) : null}
                 <span className="flex items-center gap-2">
                   <User className="h-4 w-4" />
                   Urban Hub Preston
@@ -369,7 +376,7 @@ const BlogDetail = () => {
                           <h3 className="font-bold text-base text-gray-900 mb-2 line-clamp-2 group-hover:text-primary transition-colors">
                             {post.title}
                           </h3>
-                          <p className="text-xs text-gray-600 mb-2">{formatDate(post.published_at)}</p>
+                          <p className="text-xs text-gray-600 mb-2">{formatBlogPostDate(post.published_at, "")}</p>
                           <p className="text-gray-700 text-sm line-clamp-2">{post.excerpt}</p>
                         </CardContent>
                       </Link>

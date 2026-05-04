@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { AlertCircle, CheckCircle2, FileText, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { isPlausibleBlogDate } from "@/utils/blogDates";
 
 interface CsvBlogImportProps {
   open: boolean;
@@ -162,11 +163,11 @@ export default function CsvBlogImport({ open, onOpenChange }: CsvBlogImportProps
           if (row.date) {
             try {
               const dateObj = new Date(row.date);
-              // Check if date is valid
-              if (!isNaN(dateObj.getTime())) {
-                publishedAt = dateObj.toISOString();
+              const iso = dateObj.toISOString();
+              if (!isNaN(dateObj.getTime()) && isPlausibleBlogDate(iso)) {
+                publishedAt = iso;
               } else {
-                console.warn(`Invalid date for "${row.title}": ${row.date}`);
+                console.warn(`Invalid or implausible date for "${row.title}": ${row.date}`);
               }
             } catch (e) {
               console.warn(`Failed to parse date for "${row.title}": ${row.date}`, e);

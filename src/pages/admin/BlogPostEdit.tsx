@@ -18,6 +18,10 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import {
+  resolvePublishedAtForSave,
+  toDatetimeLocalValue,
+} from "@/utils/blogDates";
 
 type BlogPostEditRow = {
   id: string;
@@ -86,7 +90,7 @@ export default function BlogPostEdit() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: Omit<BlogPostEditRow, "id" | "published_at"> & { published_at?: string | null }) => {
+    mutationFn: async (payload: Omit<BlogPostEditRow, "id"> & { published_at?: string | null }) => {
       const { data, error } = await supabase
         .from("blog_posts")
         .insert({
@@ -96,7 +100,7 @@ export default function BlogPostEdit() {
           content: payload.content ?? "",
           featured_image_url: payload.featured_image_url ?? null,
           status: payload.status ?? "draft",
-          published_at: payload.status === "published" ? new Date().toISOString() : null,
+          published_at: payload.published_at ?? null,
           category_id: payload.category_id ?? null,
         })
         .select("id")
@@ -119,6 +123,7 @@ export default function BlogPostEdit() {
   const [featured_image_url, setFeatured_image_url] = useState("");
   const [status, setStatus] = useState("draft");
   const [category_id, setCategory_id] = useState<string>("");
+  const [publishedAtLocal, setPublishedAtLocal] = useState("");
 
   useEffect(() => {
     if (post && !isNew) {
@@ -129,6 +134,7 @@ export default function BlogPostEdit() {
       setFeatured_image_url(post.featured_image_url ?? "");
       setStatus(post.status);
       setCategory_id(post.category_id ?? "");
+      setPublishedAtLocal(toDatetimeLocalValue(post.published_at));
     }
   }, [post, isNew]);
 
@@ -139,6 +145,7 @@ export default function BlogPostEdit() {
       return;
     }
     const slugVal = slug.trim() || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const published_at = resolvePublishedAtForSave(status, publishedAtLocal);
     const payload = {
       title: title.trim(),
       slug: slugVal,
@@ -147,6 +154,7 @@ export default function BlogPostEdit() {
       featured_image_url: featured_image_url.trim() || null,
       status: status as "draft" | "published" | "archived",
       category_id: category_id || null,
+      published_at,
     };
     if (isNew) {
       createMutation.mutate(payload);
@@ -231,6 +239,18 @@ export default function BlogPostEdit() {
                   <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="post-published-at">Published date &amp; time</Label>
+              <Input
+                id="post-published-at"
+                type="datetime-local"
+                value={publishedAtLocal}
+                onChange={(e) => setPublishedAtLocal(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Shown on the blog listing and article. For published posts, if you clear this field and save, the current time is used.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Category</Label>

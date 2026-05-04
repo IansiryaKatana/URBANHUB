@@ -8,10 +8,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Calendar, User } from "lucide-react";
-import { format } from "date-fns";
 import { AnimatedText, AnimatedParagraph, AnimatedCard } from "@/components/animations/AnimatedText";
 import TypingTitle from "@/components/TypingTitle";
 import Noise from "@/components/Noise";
+import { formatBlogPostDate } from "@/utils/blogDates";
+
+interface BlogTag {
+  name: string;
+  slug: string;
+}
 
 interface BlogPost {
   id: string;
@@ -175,14 +180,8 @@ const Blog = () => {
   const visibleGridPosts = gridPosts.slice(0, visibleGridCount);
   const hasMoreGridPosts = visibleGridCount < gridPosts.length;
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "";
-    try {
-      return format(new Date(dateString), "MMMM dd, yyyy");
-    } catch {
-      return dateString;
-    }
-  };
+  const formatDate = (dateString: string | null) =>
+    formatBlogPostDate(dateString, "");
 
   if (loading) {
     return (
