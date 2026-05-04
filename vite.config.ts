@@ -4,8 +4,10 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
-    host: "::",
-    port: 8080,
+    // 8080 is often in Windows Hyper-V excluded ranges → EACCES; 5173 is the usual Vite port.
+    host: true,
+    port: 5173,
+    strictPort: false,
   },
   plugins: [react()],
   resolve: {

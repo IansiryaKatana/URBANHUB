@@ -3,8 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
-import { useBrandingSetting, useBrandingSettings } from "@/hooks/useBranding";
-import { useWebsiteImageSlots, getSlotUrl } from "@/hooks/useWebsiteImageSlots";
+import { useBrandingSettings } from "@/hooks/useBranding";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,7 +48,6 @@ import {
 } from "@/components/animations/AnimatedText";
 import Noise from "@/components/Noise";
 import TypingTitle from "@/components/TypingTitle";
-import { LeadForm } from "@/components/leads/LeadForm";
 import FindUsMap from "@/components/FindUsMap";
 
 const HeroDots = ({ className = "" }: { className?: string }) => {
@@ -109,7 +107,6 @@ import amenityCinema from "@/assets/amenity-cinema.jpg";
 import amenityGym from "@/assets/amenity-gym.jpg";
 import amenityGames from "@/assets/amenity-game-room.jpg";
 import amenityStudy from "@/assets/amenity-study.jpg";
-import amenitySocial from "@/assets/hero-city-view.jpg";
 import amenityKitchen from "@/assets/studio-5.jpg";
 import amenityOutdoor from "@/assets/studio-6.jpg";
 
@@ -153,8 +150,8 @@ type HomepageLandingHeroSlideRow = {
 
 type HomepageHeroSlide = {
   id: string;
-  variant: "static-cta" | "static-form" | "landing";
-  background: string;
+  desktopImageUrl: string | null;
+  mobileImageUrl: string | null;
   title?: string | null;
   subtitle?: string | null;
   subtitleLinkUrl?: string | null;
@@ -531,14 +528,6 @@ const StudiosHome = () => {
   const [creatorDialogOpen, setCreatorDialogOpen] = useState(false);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
   const [contractLength, setContractLength] = useState<"45" | "51">("45");
-  const brandingHero = useBrandingSetting("studio_catalog_hero_image");
-  const { data: imageSlots } = useWebsiteImageSlots();
-  const hero1 =
-    getSlotUrl(imageSlots?.find((s) => s.slot_key === "hero_studios_1")) ||
-    brandingHero ||
-    "https://urbanhub.uk/wp-content/uploads/2025/05/URBAN-HUB-OUTSIDE-A-3-of-1-scaled-1.webp";
-  const hero2 =
-    getSlotUrl(imageSlots?.find((s) => s.slot_key === "hero_studios_2")) || amenitySocial;
   const { data: brandingSettings } = useBrandingSettings();
   const companyName = brandingSettings?.company_name || "StudentStaySolutions";
   const { data: dbAmenities } = useWebsiteAmenities();
@@ -623,14 +612,6 @@ const StudiosHome = () => {
   
   // Fallback to empty array if loading or no data
   const testimonials = testimonialsData || [];
-
-  const heroSlides: HomepageHeroSlide[] = useMemo(() => {
-    const staticSlides: HomepageHeroSlide[] = [
-      { id: "static-1", variant: "static-cta", background: hero1 },
-      { id: "static-2", variant: "static-form", background: hero2 },
-    ];
-    return [...staticSlides, ...landingHeroSlides];
-  }, [hero1, hero2, landingHeroSlides]);
 
   const pricingPlans = [
     {
@@ -861,12 +842,11 @@ const StudiosHome = () => {
       const mapped: HomepageHeroSlide[] =
         rows
           .map((row) => {
-            const bg = row.desktop_image_url || row.mobile_image_url;
-            if (!bg) return null;
+            if (!row.desktop_image_url && !row.mobile_image_url) return null;
             return {
               id: row.id,
-              variant: "landing",
-              background: bg,
+              desktopImageUrl: row.desktop_image_url,
+              mobileImageUrl: row.mobile_image_url,
               title: row.title,
               subtitle: row.subtitle,
               subtitleLinkUrl: row.subtitle_link_url,
@@ -993,12 +973,6 @@ const StudiosHome = () => {
     return yearName;
   };
 
-  const formatYearForHero = (yearName: string) => {
-    // Convert "2025/2026" to "25/26" for hero text
-    // Extract last 2 digits of first year, then last 2 digits of second year
-    return yearName.replace(/\d{2}(\d{2})\/\d{2}(\d{2})/, "$1/$2");
-  };
-
   if (loading || !selectedYear) {
     return null; // Preloader handles loading state
   }
@@ -1008,158 +982,113 @@ const StudiosHome = () => {
       <Navigation />
       {/* Hero height fixed to viewport so it doesn't create extra gap below on mobile */}
       <section aria-label="Urban Hub Preston student accommodation hero carousel" className="studios-hero-section relative overflow-hidden h-[100dvh] min-h-[280px] md:h-[100vh]">
-        <Carousel opts={{ loop: true }} className="w-full h-full">
-          <CarouselContent className="-ml-0 h-full">
-            {heroSlides.map((slide, idx) => (
-              <CarouselItem key={slide.id} className="pl-0 h-full flex-[0_0_100%]">
-                <div
-                  className={`relative flex items-center h-full min-h-0 ${
-                    slide.variant === "static-form" ? "justify-start" : "justify-center"
-                  }`}
-                  style={{
-                    height: "100%",
-                    backgroundImage: `linear-gradient(180deg, rgba(5, 6, 9, 0.7) 0%, rgba(5, 6, 9, 0.35) 65%, rgba(5, 6, 9, 0.7) 100%), url('${slide.background}')`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                >
-                  {slide.variant === "static-form" ? (
-                    <div className="container mx-auto px-4 text-white py-12 md:py-24 h-full flex flex-col justify-center">
-                      <div className="px-4 md:px-6 space-y-6 text-left">
-                        <AnimatedText delay={0.1}>
-                          <p className="text-[11px] uppercase tracking-[0.5em] text-white/70 font-normal">
-                            THE MOST EQUIPPED, MOST CONNECTED,
-                          </p>
-                        </AnimatedText>
+        {landingHeroSlides.length > 0 ? (
+          <Carousel opts={{ loop: true }} className="w-full h-full">
+            <CarouselContent className="-ml-0 h-full">
+              {landingHeroSlides.map((slide) => {
+                const bg =
+                  (isMobile ? slide.mobileImageUrl : slide.desktopImageUrl) ||
+                  slide.desktopImageUrl ||
+                  slide.mobileImageUrl ||
+                  "";
+                return (
+                  <CarouselItem key={slide.id} className="pl-0 h-full flex-[0_0_100%]">
+                    <div
+                      className="relative flex items-center justify-center h-full min-h-0"
+                      style={{
+                        height: "100%",
+                        backgroundImage: bg
+                          ? `linear-gradient(180deg, rgba(5, 6, 9, 0.7) 0%, rgba(5, 6, 9, 0.35) 65%, rgba(5, 6, 9, 0.7) 100%), url('${bg}')`
+                          : "linear-gradient(180deg, rgba(5, 6, 9, 0.95) 0%, rgba(5, 6, 9, 0.85) 100%)",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    >
+                      <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-12 md:py-24">
+                        {slide.subtitle && (
+                          <AnimatedText delay={0.1}>
+                            <p className="text-xs md:text-sm uppercase tracking-[0.35em] text-white/70">
+                              {slide.subtitleLinkUrl ? (
+                                <a href={slide.subtitleLinkUrl} className="underline hover:text-white">
+                                  {slide.subtitle}
+                                </a>
+                              ) : (
+                                slide.subtitle
+                              )}
+                            </p>
+                          </AnimatedText>
+                        )}
                         <AnimatedHeading
                           delay={0.2}
-                          className="text-4xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight text-left"
+                          className="text-3xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
                         >
-                          Most Community-Driven
-                          <br />
-                          Student accommodation
-                          <br />
-                          in preston, Lancashire
+                          <span className={slide.h1ImageUrl ? "sr-only" : ""}>{slide.title}</span>
                         </AnimatedHeading>
+                        {slide.h1ImageUrl && (
+                          <div className="flex justify-center">
+                            <img
+                              src={slide.h1ImageUrl}
+                              alt={slide.h1ImageAlt || slide.title || undefined}
+                              className="max-w-full h-auto"
+                              style={{
+                                transform: `scale(${
+                                  isMobile
+                                    ? slide.h1ImageScaleMobile ?? slide.h1ImageScale ?? 1
+                                    : slide.h1ImageScale ?? 1
+                                })`,
+                                transformOrigin: "center",
+                              }}
+                            />
+                          </div>
+                        )}
+                        <AnimatedText delay={0.4}>
+                          <Button
+                            onClick={() => {
+                              if (slide.ctaType === "callback") {
+                                setCallbackDialogOpen(true);
+                              } else if (slide.ctaType === "refer_friend") {
+                                setReferFriendDialogOpen(true);
+                              } else if (slide.ctaType === "content_creator") {
+                                setCreatorDialogOpen(true);
+                              } else {
+                                setViewingDialogOpen(true);
+                              }
+                            }}
+                            className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
+                            data-analytics={slide.ctaTrackingKey || "homepage-landing-hero-cta"}
+                          >
+                            {slide.ctaLabel ||
+                              (slide.ctaType === "callback"
+                                ? "Get a callback"
+                                : slide.ctaType === "refer_friend"
+                                  ? "Refer a friend"
+                                  : slide.ctaType === "content_creator"
+                                    ? "Apply as content creator"
+                                    : "Book a viewing")}
+                          </Button>
+                        </AnimatedText>
+                      </div>
 
-                        {/* Inline booking form (same LeadForm as dialog) */}
-                        <div className="mt-8 w-full max-w-[760px] rounded-[28px] bg-black/35 backdrop-blur-md border border-white/10 shadow-2xl p-6 md:p-8">
-                          <LeadForm
-                            formType="booking"
-                            onSuccess={() => {}}
-                            onCancel={() => {}}
-                            showCancel={false}
-                            compact
-                            hideMessageField
-                            submitLabel="BOOK YOUR VIEWING"
-                            className="[&_*]:text-white [&_input]:bg-white/0 [&_input]:text-white [&_input]:placeholder:text-white/55 [&_input]:border-white/35 [&_textarea]:bg-white/0 [&_textarea]:text-white [&_textarea]:placeholder:text-white/55 [&_textarea]:border-white/35 [&_[data-slot=select-trigger]]:bg-white/0 [&_[data-slot=select-trigger]]:text-white [&_[data-slot=select-trigger]]:border-white/35 [&_[data-slot=select-trigger]]:placeholder:text-white [&_[data-slot=select-trigger]>span]:!text-white [&_input[type=tel]]:bg-white/0 [&_input[type=tel]]:text-white [&_input[type=tel]]:placeholder:text-white/55 [&_input[type=tel]]:border-white/35"
-                          />
+                      <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center px-4">
+                        <div className="pointer-events-auto rounded-full bg-black/35 backdrop-blur-md px-4 py-2">
+                          <HeroDots />
                         </div>
                       </div>
                     </div>
-                  ) : slide.variant === "landing" ? (
-                    <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-12 md:py-24">
-                      {slide.subtitle && (
-                        <AnimatedText delay={0.1}>
-                          <p className="text-xs md:text-sm uppercase tracking-[0.35em] text-white/70">
-                            {slide.subtitleLinkUrl ? (
-                              <a
-                                href={slide.subtitleLinkUrl}
-                                className="underline hover:text-white"
-                              >
-                                {slide.subtitle}
-                              </a>
-                            ) : (
-                              slide.subtitle
-                            )}
-                          </p>
-                        </AnimatedText>
-                      )}
-                      <AnimatedHeading
-                        delay={0.2}
-                        className="text-3xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
-                      >
-                        <span className={slide.h1ImageUrl ? "sr-only" : ""}>{slide.title}</span>
-                      </AnimatedHeading>
-                      {slide.h1ImageUrl && (
-                        <div className="flex justify-center">
-                          <img
-                            src={slide.h1ImageUrl}
-                            alt={slide.h1ImageAlt || slide.title || undefined}
-                            className="max-w-full h-auto"
-                            style={{
-                              transform: `scale(${
-                                isMobile
-                                  ? slide.h1ImageScaleMobile ?? slide.h1ImageScale ?? 1
-                                  : slide.h1ImageScale ?? 1
-                              })`,
-                              transformOrigin: "center",
-                            }}
-                          />
-                        </div>
-                      )}
-                      <AnimatedText delay={0.4}>
-                        <Button
-                          onClick={() => {
-                            if (slide.ctaType === "callback") {
-                              setCallbackDialogOpen(true);
-                            } else if (slide.ctaType === "refer_friend") {
-                              setReferFriendDialogOpen(true);
-                            } else if (slide.ctaType === "content_creator") {
-                              setCreatorDialogOpen(true);
-                            } else {
-                              setViewingDialogOpen(true);
-                            }
-                          }}
-                          className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
-                          data-analytics={slide.ctaTrackingKey || "homepage-landing-hero-cta"}
-                        >
-                          {slide.ctaLabel ||
-                            (slide.ctaType === "callback"
-                              ? "Get a callback"
-                              : slide.ctaType === "refer_friend"
-                              ? "Refer a friend"
-                              : slide.ctaType === "content_creator"
-                              ? "Apply as content creator"
-                              : "Book a viewing")}
-                        </Button>
-                      </AnimatedText>
-                    </div>
-                  ) : (
-                    <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-12 md:py-24">
-                      <AnimatedText delay={0.1}>
-                        <p className="text-[11px] uppercase tracking-[0.5em] text-white/70">
-                          Book {formatYearForHero(selectedYear.name)} Academic Year
-                        </p>
-                      </AnimatedText>
-                      <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight">
-                        Secure your <br />
-                        Student Accommodation <br />
-                        at {companyName} for £99
-                      </h1>
-                      <AnimatedText delay={0.4}>
-                        <Button
-                          onClick={() => setViewingDialogOpen(true)}
-                          className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
-                          data-analytics="studios-hero-viewing"
-                        >
-                          Book a Viewing
-                        </Button>
-                      </AnimatedText>
-                    </div>
-                  )}
-
-                  {/* Flat nav dots inset */}
-                  <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center px-4">
-                    <div className="pointer-events-auto rounded-full bg-black/35 backdrop-blur-md px-4 py-2">
-                      <HeroDots />
-                    </div>
-                  </div>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+          </Carousel>
+        ) : (
+          <div
+            className="relative flex h-full w-full min-h-[280px] items-center justify-center"
+            style={{
+              background: "linear-gradient(180deg, rgba(5, 6, 9, 0.95) 0%, rgba(5, 6, 9, 0.85) 100%)",
+            }}
+            aria-hidden
+          />
+        )}
       </section>
       <main className="container mx-auto px-4 pt-2 pb-12 md:pt-16 md:pb-20 max-w-6xl space-y-4 md:space-y-12">
         {/* Academic Year Tabs */}
