@@ -50,51 +50,6 @@ import Noise from "@/components/Noise";
 import TypingTitle from "@/components/TypingTitle";
 import FindUsMap from "@/components/FindUsMap";
 
-const HeroDots = ({ className = "" }: { className?: string }) => {
-  const { api } = useCarousel();
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
-  const [scrollSnaps, setScrollSnaps] = React.useState<number[]>([]);
-
-  React.useEffect(() => {
-    if (!api) return;
-
-    const updateScrollSnaps = () => setScrollSnaps(api.scrollSnapList());
-    const updateSelectedIndex = () => setSelectedIndex(api.selectedScrollSnap());
-
-    updateScrollSnaps();
-    updateSelectedIndex();
-
-    api.on("reInit", updateScrollSnaps);
-    api.on("reInit", updateSelectedIndex);
-    api.on("select", updateSelectedIndex);
-
-    return () => {
-      api.off("reInit", updateScrollSnaps);
-      api.off("reInit", updateSelectedIndex);
-      api.off("select", updateSelectedIndex);
-    };
-  }, [api]);
-
-  if (scrollSnaps.length <= 1) return null;
-
-  return (
-    <div className={`flex items-center justify-center gap-2 ${className}`}>
-      {scrollSnaps.map((_, index) => (
-        <button
-          key={index}
-          type="button"
-          onClick={() => api?.scrollTo(index)}
-          className={`h-1.5 rounded-full transition-all ${
-            selectedIndex === index
-              ? "w-10 bg-[#ff2020]"
-              : "w-3 bg-white/35 hover:bg-white/60"
-          }`}
-          aria-label={`Go to hero slide ${index + 1}`}
-        />
-      ))}
-    </div>
-  );
-};
 import type { Database } from "@/integrations/supabase/types";
 import { BookViewingDialog } from "@/components/leads/BookViewingDialog";
 import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
@@ -983,7 +938,17 @@ const StudiosHome = () => {
       {/* Hero height fixed to viewport so it doesn't create extra gap below on mobile */}
       <section aria-label="Urban Hub Preston student accommodation hero carousel" className="studios-hero-section relative overflow-hidden h-[100dvh] min-h-[280px] md:h-[100vh]">
         {landingHeroSlides.length > 0 ? (
-          <Carousel opts={{ loop: true }} className="w-full h-full">
+          <Carousel
+            opts={{ loop: true }}
+            className="w-full h-full"
+            plugins={[
+              Autoplay({
+                delay: 5000,
+                stopOnInteraction: false,
+                stopOnMouseEnter: true,
+              }),
+            ]}
+          >
             <CarouselContent className="-ml-0 h-full">
               {landingHeroSlides.map((slide) => {
                 const bg =
@@ -994,7 +959,7 @@ const StudiosHome = () => {
                 return (
                   <CarouselItem key={slide.id} className="pl-0 h-full flex-[0_0_100%]">
                     <div
-                      className="relative flex items-center justify-center h-full min-h-0"
+                      className="relative flex items-start md:items-center justify-center h-full pt-28 md:pt-0"
                       style={{
                         height: "100%",
                         backgroundImage: bg
@@ -1004,74 +969,88 @@ const StudiosHome = () => {
                         backgroundPosition: "center",
                       }}
                     >
-                      <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-12 md:py-24">
-                        {slide.subtitle && (
+                      <div className="container mx-auto px-4 text-white py-10 md:py-24 h-full overflow-y-auto min-h-0 flex flex-col items-center justify-start md:justify-center">
+                        <div className="max-w-3xl text-center space-y-6">
                           <AnimatedText delay={0.1}>
-                            <p className="text-xs md:text-sm uppercase tracking-[0.35em] text-white/70">
+                            <p className="text-[11px] uppercase tracking-[0.5em] text-white/70 font-normal">
+                              URBAN HUB STUDENT
+                              <br className="md:hidden" />
+                              <span className="hidden md:inline"> </span>
+                              ACCOMMODATION PRESTON
+                            </p>
+                          </AnimatedText>
+                          <AnimatedHeading
+                            delay={0.2}
+                            className="text-4xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
+                          >
+                            <span className={slide.h1ImageUrl ? "sr-only" : ""}>{slide.title}</span>
+                          </AnimatedHeading>
+                          {slide.h1ImageUrl && (
+                            <div className="flex justify-center">
+                              <img
+                                src={slide.h1ImageUrl}
+                                alt={slide.h1ImageAlt || slide.title || undefined}
+                                className="max-w-full h-auto"
+                                style={{
+                                  transform: `scale(${
+                                    isMobile
+                                      ? slide.h1ImageScaleMobile ?? slide.h1ImageScale ?? 1
+                                      : slide.h1ImageScale ?? 1
+                                  })`,
+                                  transformOrigin: "center",
+                                }}
+                              />
+                            </div>
+                          )}
+                          {slide.subtitle && (
+                            <AnimatedParagraph
+                              delay={0.3}
+                              className="text-sm md:text-lg text-white/80 max-w-2xl mx-auto"
+                            >
                               {slide.subtitleLinkUrl ? (
-                                <a href={slide.subtitleLinkUrl} className="underline hover:text-white">
+                                <a
+                                  href={slide.subtitleLinkUrl}
+                                  className="underline hover:text-white"
+                                >
                                   {slide.subtitle}
                                 </a>
                               ) : (
                                 slide.subtitle
                               )}
-                            </p>
-                          </AnimatedText>
-                        )}
-                        <AnimatedHeading
-                          delay={0.2}
-                          className="text-3xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
-                        >
-                          <span className={slide.h1ImageUrl ? "sr-only" : ""}>{slide.title}</span>
-                        </AnimatedHeading>
-                        {slide.h1ImageUrl && (
-                          <div className="flex justify-center">
-                            <img
-                              src={slide.h1ImageUrl}
-                              alt={slide.h1ImageAlt || slide.title || undefined}
-                              className="max-w-full h-auto"
-                              style={{
-                                transform: `scale(${
-                                  isMobile
-                                    ? slide.h1ImageScaleMobile ?? slide.h1ImageScale ?? 1
-                                    : slide.h1ImageScale ?? 1
-                                })`,
-                                transformOrigin: "center",
+                            </AnimatedParagraph>
+                          )}
+                          <AnimatedText delay={0.4}>
+                            <Button
+                              onClick={() => {
+                                if (slide.ctaType === "callback") {
+                                  setCallbackDialogOpen(true);
+                                } else if (slide.ctaType === "refer_friend") {
+                                  setReferFriendDialogOpen(true);
+                                } else if (slide.ctaType === "content_creator") {
+                                  setCreatorDialogOpen(true);
+                                } else {
+                                  setViewingDialogOpen(true);
+                                }
                               }}
-                            />
-                          </div>
-                        )}
-                        <AnimatedText delay={0.4}>
-                          <Button
-                            onClick={() => {
-                              if (slide.ctaType === "callback") {
-                                setCallbackDialogOpen(true);
-                              } else if (slide.ctaType === "refer_friend") {
-                                setReferFriendDialogOpen(true);
-                              } else if (slide.ctaType === "content_creator") {
-                                setCreatorDialogOpen(true);
-                              } else {
-                                setViewingDialogOpen(true);
-                              }
-                            }}
-                            className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
-                            data-analytics={slide.ctaTrackingKey || "homepage-landing-hero-cta"}
-                          >
-                            {slide.ctaLabel ||
-                              (slide.ctaType === "callback"
-                                ? "Get a callback"
-                                : slide.ctaType === "refer_friend"
-                                  ? "Refer a friend"
-                                  : slide.ctaType === "content_creator"
-                                    ? "Apply as content creator"
-                                    : "Book a viewing")}
-                          </Button>
-                        </AnimatedText>
+                              className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
+                              data-analytics={slide.ctaTrackingKey || "homepage-landing-hero-cta"}
+                            >
+                              {slide.ctaLabel ||
+                                (slide.ctaType === "callback"
+                                  ? "Get a callback"
+                                  : slide.ctaType === "refer_friend"
+                                    ? "Refer a friend"
+                                    : slide.ctaType === "content_creator"
+                                      ? "Apply as content creator"
+                                      : "Book a viewing")}
+                            </Button>
+                          </AnimatedText>
+                        </div>
                       </div>
 
                       <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center px-4">
                         <div className="pointer-events-auto rounded-full bg-black/35 backdrop-blur-md px-4 py-2">
-                          <HeroDots />
+                          <CarouselDots />
                         </div>
                       </div>
                     </div>
