@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,6 +75,9 @@ export default function BlogPostEdit() {
     },
   });
 
+  const [pendingAction, setPendingAction] = useState<"save" | "publish" | null>(null);
+  const saveIntentRef = useRef<"save" | "publish">("save");
+
   const updateMutation = useMutation({
     mutationFn: async (payload: Partial<BlogPostEditRow>) => {
       if (!id || id === "new") throw new Error("No post id");
@@ -84,9 +87,18 @@ export default function BlogPostEdit() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-post", id] });
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
-      toast.success("Post saved.");
+      if (saveIntentRef.current === "publish") {
+        setStatus("published");
+        toast.success("Post saved and published.");
+      } else {
+        toast.success("Post saved.");
+      }
+      setPendingAction(null);
     },
-    onError: () => toast.error("Failed to save."),
+    onError: () => {
+      toast.error("Failed to save.");
+      setPendingAction(null);
+    },
   });
 
   const createMutation = useMutation({
@@ -106,14 +118,18 @@ export default function BlogPostEdit() {
         .select("id")
         .single();
       if (error) throw error;
-      return data.id as string;
+      return { id: data.id as string, published: payload.status === "published" };
     },
-    onSuccess: (newId) => {
+    onSuccess: ({ id: newId, published }) => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
-      toast.success("Post created.");
+      toast.success(published ? "Post created and published." : "Post created.");
       navigate(`/admin/blog/${newId}`, { replace: true });
+      setPendingAction(null);
     },
-    onError: () => toast.error("Failed to create post."),
+    onError: () => {
+      toast.error("Failed to create post.");
+      setPendingAction(null);
+    },
   });
 
   const [title, setTitle] = useState("");
@@ -138,24 +154,29 @@ export default function BlogPostEdit() {
     }
   }, [post, isNew]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const isSaving = updateMutation.isPending || createMutation.isPending;
+
+  const handleSubmit = (e: React.FormEvent, publishAfterSave = false) => {
     e.preventDefault();
     if (!title.trim()) {
       toast.error("Title is required.");
       return;
     }
     const slugVal = slug.trim() || title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    const published_at = resolvePublishedAtForSave(status, publishedAtLocal);
+    const effectiveStatus = publishAfterSave ? "published" : status;
+    const published_at = resolvePublishedAtForSave(effectiveStatus, publishedAtLocal);
     const payload = {
       title: title.trim(),
       slug: slugVal,
       excerpt: excerpt.trim() || null,
       content: content.trim() || "",
       featured_image_url: featured_image_url.trim() || null,
-      status: status as "draft" | "published" | "archived",
+      status: effectiveStatus as "draft" | "published" | "archived",
       category_id: category_id || null,
       published_at,
     };
+    setPendingAction(publishAfterSave ? "publish" : "save");
+    saveIntentRef.current = publishAfterSave ? "publish" : "save";
     if (isNew) {
       createMutation.mutate(payload);
     } else {
@@ -191,7 +212,7 @@ export default function BlogPostEdit() {
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Post details</CardTitle>
@@ -292,15 +313,27 @@ export default function BlogPostEdit() {
           </CardContent>
         </Card>
 
-        <div className="flex gap-2 justify-end">
+        <div className="flex flex-wrap gap-2 justify-end">
           <Link to="/admin/blog">
             <Button type="button" variant="outline">
               Cancel
             </Button>
           </Link>
-          <Button type="submit" disabled={updateMutation.isPending || createMutation.isPending}>
-            {(updateMutation.isPending || createMutation.isPending) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            {isNew ? "Create post" : "Save"}
+          <Button
+            type="submit"
+            disabled={isSaving}
+            className="bg-accent-yellow text-black hover:bg-accent-yellow/90 border-accent-yellow"
+          >
+            {isSaving && pendingAction === "save" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {isNew ? "Create draft" : "Save draft"}
+          </Button>
+          <Button
+            type="button"
+            disabled={isSaving}
+            onClick={(e) => handleSubmit(e, true)}
+          >
+            {isSaving && pendingAction === "publish" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {isNew ? "Create and publish" : "Save and publish"}
           </Button>
         </div>
       </form>
