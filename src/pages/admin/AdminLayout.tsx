@@ -88,11 +88,11 @@ export default function AdminLayout() {
       {/* Sidebar - mobile: drawer; desktop: fixed height, no scroll */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 bg-primary transform transition-transform duration-200 ease-out md:relative md:translate-x-0 md:flex-shrink-0 md:h-full shadow-xl",
+          "fixed inset-y-0 left-0 z-40 w-64 bg-primary transform transition-transform duration-200 ease-out md:translate-x-0 md:flex-shrink-0 h-screen overflow-hidden shadow-xl",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex flex-col h-full max-h-screen">
+        <div className="flex flex-col h-full overflow-hidden">
           <div className="flex items-center justify-between p-4 flex-shrink-0">
             <div className="flex flex-col">
               <span className="font-display font-black text-lg uppercase tracking-wide text-white">Urban Hub</span>
@@ -108,7 +108,7 @@ export default function AdminLayout() {
               <X className="h-5 w-5" />
             </Button>
           </div>
-          <nav className="flex-1 p-3 space-y-1 overflow-y-auto min-h-0">
+          <nav className="flex-1 p-3 space-y-0.5 overflow-hidden min-h-0">
             {navItems.map(({ path, label, icon: Icon }) => {
               const isActive = path === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(path);
               return (
@@ -117,7 +117,7 @@ export default function AdminLayout() {
                   to={path}
                   onClick={() => setSidebarOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
                     isActive
                       ? "bg-white/20 text-white shadow-sm"
                       : "text-white/90 hover:bg-white/10 hover:text-white"
@@ -162,7 +162,7 @@ export default function AdminLayout() {
         />
       )}
       {/* Main content - only this area scrolls; no header bar */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden md:ml-64 w-full">
         <div className="absolute top-4 right-4 z-20 md:hidden">
           <Button
             variant="ghost"

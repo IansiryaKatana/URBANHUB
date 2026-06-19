@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -23,9 +24,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { FileText, Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet, ImageIcon, AlertCircle, ArrowUpRight } from "lucide-react";
+import { FileText, Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet, ImageIcon, AlertCircle, ArrowUpRight, Search } from "lucide-react";
 import { toast } from "sonner";
-import { formatBlogPostDateShort } from "@/utils/blogDates";
+import { format } from "date-fns";
 import WordPressImport from "@/components/admin/WordPressImport";
 import CsvBlogImport from "@/components/admin/CsvBlogImport";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,6 +43,18 @@ type BlogPostRow = {
 
 const POSTS_PER_PAGE = 12;
 
+/** Escape characters that break PostgREST `or` / `ilike` filters. */
+function escapeIlikePattern(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_").replace(/,/g, "");
+}
+
+function applyBlogSearch<T extends { or: (filter: string) => T }>(query: T, search: string): T {
+  const term = search.trim();
+  if (!term) return query;
+  const pattern = `%${escapeIlikePattern(term)}%`;
+  return query.or(`title.ilike.${pattern},slug.ilike.${pattern}`);
+}
+
 export default function BlogAdmin() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -51,11 +64,21 @@ export default function BlogAdmin() {
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const isSuperAdmin = role === "superadmin";
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setCurrentPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch total count
   const { data: totalCount } = useQuery({
-    queryKey: ["admin-blog-posts-count", statusFilter],
+    queryKey: ["admin-blog-posts-count", statusFilter, debouncedSearch],
     queryFn: async () => {
       let query = supabase
         .from("blog_posts")
@@ -64,6 +87,8 @@ export default function BlogAdmin() {
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
       }
+
+      query = applyBlogSearch(query, debouncedSearch);
 
       const { count, error } = await query;
       if (error) throw error;
@@ -86,7 +111,7 @@ export default function BlogAdmin() {
 
   // Fetch paginated posts
   const { data: posts, isLoading } = useQuery({
-    queryKey: ["admin-blog-posts", currentPage, statusFilter],
+    queryKey: ["admin-blog-posts", currentPage, statusFilter, debouncedSearch],
     queryFn: async () => {
       const from = (currentPage - 1) * POSTS_PER_PAGE;
       const to = from + POSTS_PER_PAGE - 1;
@@ -100,6 +125,8 @@ export default function BlogAdmin() {
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
       }
+
+      query = applyBlogSearch(query, debouncedSearch);
 
       const { data, error } = await query;
       
@@ -551,6 +578,17 @@ export default function BlogAdmin() {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="relative mb-4 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="Search by title or slug..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+              aria-label="Search blog posts"
+            />
+          </div>
           {selectedArray.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-lg bg-muted/50 border">
               <span className="text-sm font-medium">{selectedArray.length} selected</span>
@@ -605,7 +643,11 @@ export default function BlogAdmin() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : !posts?.length ? (
-            <p className="py-8 text-center text-muted-foreground">No blog posts yet. Import from WordPress above.</p>
+            <p className="py-8 text-center text-muted-foreground">
+              {debouncedSearch
+                ? `No posts found matching "${debouncedSearch}".`
+                : "No blog posts yet. Import from WordPress above."}
+            </p>
           ) : (
             <div className="overflow-x-auto -mx-6 px-6">
               <Table>
@@ -663,7 +705,7 @@ export default function BlogAdmin() {
                         <Badge variant={row.status === "published" ? "default" : "secondary"}>{row.status}</Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {formatBlogPostDateShort(row.published_at)}
+                        {row.published_at ? format(new Date(row.published_at), "MMM d, yyyy") : "—"}
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <Button
