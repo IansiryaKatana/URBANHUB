@@ -25,6 +25,9 @@ import {
 import { cn } from "@/lib/utils";
 import { portalLoginUrl, portalRegisterUrl, portalDashboardUrl, portalAdminUrl } from "@/config";
 
+const desktopNavItemClass =
+  "shrink-0 whitespace-nowrap text-sm font-medium px-2.5 xl:px-3 py-2 rounded-full transition-all duration-200";
+
 const Navigation = () => {
   const { user, profile, role, signOut } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -241,12 +244,12 @@ const Navigation = () => {
             }`}
           >
             {/* Logo on left */}
-            <Link to="/" className="flex items-center" data-analytics="logo">
+            <Link to="/" className="flex shrink-0 items-center" data-analytics="logo">
               <img src={logoUrl} alt={companyName || "StudentStaySolutions"} className="h-6 md:h-8" />
             </Link>
 
             {/* Nav items in center */}
-            <div className="hidden lg:flex items-center gap-3 flex-1 justify-center">
+            <div className="hidden lg:flex min-w-0 flex-1 flex-nowrap items-center justify-center gap-1.5 xl:gap-2">
               {isLandingPage
                 ? (
                   <>
@@ -261,7 +264,7 @@ const Navigation = () => {
                         key={item.id}
                         type="button"
                         onClick={() => scrollToSection(item.target)}
-                        className="text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 text-white hover:bg-white/10 hover:text-accent-yellow"
+                        className={cn(desktopNavItemClass, "text-white hover:bg-white/10 hover:text-accent-yellow")}
                       >
                         {item.label}
                       </button>
@@ -277,13 +280,14 @@ const Navigation = () => {
                       <Link
                         key={item.id}
                         to={item.url}
-                        className={`text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ${
+                        className={cn(
+                          desktopNavItemClass,
                           isActive
                             ? "bg-[#1a1a1a] text-accent-yellow shadow-md"
                             : isBlogPage
                             ? "text-white hover:bg-white/10 hover:text-accent-yellow"
                             : "text-white hover:bg-white/10 hover:text-accent-yellow"
-                        }`}
+                        )}
                       >
                         {item.title}
                       </Link>
@@ -292,7 +296,7 @@ const Navigation = () => {
             </div>
 
             {/* Button on right */}
-            <div className="hidden xl:flex items-center gap-2">
+            <div className="hidden shrink-0 xl:flex items-center gap-2">
               <Button 
                 variant="default" 
                 size="sm" 
@@ -432,12 +436,12 @@ const Navigation = () => {
             }`}
           >
             {/* Logo on left */}
-            <Link to="/" className="flex items-center" data-analytics="logo">
+            <Link to="/" className="flex shrink-0 items-center" data-analytics="logo">
               <img src={logoUrl} alt={companyName || "StudentStaySolutions"} className="h-6 md:h-8" />
             </Link>
 
             {/* Nav items in center */}
-            <div className="hidden lg:flex items-center gap-3 flex-1 justify-center">
+            <div className="hidden lg:flex min-w-0 flex-1 flex-nowrap items-center justify-center gap-1.5 xl:gap-2">
               {isLandingPage
                 ? (
                   <>
@@ -452,7 +456,7 @@ const Navigation = () => {
                         key={item.id}
                         type="button"
                         onClick={() => scrollToSection(item.target)}
-                        className="text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 text-white hover:bg-white/10 hover:text-accent-yellow"
+                        className={cn(desktopNavItemClass, "text-white hover:bg-white/10 hover:text-accent-yellow")}
                       >
                         {item.label}
                       </button>
@@ -468,11 +472,12 @@ const Navigation = () => {
                       <Link
                         key={item.id}
                         to={item.url}
-                        className={`text-sm font-medium px-4 py-2 rounded-full transition-all duration-200 ${
+                        className={cn(
+                          desktopNavItemClass,
                           isActive
                             ? "bg-[#1a1a1a] text-accent-yellow shadow-md"
                             : "text-white hover:bg-white/10 hover:text-accent-yellow"
-                        }`}
+                        )}
                       >
                         {item.title}
                       </Link>
@@ -481,7 +486,7 @@ const Navigation = () => {
             </div>
 
             {/* Buttons on right */}
-            <div className="hidden xl:flex items-center gap-2">
+            <div className="hidden shrink-0 xl:flex items-center gap-2">
               {isHomePage ? (
                 <>
                   <Button 
