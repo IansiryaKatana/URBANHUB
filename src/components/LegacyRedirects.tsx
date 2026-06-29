@@ -22,6 +22,16 @@ const LEGACY_REDIRECTS_INTERNAL: Record<string, string> = {
   "/short-term-stays/": "/short-term",
   "/urban-hub-keyworkers": "/short-term?tab=keyworker",
   "/urban-hub-keyworkers/": "/short-term?tab=keyworker",
+  "/amin": "/",
+  "/amin/": "/",
+  "/become-an-urban-hub-content-creator": "/landing/urbanhub-content-creator-programme",
+  "/become-an-urban-hub-content-creator/": "/landing/urbanhub-content-creator-programme",
+  "/best-student-housing-preston": "/landing/best-student-accommodation-preston",
+  "/best-student-housing-preston/": "/landing/best-student-accommodation-preston",
+  "/projects": "/landing/independent-studio-living",
+  "/projects/": "/landing/independent-studio-living",
+  "/student-apartments": "/landing/student-apartments",
+  "/student-apartments/": "/landing/student-apartments",
 };
 
 // Studio 26-27 → portal (format: https://portal.urbanhub.uk/studios/2026-2027/{slug})
@@ -43,6 +53,12 @@ const LEGACY_REDIRECTS_EXTERNAL: Record<string, string> = {
   "/academic-year-booking/": "https://portal.urbanhub.uk/studios/2025-2026",
   "/academic-year-booking-26-27": "https://portal.urbanhub.uk/studios/2026-2027",
   "/academic-year-booking-26-27/": "https://portal.urbanhub.uk/studios/2026-2027",
+  "/book": "https://portal.urbanhub.uk/studios/2026-2027",
+  "/book/": "https://portal.urbanhub.uk/studios/2026-2027",
+  "/Partner/login": "https://portal.urbanhub.uk/partner/login",
+  "/Partner/login/": "https://portal.urbanhub.uk/partner/login",
+  "/partner/login": "https://portal.urbanhub.uk/partner/login",
+  "/partner/login/": "https://portal.urbanhub.uk/partner/login",
   ...LEGACY_REDIRECTS_STUDIO_2627,
 };
 

@@ -120,6 +120,88 @@
   status = 301
   force = true
 
+# Legacy WordPress / marketing URLs (were on Hostinger; site is on Netlify so rules live here)
+[[redirects]]
+  from = "/amin"
+  to = "/"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/amin/"
+  to = "/"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/become-an-urban-hub-content-creator"
+  to = "/landing/urbanhub-content-creator-programme"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/become-an-urban-hub-content-creator/"
+  to = "/landing/urbanhub-content-creator-programme"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/best-student-housing-preston"
+  to = "/landing/best-student-accommodation-preston"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/best-student-housing-preston/"
+  to = "/landing/best-student-accommodation-preston"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/book"
+  to = "https://portal.urbanhub.uk/studios/2026-2027"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/book/"
+  to = "https://portal.urbanhub.uk/studios/2026-2027"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/Partner/login"
+  to = "https://portal.urbanhub.uk/partner/login"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/Partner/login/"
+  to = "https://portal.urbanhub.uk/partner/login"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/partner/login"
+  to = "https://portal.urbanhub.uk/partner/login"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/partner/login/"
+  to = "https://portal.urbanhub.uk/partner/login"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/projects"
+  to = "/landing/independent-studio-living"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/projects/"
+  to = "/landing/independent-studio-living"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/student-apartments"
+  to = "/landing/student-apartments"
+  status = 301
+  force = true
+[[redirects]]
+  from = "/student-apartments/"
+  to = "/landing/student-apartments"
+  status = 301
+  force = true
+
 # Blog sitemap (dynamic: generated from Supabase on each request; updates when posts are added)
 [[redirects]]
   from = "/sitemap-blog.xml"
