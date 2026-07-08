@@ -25,6 +25,7 @@ const CashbackCampaignTerms = lazy(() => import("../pages/CashbackCampaignTerms"
 const Reviews = lazy(() => import("../pages/Reviews"));
 const StudioGradeRedirect = lazy(() => import("../pages/StudioGradeRedirect"));
 const LandingPage = lazy(() => import("../pages/LandingPage"));
+const InternationalStudents = lazy(() => import("../pages/InternationalStudents"));
 // Admin
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin"));
 const AdminLayout = lazy(() => import("../pages/admin/AdminLayout"));
@@ -55,6 +56,7 @@ const AnimatedRoutes = () => {
           <Route path="/studios/:year" element={<PageTransition key={location.pathname}><StudiosHome /></PageTransition>} />
           <Route path="/studios/:year/:slug" element={<PageTransition key={location.pathname}><StudioGradeRedirect /></PageTransition>} />
           <Route path="/landing/:slug" element={<PageTransition key={location.pathname}><LandingPage /></PageTransition>} />
+          <Route path="/international-students" element={<PageTransition key={location.pathname}><InternationalStudents /></PageTransition>} />
           <Route path="/contact" element={<PageTransition key={location.pathname}><Contact /></PageTransition>} />
           <Route path="/faq" element={<PageTransition key={location.pathname}><FAQ /></PageTransition>} />
           <Route path="/blog" element={<PageTransition key={location.pathname}><Blog /></PageTransition>} />

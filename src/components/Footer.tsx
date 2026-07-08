@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { FaInstagram, FaTiktok, FaLinkedin, FaFacebook, FaWhatsapp } from "react-icons/fa";
-import { useBrandingSettings, useNavigationItems, useOpeningHours } from "@/hooks/useBranding";
+import { useBrandingSettings, useNavigationItems } from "@/hooks/useBranding";
 import logo from "@/assets/urban-hub-logo.webp";
 import Noise from "@/components/Noise";
 
@@ -19,18 +19,15 @@ const Footer = () => {
   const [socials, setSocials] = useState<Array<{ name: string; url: string; icon: React.ReactNode }>>([]);
   const { data: settings } = useBrandingSettings();
   const { data: footerNavItems } = useNavigationItems("footer");
-  const { data: openingHours } = useOpeningHours();
   
   const logoPath = settings?.logo_path;
   const logoUrl = logoPath || logo;
   const footerDescription = settings?.footer_description || "Premium student accommodation designed for modern living and academic success.";
-  const footerCopyright = settings?.footer_copyright_text || `${settings?.company_name || "StudentStaySolutions"}. All rights reserved.`;
   const contactPhone = settings?.contact_phone || "+44 123 456 7890";
   const contactEmail = settings?.contact_email || "info@urbanhub.uk";
   const contactAddress1 = settings?.contact_address_line1 || "123 Student Street";
   const contactAddress2 = settings?.contact_address_line2 || "City Centre";
   const contactAddress3 = settings?.contact_address_line3 || "Preston, PR1 1AA";
-  const emergencyContact = settings?.emergency_contact_text || "Emergency contact available 24/7";
 
   useEffect(() => {
     const fetchSocials = async () => {
@@ -138,104 +135,48 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="text-lg font-display font-black mb-4 uppercase">OPENING HOURS</h4>
-            <ul className="space-y-2 text-white/80">
-              {(() => {
-                if (!openingHours || openingHours.length === 0) return null;
-
-                const formatTime = (timeStr: string | null) => {
-                  if (!timeStr) return "";
-                  const [hours, minutes] = timeStr.split(":");
-                  const hourNum = parseInt(hours, 10);
-                  const ampm = hourNum >= 12 ? "pm" : "am";
-                  const displayHour = hourNum % 12 || 12;
-                  return `${displayHour}:${minutes}${ampm}`;
-                };
-
-                // Group consecutive days with the same hours
-                const grouped: Array<{
-                  days: string[];
-                  isClosed: boolean;
-                  openTime: string | null;
-                  closeTime: string | null;
-                  specialNote: string | null;
-                }> = [];
-
-                openingHours.forEach((hour, index) => {
-                  const prev = grouped[grouped.length - 1];
-                  const timeKey = hour.is_closed 
-                    ? 'closed' 
-                    : `${hour.open_time || ''}-${hour.close_time || ''}`;
-                  const prevTimeKey = prev && (prev.isClosed 
-                    ? 'closed' 
-                    : `${prev.openTime || ''}-${prev.closeTime || ''}`);
-
-                  // Check if we can group with previous (same hours and same special note)
-                  if (prev && 
-                      timeKey === prevTimeKey && 
-                      hour.special_note === prev.specialNote &&
-                      index > 0 &&
-                      openingHours[index - 1].day_order === hour.day_order - 1) {
-                    // Add to existing group
-                    prev.days.push(hour.day_name);
-                  } else {
-                    // Create new group
-                    grouped.push({
-                      days: [hour.day_name],
-                      isClosed: hour.is_closed,
-                      openTime: hour.open_time,
-                      closeTime: hour.close_time,
-                      specialNote: hour.special_note,
-                    });
-                  }
-                });
-
-                return grouped.map((group, idx) => {
-                  const dayRange = group.days.length > 1
-                    ? `${group.days[0]} to ${group.days[group.days.length - 1]}`
-                    : group.days[0];
-
-                  if (group.isClosed) {
-                    return (
-                      <li key={`group-${idx}`}>
-                        {dayRange}: Closed
-                        {group.specialNote && (
-                          <span className="block text-sm pt-1">{group.specialNote}</span>
-                        )}
-                      </li>
-                    );
-                  }
-
-                  const openTime = formatTime(group.openTime);
-                  const closeTime = formatTime(group.closeTime);
-                  const timeStr = openTime && closeTime ? `${openTime} - ${closeTime}` : "";
-
-                  return (
-                    <li key={`group-${idx}`}>
-                      {dayRange}: {timeStr || "Closed"}
-                      {group.specialNote && (
-                        <span className="block text-sm pt-1">{group.specialNote}</span>
-                      )}
-                    </li>
-                  );
-                });
-              })()}
-            </ul>
+            <h4 className="text-lg font-display font-black mb-4 uppercase">Accreditation</h4>
+            <div>
+              <div className="flex flex-wrap items-center gap-4">
+                <img
+                  src="/anuk-logo.png"
+                  alt="ANUK Accreditation Network UK"
+                  className="h-12 w-auto object-contain brightness-0 invert"
+                />
+                <img
+                  src="/unipol-code-logo.webp"
+                  alt="Unipol National Code"
+                  className="h-10 w-auto object-contain brightness-0 invert"
+                />
+              </div>
+              <p className="mt-3 text-left text-xs font-medium leading-snug text-white/70">
+                The gold standard for student housing in the UK.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="border-t border-white/20 mt-12 pt-8 text-center text-white/60 text-sm">
-          <p>
+        <div className="mt-12 flex flex-col gap-4 border-t border-white/20 pt-8 text-sm text-white/60 md:flex-row md:items-center md:justify-between md:gap-8">
+          <p className="shrink-0 text-left">
             © {new Date().getFullYear()} Urban Hub Student Accommodation Preston. All rights reserved.
-            <span className="mx-2">|</span>
-            <Link to="/privacy" className="text-white/80 hover:text-white transition-colors">Privacy Policy</Link>
-            <span className="mx-2">|</span>
-            <Link to="/terms" className="text-white/80 hover:text-white transition-colors">Terms & Conditions</Link>
-            <span className="mx-2">|</span>
-            <Link to="/complaints-policy" className="text-white/80 hover:text-white transition-colors">Complaints Policy</Link>
-            <span className="mx-2">|</span>
-            <Link to="/equality-diversity-policy" className="text-white/80 hover:text-white transition-colors">Equality & Diversity Policy</Link>
           </p>
+          <nav
+            className="flex flex-wrap items-center gap-x-4 gap-y-2 md:justify-end"
+            aria-label="Legal"
+          >
+            <Link to="/privacy" className="text-white/80 transition-colors hover:text-white">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-white/80 transition-colors hover:text-white">
+              Terms & Conditions
+            </Link>
+            <Link to="/complaints-policy" className="text-white/80 transition-colors hover:text-white">
+              Complaints Policy
+            </Link>
+            <Link to="/equality-diversity-policy" className="text-white/80 transition-colors hover:text-white">
+              Equality & Diversity Policy
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

@@ -138,7 +138,7 @@ function SecureBookingPaymentStep({
       <Button
         type="submit"
         disabled={submitting || !stripe}
-        className="w-full rounded-full uppercase text-xs font-semibold"
+        className="w-full rounded-[16px] uppercase text-xs font-semibold"
       >
         {submitting ? "Processing..." : "Pay £99 to secure booking"}
       </Button>
@@ -476,7 +476,7 @@ export const SecureBookingDialog = ({
             <Button
               type="submit"
               disabled={isCreatingIntent}
-              className="w-full rounded-full uppercase text-xs font-semibold justify-between"
+              className="w-full rounded-[16px] uppercase text-xs font-semibold justify-between"
             >
               <span className="text-left">
                 {isCreatingIntent ? "Securing your place…" : "Secure your place with £99"}
@@ -499,7 +499,7 @@ export const SecureBookingDialog = ({
         be in touch with next steps.
       </p>
       <Button
-        className="w-full rounded-full uppercase text-xs font-semibold"
+        className="w-full rounded-[16px] uppercase text-xs font-semibold"
         onClick={() => {
           setClientSecret(null);
           setIsCompleted(false);
