@@ -147,33 +147,15 @@ export default function AdminDashboard() {
           <CardContent className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1">
               {weekAnalytics !== undefined ? (
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium">{weekAnalytics.homepageSessions} visitors</p>
-                    <p className="text-muted-foreground text-xs">
-                      {weekAnalytics.homepageViews} page views on / and /studios
-                    </p>
-                  </div>
-                  <Link
-                    to="/admin/analytics"
-                    className="shrink-0 rounded-lg bg-muted/80 p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-label="View analytics"
-                  >
-                    <ArrowUpRight className="h-4 w-4" />
-                  </Link>
+                <div>
+                  <p className="text-sm font-medium">{weekAnalytics.homepageSessions} visitors</p>
+                  <p className="text-muted-foreground text-xs">
+                    {weekAnalytics.homepageViews} page views on / and /studios
+                  </p>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Loading…</p>
               )}
-            </div>
-            <div className="mt-auto shrink-0 pt-2">
-              <Link
-                to="/admin/analytics"
-                className="flex w-full items-center justify-between rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                <span>Full analytics</span>
-                <ArrowUpRight className="h-4 w-4 shrink-0" />
-              </Link>
             </div>
           </CardContent>
         </Card>

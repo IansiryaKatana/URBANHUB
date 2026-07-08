@@ -13,7 +13,6 @@ import {
   X,
   ExternalLink,
   Search,
-  BarChart3,
   Star,
   ImageIcon,
   Mail,
@@ -35,8 +34,7 @@ const allNavItems = [
   { path: "/admin/media", label: "Media", icon: ImageIcon, subroles: ["content_editor", "marketing_manager"] },
   { path: "/admin/newsletter", label: "Newsletter", icon: Mail, subroles: ["marketing_manager"] },
   { path: "/admin/seo", label: "SEO", icon: Search, subroles: ["seo_editor", "marketing_manager"] },
-  { path: "/admin/analytics", label: "Analytics", icon: BarChart3, subroles: ["marketing_manager"] },
-  { path: "/admin/users", label: "Users", icon: Users, superadminOnly: true },
+  { path: "/admin/users", label: "Users", icon: Users, roles: ["superadmin", "admin"] },
 ];
 
 export default function AdminLayout() {
@@ -51,6 +49,9 @@ export default function AdminLayout() {
   const effectiveSubrole = websiteSubroles.includes(role) ? role : userSubrole;
 
   const navItems = allNavItems.filter((item) => {
+    if (item.roles?.length) {
+      return item.roles.includes(role);
+    }
     if (item.superadminOnly) {
       return role === "superadmin";
     }

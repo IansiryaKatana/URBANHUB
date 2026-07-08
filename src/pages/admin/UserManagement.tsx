@@ -59,6 +59,8 @@ const ROLES = [
   { value: "admin", label: "Admin" },
 ] as const;
 
+const MANAGEABLE_ROLES = ROLES.filter((r) => r.value !== "superadmin");
+
 // Website-specific subroles only (for website admin users)
 const WEBSITE_SUBROLES = [
   { value: "__none__", label: "None" },
@@ -84,72 +86,74 @@ export default function UserManagement() {
   const [inviteRole, setInviteRole] = useState<string>("staff");
   const [inviteSubrole, setInviteSubrole] = useState<string | null>(null);
 
-  // Only allow superadmin
-  if (role !== "superadmin") {
+  // Allow superadmin and admin
+  if (role !== "superadmin" && role !== "admin") {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-lg font-semibold text-destructive">Access Denied</p>
-          <p className="text-muted-foreground mt-2">Only super administrators can access user management.</p>
+          <p className="text-muted-foreground mt-2">Only administrators can access user management.</p>
         </div>
       </div>
     );
   }
 
-  // Fetch website users (staff, superadmin, admin roles only)
+  // Fetch website users (staff and admin roles only; superadmins are excluded)
   const { data: users, isLoading } = useQuery({
     queryKey: ["website-users"],
     queryFn: async () => {
-      // Fetch all profiles and filter client-side to avoid query syntax issues
-      // Using select("*") to get all columns and avoid column name issues
+      const websiteRoles = ["staff", "admin"];
+      const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
+
+      const mapProfile = (profile: {
+        id: string;
+        email?: string | null;
+        first_name?: string | null;
+        last_name?: string | null;
+        role?: string | null;
+        staff_subrole?: string | null;
+        created_at?: string | null;
+      }): Profile => ({
+        id: profile.id,
+        email: profile.email || "",
+        first_name: profile.first_name || null,
+        last_name: profile.last_name || null,
+        role: profile.role || "",
+        staff_subrole: profile.staff_subrole || null,
+        created_at: profile.created_at || new Date().toISOString(),
+      });
+
+      const filterProfiles = (rows: Parameters<typeof mapProfile>[0][]) =>
+        rows
+          .filter((profile) => {
+            if (websiteRoles.includes(profile.role || "")) {
+              if (profile.staff_subrole) {
+                return websiteSubroles.includes(profile.staff_subrole);
+              }
+              return true;
+            }
+            return false;
+          })
+          .map(mapProfile);
+
+      const { data: rpcData, error: rpcError } = await supabase.rpc("get_website_admin_users");
+
+      if (!rpcError && rpcData) {
+        return filterProfiles(rpcData);
+      }
+
+      // Fallback if RPC is not deployed yet
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching profiles:", error);
-        // If it's a 400 error, it might be RLS or query syntax issue
-        if (error.status === 400) {
-          console.error("400 Bad Request - check RLS policies and query syntax");
-        }
-        throw error;
-      }
 
       if (error) {
         console.error("Error fetching profiles:", error);
         throw error;
       }
-      
-      // Filter to only website admin roles and website subroles
-      const websiteRoles = ["staff", "superadmin", "admin"];
-      const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
-      const portalSubroles = ["operations_manager", "reservationist", "accountant", "front_desk", "maintenance_officer", "housekeeper"];
-      
-      const filtered = (data || [])
-        .filter((profile: any) => {
-          // Include if role is website admin role
-          if (websiteRoles.includes(profile.role)) {
-            // If has subrole, only include if it's a website subrole (exclude portal subroles)
-            if (profile.staff_subrole) {
-              return websiteSubroles.includes(profile.staff_subrole);
-            }
-            // If no subrole, include (base staff/admin/superadmin)
-            return true;
-          }
-          return false;
-        })
-        .map((profile: any) => ({
-          id: profile.id,
-          email: profile.email || "",
-          first_name: profile.first_name || null,
-          last_name: profile.last_name || null,
-          role: profile.role || "",
-          staff_subrole: profile.staff_subrole || null,
-          created_at: profile.created_at || new Date().toISOString(),
-        })) as Profile[];
-      
-      return filtered;
+
+      return filterProfiles(data || []);
     },
   });
 
@@ -255,6 +259,7 @@ export default function UserManagement() {
       // Update profile with role, subrole, and name (row is created by Supabase trigger on signup)
       const profileUpdate: Record<string, unknown> = {
         role,
+        email,
         first_name: firstName || null,
         last_name: lastName || null,
       };
@@ -446,7 +451,7 @@ export default function UserManagement() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROLES.map((role) => (
+                    {MANAGEABLE_ROLES.map((role) => (
                       <SelectItem key={role.value} value={role.value}>
                         {role.label}
                       </SelectItem>
@@ -527,9 +532,11 @@ export default function UserManagement() {
                         : "—"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        {user.email}
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate" title={user.email || undefined}>
+                          {user.email || "—"}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -604,7 +611,7 @@ export default function UserManagement() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROLES.map((role) => (
+                    {MANAGEABLE_ROLES.map((role) => (
                       <SelectItem key={role.value} value={role.value}>
                         {role.label}
                       </SelectItem>
