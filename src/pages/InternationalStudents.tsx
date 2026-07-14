@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
-import { Eye, Glasses } from "lucide-react";
+import { Glasses } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ import type { Database } from "@/integrations/supabase/types";
 import heroImage from "@/assets/international-students/hero.png";
 import communityImage from "@/assets/international-students/community.jpg";
 import arrivalImage from "@/assets/international-students/arrival.png";
+import vrThumbnail from "@/assets/international-students/vr.webp";
 
 type AcademicYearRow = Database["public"]["Tables"]["academic_years"]["Row"];
 
@@ -87,29 +88,6 @@ const WORRIES = [
   },
 ];
 
-const STEPS = [
-  {
-    num: "01",
-    title: "Choose your studio & view it",
-    body: "Compare studio types and prices, then book a free virtual viewing or explore in VR so you know exactly what you're getting.",
-  },
-  {
-    num: "02",
-    title: "Reserve your room online",
-    body: "Secure your studio with a simple online application, no UK guarantor required if you pay in full. We'll confirm everything by email.",
-  },
-  {
-    num: "03",
-    title: "Pay securely from home",
-    body: "Use our secure international payment portal to pay in a way that works from your country. Protected by free cancellation if your visa is refused.",
-  },
-  {
-    num: "04",
-    title: "Arrive & settle in",
-    body: "Move in any time, day or night. Our team helps you get set up, meet neighbours and find your feet in Preston.",
-  },
-];
-
 const ARRIVAL = [
   {
     num: "01",
@@ -144,10 +122,10 @@ const ARRIVAL = [
 ];
 
 const PLANS = [
-  { name: "Pay in full", meta: "1 payment", tag: "No guarantor needed", highlight: true, green: true },
-  { name: "3 instalments", meta: "Termly payments", tag: "UK guarantor required", highlight: false, green: false },
-  { name: "4 instalments", meta: "Quarterly payments", tag: "UK guarantor required", highlight: false, green: false },
-  { name: "10 instalments", meta: "Monthly payments", tag: "UK guarantor required", highlight: false, green: false },
+  { name: "Pay in full", tag: "No guarantor needed", highlight: true, green: true },
+  { name: "3 instalments", tag: "UK guarantor required", highlight: false, green: false },
+  { name: "4 instalments", tag: "UK guarantor required", highlight: false, green: false },
+  { name: "10 instalments", tag: "UK guarantor required", highlight: false, green: false },
 ];
 
 const FAQS = [
@@ -372,17 +350,16 @@ const InternationalStudents = () => {
           alt="International students arriving at Urban Hub"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
         <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-end px-4 pb-28 pt-32 md:px-8 md:pb-20">
           <div className="max-w-2xl">
             <p className="mb-4 text-[12px] font-semibold uppercase tracking-[0.28em] text-white/70">
-              For international students · Preston · UCLan
+              University of Lancashire
             </p>
             <h1 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-wide sm:text-5xl md:text-6xl lg:text-7xl">
-              Moving countries is huge.{" "}
-              <span className="text-primary">Booking your home shouldn&apos;t be.</span>
+              For international students
             </h1>
             <p className="mt-5 hidden max-w-xl text-sm leading-relaxed text-white/80 md:block md:text-base">
               Thousands of miles from home, arranging everything online. We get it. Urban Hub is built so international
@@ -402,31 +379,24 @@ const InternationalStudents = () => {
                 className="rounded-[16px] bg-white px-7 font-bold uppercase tracking-wide text-black hover:bg-zinc-100"
                 onClick={() => openViewing("hero_viewing")}
               >
-                Book a Virtual Viewing
+                Book a Viewing
               </Button>
             </div>
           </div>
 
-          {/* VR teaser, bottom right on hero image (desktop only) */}
+          {/* VR teaser image — bottom right (desktop only); swap src when image is ready */}
           <button
             type="button"
             onClick={() => setVrOpen(true)}
-            className="group absolute bottom-8 right-4 z-20 hidden max-w-[280px] items-start gap-3 overflow-hidden rounded-2xl bg-black/55 p-4 text-left shadow-2xl backdrop-blur-md transition hover:bg-black/70 md:bottom-12 md:right-8 md:flex md:max-w-[320px] md:p-5"
+            className="absolute bottom-8 right-4 z-20 hidden w-[280px] overflow-hidden rounded-2xl shadow-2xl transition hover:opacity-95 md:bottom-12 md:right-8 md:block md:w-[320px]"
+            aria-label="Start VR tour"
           >
-            <div className="relative shrink-0">
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white">
-                <Glasses className="h-5 w-5" />
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/55">See it before you fly</p>
-              <p className="mt-1 font-display text-lg font-black uppercase leading-tight tracking-wide text-white">
-                Tour the studios in VR
-              </p>
-              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-primary group-hover:underline">
-                Start VR tour →
-              </p>
+            <div className="relative aspect-video w-full bg-zinc-900">
+              <img
+                src={vrThumbnail}
+                alt="Tour the studios in VR"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
             </div>
           </button>
         </div>
@@ -492,15 +462,15 @@ const InternationalStudents = () => {
       </section>
 
       {/* Community band */}
-      <section className="grid lg:grid-cols-2">
-        <div className="relative min-h-[320px] lg:min-h-[560px]">
+      <section className="grid lg:h-screen lg:grid-cols-2">
+        <div className="relative min-h-[320px] lg:min-h-0 lg:h-full">
           <img
             src={communityImage}
             alt="Students relaxing and playing cards together in the Urban Hub communal lounge"
             className="absolute inset-0 h-full w-full object-cover"
           />
         </div>
-        <div className="flex flex-col justify-center bg-zinc-50 px-6 py-16 md:px-12 md:py-20 lg:px-16">
+        <div className="flex flex-col justify-center bg-zinc-50 px-6 py-16 md:px-12 md:py-20 lg:h-full lg:px-16 lg:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">A home, not just a room</p>
           <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
             You won&apos;t
@@ -532,52 +502,6 @@ const InternationalStudents = () => {
               onClick={() => openSecure("community_find_room")}
             >
               Secure Your Studio (£99)
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Booking steps */}
-      <section id="steps" className="bg-zinc-950 py-20 text-white md:py-28">
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/50">From &quot;maybe&quot; to move-in</p>
-          <h2 className="mt-3 max-w-3xl font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
-            Booking Urban Hub
-            <br />
-            from overseas,
-            <br />
-            in four simple steps
-          </h2>
-          <p className="mt-4 max-w-2xl text-sm text-white/60 md:text-base">
-            No paperwork maze. No guessing what comes next. Here&apos;s the whole journey. Most students complete it in
-            under a week.
-          </p>
-          <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s) => (
-              <li key={s.num} className="rounded-[24px] border border-white/10 bg-white/5 p-6">
-                <span className="font-display text-3xl font-black text-accent-yellow">{s.num}</span>
-                <h3 className="mt-4 font-display text-xl font-black uppercase tracking-wide">{s.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-white/65">{s.body}</p>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Button
-              size="lg"
-              className="rounded-[16px] bg-primary px-7 font-bold uppercase tracking-wide text-white hover:bg-primary/90"
-              onClick={() => openSecure("steps_start")}
-            >
-              Secure Your Studio (£99)
-            </Button>
-            <Button
-              size="lg"
-              className="rounded-[16px] bg-[#25D366] px-7 font-bold uppercase tracking-wide text-white hover:bg-[#128C7E]"
-              onClick={() =>
-                openWa("Hi Urban Hub, I have a question about booking as an international student.")
-              }
-            >
-              <FaWhatsapp className="mr-2 h-5 w-5" />
-              Ask Us a Question
             </Button>
           </div>
         </div>
@@ -774,7 +698,7 @@ const InternationalStudents = () => {
                     Payment options
                   </p>
                   <h3 className="relative mt-2 font-display text-2xl font-black uppercase leading-tight tracking-wide underline decoration-accent-yellow decoration-[5px] underline-offset-4 md:text-3xl">
-                    Pay the way that works for you
+                    Choose how you pay
                   </h3>
                 </div>
                 <div className="flex flex-1 flex-col px-5 pb-5 pt-5">
@@ -788,7 +712,6 @@ const InternationalStudents = () => {
                       >
                         <div className="min-w-0">
                           <p className="font-display text-base font-black uppercase tracking-wide">{p.name}</p>
-                          <p className="text-xs text-white/50">{p.meta}</p>
                         </div>
                         <span
                           className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
@@ -876,7 +799,7 @@ const InternationalStudents = () => {
       </section>
 
       {/* Virtual viewing */}
-      <section id="book-viewing" className="bg-zinc-900 py-16 text-white md:py-20">
+      <section id="book-viewing" className="bg-zinc-800 py-16 text-white md:py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 md:flex-row md:items-center md:justify-between md:px-8">
           <div className="max-w-xl">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/50">
@@ -890,23 +813,21 @@ const InternationalStudents = () => {
               now. No pressure, no obligation, just clarity before you decide.
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row md:flex-col lg:flex-row">
-            <Button
-              size="lg"
-              className="rounded-[16px] bg-primary px-7 font-bold uppercase tracking-wide text-white hover:bg-primary/90"
+          <div className="w-full max-w-md shrink-0">
+            <button
+              type="button"
               onClick={() => setVrOpen(true)}
+              className="block w-full overflow-hidden rounded-2xl shadow-2xl transition hover:opacity-95"
+              aria-label="Start VR tour"
             >
-              <Eye className="mr-2 h-5 w-5" />
-              Explore in VR
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="rounded-[16px] border-white/30 bg-transparent px-7 font-bold uppercase tracking-wide text-white hover:bg-white hover:text-black"
-              onClick={() => openViewing("live_viewing")}
-            >
-              Book a Live Viewing
-            </Button>
+              <div className="relative aspect-video w-full bg-zinc-900">
+                <img
+                  src={vrThumbnail}
+                  alt="Tour the studios in VR"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </div>
+            </button>
           </div>
         </div>
       </section>
