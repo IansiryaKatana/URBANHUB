@@ -31,6 +31,8 @@ import { AnimatedCard, AnimatedParagraph } from "@/components/animations/Animate
 import { supabase } from "@/integrations/supabase/client";
 import { useBrandingSettings } from "@/hooks/useBranding";
 import { useTestimonials } from "@/hooks/useTestimonials";
+import { useIntlCommunityImages } from "@/hooks/useIntlCommunityImages";
+import { useIntlArrivalSteps } from "@/hooks/useIntlArrivalSteps";
 import { useAllStudioAvailability, getAvailabilityTag, isFullyBooked } from "@/hooks/useStudioAvailability";
 import { portalStudiosUrl } from "@/config";
 import { BookViewingDialog } from "@/components/leads/BookViewingDialog";
@@ -40,7 +42,9 @@ import { CountryFlagMarquee } from "@/components/international-students/CountryF
 import { buildWhatsAppUrl } from "@/components/international-students/MorphingStickyCta";
 import { VrTourDialog } from "@/components/international-students/VrTourDialog";
 import { VideoTestimonialCard } from "@/components/international-students/VideoTestimonialCard";
+import { ArrivalCoverflow } from "@/components/international-students/ArrivalCoverflow";
 import type { Database } from "@/integrations/supabase/types";
+import Autoplay from "embla-carousel-autoplay";
 import heroImage from "@/assets/international-students/hero.png";
 import communityImage from "@/assets/international-students/community.jpg";
 import vrThumbnail from "@/assets/international-students/vr.webp";
@@ -154,6 +158,23 @@ const InternationalStudents = () => {
   const { data: testimonialsData, isLoading: testimonialsLoading } =
     useTestimonials("international_students");
   const testimonials = testimonialsData || [];
+  const { data: communityImagesData } = useIntlCommunityImages();
+  const { data: arrivalStepsData } = useIntlArrivalSteps();
+  const arrivalSteps = arrivalStepsData || [];
+  const communitySlides =
+    communityImagesData && communityImagesData.length > 0
+      ? communityImagesData.map((img) => ({
+          id: img.id,
+          url: img.image_url,
+          alt: img.alt_text || "Students and community life at Urban Hub",
+        }))
+      : [
+          {
+            id: "fallback",
+            url: communityImage,
+            alt: "Students relaxing and playing cards together in the Urban Hub communal lounge",
+          },
+        ];
 
   const [selectedYear, setSelectedYear] = useState<AcademicYearRow | null>(null);
   const [grades, setGrades] = useState<StudioGradeSummary[]>([]);
@@ -530,8 +551,16 @@ const InternationalStudents = () => {
             The scariest part of moving abroad is the unknown. So we&apos;ve mapped the whole journey: exactly what
             happens, and who&apos;s with you at every step.
           </p>
+        </div>
 
-          <div className="mt-12 flex flex-col items-start justify-center gap-3 sm:flex-row sm:items-center md:justify-center">
+        {arrivalSteps.length > 0 ? (
+          <div className="mt-10 w-full">
+            <ArrivalCoverflow steps={arrivalSteps} />
+          </div>
+        ) : null}
+
+        <div className="mx-auto max-w-7xl px-4 md:px-8">
+          <div className="mt-8 flex flex-col items-start justify-center gap-3 sm:flex-row sm:items-center md:justify-center md:mt-4">
             <Button
               size="lg"
               className="rounded-[16px] bg-[#128C7E] px-7 font-bold uppercase tracking-wide text-white hover:bg-[#0E7368]"
@@ -548,12 +577,37 @@ const InternationalStudents = () => {
 
       {/* Community band */}
       <section className="grid lg:h-screen lg:grid-cols-2">
-        <div className="relative min-h-[320px] lg:min-h-0 lg:h-full">
-          <img
-            src={communityImage}
-            alt="Students relaxing and playing cards together in the Urban Hub communal lounge"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+        <div className="relative min-h-[320px] overflow-hidden lg:min-h-0 lg:h-full">
+          <Carousel
+            opts={{ loop: true }}
+            plugins={
+              communitySlides.length > 1
+                ? [
+                    Autoplay({
+                      delay: 4500,
+                      stopOnInteraction: false,
+                      stopOnMouseEnter: true,
+                    }),
+                  ]
+                : undefined
+            }
+            className="absolute inset-0 h-full w-full [&>div]:h-full"
+          >
+            <CarouselContent className="-ml-0 h-full">
+              {communitySlides.map((slide) => (
+                <CarouselItem key={slide.id} className="relative h-full min-h-[320px] flex-[0_0_100%] pl-0 lg:min-h-full">
+                  <img
+                    src={slide.url}
+                    alt={slide.alt}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            {communitySlides.length > 1 ? (
+              <CarouselDots className="absolute bottom-5 left-1/2 z-10 -translate-x-1/2" />
+            ) : null}
+          </Carousel>
         </div>
         <div className="flex flex-col justify-center bg-zinc-50 px-6 py-16 md:px-12 md:py-20 lg:h-full lg:px-16 lg:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">A home, not just a room</p>

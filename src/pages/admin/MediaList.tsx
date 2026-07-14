@@ -22,10 +22,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Pencil, Trash2, Upload, ImageIcon, Layout, Video } from "lucide-react";
+import { Loader2, Pencil, Trash2, Upload, ImageIcon, Layout, Video, Route } from "lucide-react";
 import { toast } from "sonner";
 import ImageSlotsList from "./ImageSlotsList";
 import TestimonialsList from "./TestimonialsList";
+import ArrivalStepsList from "./ArrivalStepsList";
 
 const BUCKET = "website";
 const MAX_SIZE_MB = 5;
@@ -165,7 +166,7 @@ export default function MediaList() {
       </div>
 
       <Tabs defaultValue="library" className="space-y-4">
-        <TabsList className="grid w-full max-w-4xl grid-cols-2 sm:grid-cols-4">
+        <TabsList className="grid w-full max-w-5xl grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           <TabsTrigger value="library" className="flex items-center gap-2">
             <ImageIcon className="h-4 w-4" />
             Media Library
@@ -177,6 +178,10 @@ export default function MediaList() {
           <TabsTrigger value="intl-testimonials" className="flex items-center gap-2">
             <Video className="h-4 w-4" />
             Intl Students
+          </TabsTrigger>
+          <TabsTrigger value="arrival-steps" className="flex items-center gap-2">
+            <Route className="h-4 w-4" />
+            Arrival Journey
           </TabsTrigger>
           <TabsTrigger value="slots" className="flex items-center gap-2">
             <Layout className="h-4 w-4" />
@@ -311,6 +316,10 @@ export default function MediaList() {
             title="International Students Testimonials"
             description={`Manage video testimonials for the /international-students landing page ("Watch the moments students care about").`}
           />
+        </TabsContent>
+
+        <TabsContent value="arrival-steps" className="space-y-4">
+          <ArrivalStepsList />
         </TabsContent>
 
         <TabsContent value="slots" className="space-y-4">

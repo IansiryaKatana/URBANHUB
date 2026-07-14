@@ -3,6 +3,8 @@
  * Use consistent event names and parameters so GTM can fire tags and GA4 can track conversions.
  */
 
+import { trackTikTokFromDataLayer } from "@/utils/adPixels";
+
 declare global {
   interface Window {
     dataLayer?: Array<Record<string, unknown>>;
@@ -50,6 +52,9 @@ export function pushDataLayer(eventName: string, params?: DataLayerEventParams):
     ...(params && Object.fromEntries(Object.entries(params).filter(([, v]) => v != null))),
   };
   window.dataLayer.push(payload);
+
+  // Also fire a TikTok-format event name when ttq is present (avoids Invalid Event Name Format)
+  trackTikTokFromDataLayer(eventName, payload);
 }
 
 export function createTrackingEventId(prefix = "evt"): string {

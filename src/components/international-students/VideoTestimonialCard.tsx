@@ -114,9 +114,7 @@ export function VideoTestimonialCard({
           loop
           muted={isMuted}
           playsInline
-          className={`h-full w-full object-cover transition-all duration-700 ${
-            isPlaying ? "grayscale-0" : "grayscale"
-          }`}
+          className="h-full w-full object-cover"
         />
       )}
 
