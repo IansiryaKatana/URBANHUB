@@ -69,13 +69,11 @@ export const GetCallbackDialog = ({
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="mb-0 rounded-t-[28px]">
-          <DrawerHeader className="text-left px-6 pt-8">
+          <DrawerHeader className="gap-0 px-6 pb-3 pt-8 text-center">
             <DrawerTitle className="text-2xl font-display font-black uppercase tracking-wide">
               {title}
             </DrawerTitle>
-            <DrawerDescription className="text-sm text-muted-foreground mt-2">
-              {description}
-            </DrawerDescription>
+            <DrawerDescription className="sr-only">{description}</DrawerDescription>
           </DrawerHeader>
           <div className="px-2 pb-8">
             <LeadForm 
@@ -96,15 +94,15 @@ export const GetCallbackDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] rounded-[28px] p-8">
-        <DialogHeader>
+        <DialogHeader className="space-y-1.5">
           <DialogTitle className="text-3xl font-display font-black uppercase tracking-wide">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-base text-muted-foreground mt-4">
+          <DialogDescription className="text-[10px] leading-relaxed text-muted-foreground md:text-xs">
             {description}
           </DialogDescription>
         </DialogHeader>
-        <div className="mt-6">
+        <div className="mt-3">
           <LeadForm 
             formType="callback" 
             onSuccess={() => onOpenChange(false)} 

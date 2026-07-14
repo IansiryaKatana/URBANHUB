@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { FaWhatsapp } from "react-icons/fa";
-import { Glasses } from "lucide-react";
+import {
+  ArrowUpRight,
+  CreditCard,
+  Eye,
+  Glasses,
+  HeartHandshake,
+  LifeBuoy,
+  ShieldCheck,
+  UserCheck,
+} from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -18,6 +27,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { AnimatedCard, AnimatedParagraph } from "@/components/animations/AnimatedText";
 import { supabase } from "@/integrations/supabase/client";
 import { useBrandingSettings } from "@/hooks/useBranding";
 import { useTestimonials } from "@/hooks/useTestimonials";
@@ -27,13 +37,12 @@ import { BookViewingDialog } from "@/components/leads/BookViewingDialog";
 import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
 import { SecureBookingDialog } from "@/components/leads/SecureBookingDialog";
 import { CountryFlagMarquee } from "@/components/international-students/CountryFlagMarquee";
-import { MorphingStickyCta, buildWhatsAppUrl } from "@/components/international-students/MorphingStickyCta";
+import { buildWhatsAppUrl } from "@/components/international-students/MorphingStickyCta";
 import { VrTourDialog } from "@/components/international-students/VrTourDialog";
 import { VideoTestimonialCard } from "@/components/international-students/VideoTestimonialCard";
 import type { Database } from "@/integrations/supabase/types";
 import heroImage from "@/assets/international-students/hero.png";
 import communityImage from "@/assets/international-students/community.jpg";
-import arrivalImage from "@/assets/international-students/arrival.png";
 import vrThumbnail from "@/assets/international-students/vr.webp";
 
 type AcademicYearRow = Database["public"]["Tables"]["academic_years"]["Row"];
@@ -55,69 +64,42 @@ const WORRIES = [
     a: "Only for instalments.",
     body: "Pay your rent in full and you won't need a UK guarantor at all. Prefer to spread the cost across our 3, 4 or 10 instalment plans? A UK guarantor is required, and if you don't have one, just ask us about approved guarantor services.",
     accent: false,
+    icon: <UserCheck className="h-10 w-10" />,
   },
   {
     q: '"What if my visa gets refused?"',
     a: "You get your money back.",
     body: "If your student visa or university place is declined, you can cancel your booking and get a full refund. You're never locked into a home you can't move into.",
     accent: false,
+    icon: <ShieldCheck className="h-10 w-10" />,
   },
   {
     q: '"What if the room isn\'t what I expected?"',
     a: "See it before you commit.",
     body: "Book a live virtual viewing with our team, or explore the whole building in VR. What you see online is exactly what you'll walk into on move-in day.",
     accent: false,
+    icon: <Eye className="h-10 w-10" />,
   },
   {
     q: '"How do I pay from overseas?"',
     a: "Simple, secure, in your currency.",
     body: "Pay from your home country through a secure international payment portal, no confusing bank transfers, no hidden FX surprises. Pay in full or choose a 3, 4 or 10 instalment plan.",
     accent: false,
+    icon: <CreditCard className="h-10 w-10" />,
   },
   {
     q: '"What if I arrive and it goes wrong?"',
     a: "Someone is always here.",
     body: "Move in any time, day or night. Our team is on-site during the week with 24/7 emergency support, so you're never alone in a new country.",
     accent: false,
+    icon: <LifeBuoy className="h-10 w-10" />,
   },
   {
     q: '"Will I actually make friends?"',
     a: "You'll be welcomed in.",
     body: "Join a community of students from around the world. Welcome events, socials and shared spaces mean you'll have people to lean on from day one.",
     accent: true,
-  },
-];
-
-const ARRIVAL = [
-  {
-    num: "01",
-    tag: "Before you fly",
-    title: "You book from home",
-    body: "Reserve your studio online in minutes and pay securely from your own country. Pay in full and you'll never need a UK guarantor. You get an instant confirmation email, your room is locked in.",
-  },
-  {
-    num: "02",
-    tag: "Peace of mind",
-    title: "Your visa is protected",
-    body: "Waiting on your visa decision? If it's refused, you cancel and get a full refund, no penalty, no stress. You're never trapped paying for a home you can't move into.",
-  },
-  {
-    num: "03",
-    tag: "Landing day",
-    title: "You touch down in the UK",
-    body: "Message us your arrival time on WhatsApp before you travel. We'll send clear directions from the airport to Urban Hub, so you know exactly where you're going before you even land.",
-  },
-  {
-    num: "04",
-    tag: "At the door",
-    title: "Someone is there to meet you",
-    body: "Arrive any time, day or night. Our team checks you in with 24/7 emergency support on hand, late flights are never a problem. You're handed your key and shown to your studio.",
-  },
-  {
-    num: "05",
-    tag: "You made it",
-    title: "Your first night, at home",
-    body: "Your studio is furnished and ready, bed made, Wi-Fi on, bills already covered. Unpack, breathe, and message home that you've arrived safely. Welcome events in your first week mean you'll meet your neighbours in no time.",
+    icon: <HeartHandshake className="h-10 w-10" />,
   },
 ];
 
@@ -169,7 +151,8 @@ const FAQS = [
 
 const InternationalStudents = () => {
   const { data: branding } = useBrandingSettings();
-  const { data: testimonialsData, isLoading: testimonialsLoading } = useTestimonials();
+  const { data: testimonialsData, isLoading: testimonialsLoading } =
+    useTestimonials("international_students");
   const testimonials = testimonialsData || [];
 
   const [selectedYear, setSelectedYear] = useState<AcademicYearRow | null>(null);
@@ -182,6 +165,7 @@ const InternationalStudents = () => {
   const [viewingOpen, setViewingOpen] = useState(false);
   const [callbackOpen, setCallbackOpen] = useState(false);
   const [vrOpen, setVrOpen] = useState(false);
+  const [showAllWorries, setShowAllWorries] = useState(false);
   const [ctaKey, setCtaKey] = useState<string | undefined>();
 
   const { data: availabilityData, isLoading: availabilityLoading } = useAllStudioAvailability(
@@ -358,8 +342,10 @@ const InternationalStudents = () => {
             <p className="mb-4 text-[12px] font-semibold uppercase tracking-[0.28em] text-white/70">
               University of Lancashire
             </p>
-            <h1 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-wide sm:text-5xl md:text-6xl lg:text-7xl">
-              For international students
+            <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-wide sm:text-5xl md:text-6xl lg:text-7xl">
+              For international
+              <br />
+              students
             </h1>
             <p className="mt-5 hidden max-w-xl text-sm leading-relaxed text-white/80 md:block md:text-base">
               Thousands of miles from home, arranging everything online. We get it. Urban Hub is built so international
@@ -372,7 +358,8 @@ const InternationalStudents = () => {
                 className="rounded-[16px] bg-primary px-7 font-bold uppercase tracking-wide text-white hover:bg-primary/90"
                 onClick={() => openSecure("hero_book")}
               >
-                Secure Your Studio (£99)
+                <span className="md:hidden">Secure Studio</span>
+                <span className="hidden md:inline">Secure Your Studio (£99)</span>
               </Button>
               <Button
                 size="lg"
@@ -429,34 +416,132 @@ const InternationalStudents = () => {
         </div>
       </section>
 
-      {/* Why / worries */}
-      <section id="why" className="bg-background py-20 md:py-28">
+      {/* Why / worries — structure matches homepage Why Choose, light bg */}
+      <section id="why" className="bg-zinc-50 py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Every worry, handled</p>
-          <h2 className="mt-3 max-w-3xl font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
-            The five things that keep you up at night, <span className="text-primary">already sorted</span>
-          </h2>
-          <p className="mt-4 max-w-2xl text-sm text-muted-foreground md:text-base">
-            You&apos;re comparing accommodation from another country and the &quot;what ifs&quot; pile up fast. Here&apos;s
-            exactly how Urban Hub removes each one, so you can book knowing you&apos;re protected.
+          <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-16">
+            <div className="space-y-8 lg:col-span-5">
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Every worry, handled</p>
+                <h2 className="font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
+                  The five things that keep you up at night,{" "}
+                  <span className="text-primary">already sorted</span>
+                </h2>
+                <AnimatedParagraph delay={0.2} className="max-w-md text-base leading-relaxed text-muted-foreground md:text-lg">
+                  You&apos;re comparing accommodation from another country and the &quot;what ifs&quot; pile up fast.
+                  Here&apos;s exactly how Urban Hub removes each one, so you can book knowing you&apos;re protected.
+                </AnimatedParagraph>
+              </div>
+
+              <div className="hidden lg:block">
+                <Button
+                  onClick={() => setShowAllWorries(!showAllWorries)}
+                  className="rounded-[16px] border-none bg-zinc-900 px-10 py-6 text-sm font-semibold uppercase tracking-normal text-white ring-0 transition-all hover:bg-zinc-800 focus-visible:ring-0 focus-visible:ring-offset-0"
+                >
+                  {showAllWorries ? "See Less" : "Load More"} <ArrowUpRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="lg:col-span-7">
+              <div className="lg:hidden">
+                <Carousel className="w-full">
+                  <CarouselContent className="-ml-4">
+                    {WORRIES.map((w) => (
+                      <CarouselItem key={w.q} className="basis-full pl-4 sm:basis-1/2">
+                        <div
+                          className={`flex h-full flex-col space-y-6 rounded-[32px] p-8 ${
+                            w.accent
+                              ? "bg-primary text-white"
+                              : "bg-white"
+                          }`}
+                        >
+                          <div className={w.accent ? "text-white" : "text-zinc-900"}>{w.icon}</div>
+                          <div className="space-y-3">
+                            <p className={`text-sm font-medium ${w.accent ? "text-white/70" : "text-muted-foreground"}`}>
+                              {w.q}
+                            </p>
+                            <h3 className="font-display text-xl font-black uppercase leading-tight tracking-wide md:text-2xl">
+                              {w.a}
+                            </h3>
+                            <p className={`text-sm leading-relaxed ${w.accent ? "text-white/85" : "text-muted-foreground"}`}>
+                              {w.body}
+                            </p>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <div className="mt-8 flex items-center justify-center gap-4">
+                    <CarouselPrevious className="static translate-y-0 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50" />
+                    <CarouselNext className="static translate-y-0 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50" />
+                  </div>
+                </Carousel>
+              </div>
+
+              <div className="hidden grid-cols-2 gap-6 lg:grid">
+                {(showAllWorries ? WORRIES : WORRIES.slice(0, 4)).map((w, idx) => (
+                  <AnimatedCard
+                    key={w.q}
+                    delay={0.3 + idx * 0.1}
+                    index={idx}
+                    className={`group space-y-6 rounded-[32px] p-8 transition-all duration-300 ${
+                      w.accent
+                        ? "bg-primary text-white hover:bg-primary/95"
+                        : "bg-white hover:shadow-[0_16px_40px_rgba(0,0,0,0.06)]"
+                    }`}
+                  >
+                    <div
+                      className={`transition-all duration-300 group-hover:scale-110 ${
+                        w.accent ? "text-white" : "text-zinc-900 group-hover:text-primary"
+                      }`}
+                    >
+                      {w.icon}
+                    </div>
+                    <div className="space-y-3">
+                      <p className={`text-sm font-medium ${w.accent ? "text-white/70" : "text-muted-foreground"}`}>
+                        {w.q}
+                      </p>
+                      <h3 className="font-display text-xl font-black uppercase leading-tight tracking-wide md:text-2xl">
+                        {w.a}
+                      </h3>
+                      <p className={`text-sm leading-relaxed ${w.accent ? "text-white/85" : "text-muted-foreground"}`}>
+                        {w.body}
+                      </p>
+                    </div>
+                  </AnimatedCard>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Arrival */}
+      <section id="arrival" className="bg-zinc-100 py-20 text-foreground md:py-28">
+        <div className="mx-auto max-w-7xl px-4 md:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500 md:text-center">
+            Your first 24 hours, mapped out
           </p>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {WORRIES.map((w) => (
-              <article
-                key={w.q}
-                className={`rounded-[24px] border p-6 md:p-7 ${
-                  w.accent
-                    ? "border-primary/30 bg-primary text-white"
-                    : "border-border/50 bg-background shadow-[0_12px_32px_rgba(0,0,0,0.04)]"
-                }`}
-              >
-                <p className={`text-sm font-medium ${w.accent ? "text-white/70" : "text-muted-foreground"}`}>{w.q}</p>
-                <h3 className="mt-3 font-display text-2xl font-black uppercase tracking-wide">{w.a}</h3>
-                <p className={`mt-3 text-sm leading-relaxed ${w.accent ? "text-white/85" : "text-muted-foreground"}`}>
-                  {w.body}
-                </p>
-              </article>
-            ))}
+          <h2 className="mt-3 max-w-3xl font-display text-4xl font-black uppercase leading-none tracking-tight md:mx-auto md:text-center md:text-6xl">
+            From your front door at home <span className="text-primary">to your first night in Preston</span>
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm text-muted-foreground md:mx-auto md:text-center md:text-base">
+            The scariest part of moving abroad is the unknown. So we&apos;ve mapped the whole journey: exactly what
+            happens, and who&apos;s with you at every step.
+          </p>
+
+          <div className="mt-12 flex flex-col items-start justify-center gap-3 sm:flex-row sm:items-center md:justify-center">
+            <Button
+              size="lg"
+              className="rounded-[16px] bg-[#128C7E] px-7 font-bold uppercase tracking-wide text-white hover:bg-[#0E7368]"
+              onClick={() =>
+                openWa("Hi Urban Hub, I'm arriving from abroad and I'd like help planning my arrival.")
+              }
+            >
+              <FaWhatsapp className="mr-2 h-5 w-5" />
+              Plan My Arrival on WhatsApp
+            </Button>
           </div>
         </div>
       </section>
@@ -472,30 +557,21 @@ const InternationalStudents = () => {
         </div>
         <div className="flex flex-col justify-center bg-zinc-50 px-6 py-16 md:px-12 md:py-20 lg:h-full lg:px-16 lg:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">A home, not just a room</p>
-          <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
-            You won&apos;t
-            <br />
-            be the only one
-            <br />
-            far from home
+          <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
+            Your Culture Is Not{" "}
+            <span className="text-primary">&ldquo;Extra.&rdquo;</span> It Is the Heartbeat of This Building.
           </h2>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground md:text-base">
-            Half of arriving at a new country is finding your people. At Urban Hub you&apos;re surrounded by students who
-            know exactly what it feels like to land somewhere new.
-          </p>
-          <ul className="mt-6 space-y-3 text-sm text-foreground">
-            {[
-              "Welcome events in your first weeks to break the ice",
-              "Social lounges, study zones and shared kitchens",
-              "A safe, secure building with CCTV and controlled entry",
-              "Steps from UCLan, Tesco, PureGym and the city centre",
-            ].map((item) => (
-              <li key={item} className="flex gap-3">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+            <p>
+              At Urban Hub, we do not just tolerate diversity. We celebrate it. We know that moving abroad does not mean
+              leaving your traditions behind. It means finding new ways to honour them.
+            </p>
+            <p>
+              Your private kitchen means you can cook Eid biryani, Diwali sweets, or Chinese New Year dumplings, exactly
+              how your family makes them. Your own space means you can pray, meditate, or observe your faith without
+              explanation.
+            </p>
+          </div>
           <div className="mt-8">
             <Button
               className="rounded-[16px] bg-primary px-7 font-bold uppercase tracking-wide text-white hover:bg-primary/90"
@@ -507,62 +583,11 @@ const InternationalStudents = () => {
         </div>
       </section>
 
-      {/* Arrival timeline */}
-      <section id="arrival" className="bg-zinc-100 py-20 text-foreground md:py-28">
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">Your first 24 hours, mapped out</p>
-          <h2 className="mt-3 max-w-3xl font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
-            From your front door at home <span className="text-primary">to your first night in Preston</span>
-          </h2>
-          <p className="mt-4 max-w-2xl text-sm text-muted-foreground md:text-base">
-            The scariest part of moving abroad is the unknown. So we&apos;ve mapped the whole journey: exactly what
-            happens, and who&apos;s with you at every step.
-          </p>
-
-          <div className="mt-14 grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14">
-            <div className="relative hidden min-h-[480px] overflow-hidden rounded-[28px] lg:block lg:sticky lg:top-28 lg:self-start">
-              <img src={arrivalImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-            </div>
-            <ol className="relative space-y-0">
-              <span
-                className="absolute bottom-2 left-4 top-2 w-px bg-zinc-300"
-                aria-hidden="true"
-              />
-              {ARRIVAL.map((a) => (
-                <li key={a.num} className="relative pb-10 pl-12 last:pb-0">
-                  <span className="absolute left-0 top-0 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-primary/40 bg-white font-display text-xs font-black text-primary shadow-sm">
-                    {a.num}
-                  </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">{a.tag}</span>
-                  <h3 className="mt-2 font-display text-2xl font-black uppercase tracking-wide">{a.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{a.body}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="mt-12 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            <Button
-              size="lg"
-              className="rounded-[16px] bg-[#25D366] px-7 font-bold uppercase tracking-wide text-white hover:bg-[#128C7E]"
-              onClick={() =>
-                openWa("Hi Urban Hub, I'm arriving from abroad and I'd like help planning my arrival.")
-              }
-            >
-              <FaWhatsapp className="mr-2 h-5 w-5" />
-              Plan My Arrival on WhatsApp
-            </Button>
-            <span className="text-sm text-muted-foreground">A real person replies, usually within minutes.</span>
-          </div>
-        </div>
-      </section>
-
       {/* Rooms, live studio cards */}
       <section id="rooms" className="bg-background py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Your studio</p>
-          <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
+          <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
             Private studios, all bills included
           </h2>
           <p className="mt-4 max-w-2xl text-sm text-muted-foreground md:text-base">
@@ -743,7 +768,7 @@ const InternationalStudents = () => {
       <section id="community" className="bg-zinc-50 py-20 md:py-24">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">One building, the whole world</p>
-          <h2 className="mt-3 max-w-3xl font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
+          <h2 className="mt-3 max-w-3xl font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
             Students from <span className="text-primary">50+ countries</span> already call Urban Hub home
           </h2>
           <p className="mt-4 max-w-2xl text-sm text-muted-foreground md:text-base">
@@ -755,80 +780,60 @@ const InternationalStudents = () => {
         </div>
       </section>
 
-      {/* Testimonials, system video cards */}
+      {/* Testimonials — dedicated intl-page set, carousel on all breakpoints */}
       <section className="bg-zinc-950 py-20 text-white md:py-28">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/50">Loved by students</p>
-              <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
-                Don&apos;t just take our word for it
-              </h2>
-            </div>
-          </div>
-
           {testimonialsLoading ? (
             <div className="py-12 text-center text-white/50">Loading testimonials…</div>
           ) : testimonials.length === 0 ? (
-            <div className="py-12 text-center text-white/50">No testimonials available at this time.</div>
-          ) : (
             <>
-              <div className="md:hidden">
-                <Carousel className="mx-auto w-full max-w-sm">
-                  <CarouselContent>
-                    {testimonials.map((t) => (
-                      <CarouselItem key={t.id}>
-                        <VideoTestimonialCard testimonial={t} />
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <div className="mt-8 flex items-center justify-center gap-4">
-                    <CarouselPrevious className="static translate-y-0 border-white/20 bg-white/5 text-white hover:bg-white/10" />
-                    <CarouselNext className="static translate-y-0 border-white/20 bg-white/5 text-white hover:bg-white/10" />
-                  </div>
-                </Carousel>
+              <div className="mb-12">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/50">Social Stories</p>
+                <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
+                  Watch the moments students care about
+                </h2>
               </div>
-              <div className="hidden gap-8 md:grid md:grid-cols-2 lg:grid-cols-3">
-                {testimonials.map((t) => (
-                  <VideoTestimonialCard key={t.id} testimonial={t} />
-                ))}
-              </div>
+              <div className="py-12 text-center text-white/50">No testimonials available at this time.</div>
             </>
-          )}
-        </div>
-      </section>
-
-      {/* Virtual viewing */}
-      <section id="book-viewing" className="bg-zinc-800 py-16 text-white md:py-20">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 md:flex-row md:items-center md:justify-between md:px-8">
-          <div className="max-w-xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/50">
-              Not ready to commit? That&apos;s fine.
-            </p>
-            <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-wide md:text-4xl">
-              See it with your own eyes, from anywhere in the world
-            </h2>
-            <p className="mt-4 text-sm text-white/60 md:text-base">
-              Book a free live virtual viewing with our team, or take a self-guided VR tour of the whole building right
-              now. No pressure, no obligation, just clarity before you decide.
-            </p>
-          </div>
-          <div className="w-full max-w-md shrink-0">
-            <button
-              type="button"
-              onClick={() => setVrOpen(true)}
-              className="block w-full overflow-hidden rounded-2xl shadow-2xl transition hover:opacity-95"
-              aria-label="Start VR tour"
+          ) : (
+            <Carousel
+              opts={{
+                align: "start",
+                loop: testimonials.length > 1,
+              }}
+              className="w-full"
             >
-              <div className="relative aspect-video w-full bg-zinc-900">
-                <img
-                  src={vrThumbnail}
-                  alt="Tour the studios in VR"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
+              <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/50">Social Stories</p>
+                  <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
+                    Watch the moments students care about
+                  </h2>
+                </div>
+                {testimonials.length > 1 && (
+                  <div className="hidden items-center gap-3 md:flex">
+                    <CarouselPrevious className="static h-12 w-12 translate-y-0 border-white/20 bg-white/5 text-white hover:bg-white/10" />
+                    <CarouselNext className="static h-12 w-12 translate-y-0 border-white/20 bg-white/5 text-white hover:bg-white/10" />
+                  </div>
+                )}
               </div>
-            </button>
-          </div>
+
+              <CarouselContent className="-ml-4 md:-ml-6">
+                {testimonials.map((t) => (
+                  <CarouselItem key={t.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3 md:pl-6">
+                    <VideoTestimonialCard testimonial={t} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+
+              {testimonials.length > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-4 md:hidden">
+                  <CarouselPrevious className="static h-12 w-12 translate-y-0 border-white/20 bg-white/5 text-white hover:bg-white/10" />
+                  <CarouselNext className="static h-12 w-12 translate-y-0 border-white/20 bg-white/5 text-white hover:bg-white/10" />
+                </div>
+              )}
+            </Carousel>
+          )}
         </div>
       </section>
 
@@ -837,15 +842,17 @@ const InternationalStudents = () => {
         <div className="mx-auto grid max-w-7xl gap-12 px-4 md:px-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <div className="lg:sticky lg:top-28 lg:self-start">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Visa &amp; arrival, explained</p>
-            <h2 className="mt-3 font-display text-3xl font-black uppercase tracking-wide md:text-4xl">
-              Everything you were afraid to ask
+            <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
+              The Questions You Are Too Nervous to Ask
+              <br />
+              Answered With Honesty
             </h2>
             <p className="mt-4 text-sm text-muted-foreground md:text-base">
-              Straight answers to the questions international students ask us most. Still unsure? Message us on WhatsApp.
-              A real person will reply.
+              We have heard every question. The ones about money. The ones about safety. The ones about whether you will
+              fit in.
             </p>
             <Button
-              className="mt-6 rounded-[16px] bg-[#25D366] px-7 font-bold uppercase tracking-wide text-white hover:bg-[#128C7E]"
+              className="mt-6 rounded-[16px] bg-[#128C7E] px-7 font-bold uppercase tracking-wide text-white hover:bg-[#0E7368]"
               onClick={() => openWa("Hi Urban Hub, I have a question.")}
             >
               <FaWhatsapp className="mr-2 h-5 w-5" />
@@ -884,10 +891,10 @@ const InternationalStudents = () => {
       {/* Final CTA */}
       <section id="intl-final-cta" className="bg-primary py-20 text-white md:py-24">
         <div className="mx-auto max-w-3xl px-4 text-left md:px-8 md:text-center">
-          <h2 className="font-display text-3xl font-black uppercase tracking-wide md:text-5xl">
-            Your new home in Preston
+          <h2 className="font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
+            Start Here.
             <br />
-            is waiting.
+            Belong Here.
           </h2>
           <p className="mt-4 text-sm text-white/85 md:text-base">
             Studios are booking fast. Reserve yours today, protected by free cancellation if your visa is refused.
@@ -912,12 +919,6 @@ const InternationalStudents = () => {
       </section>
 
       <Footer />
-
-      <MorphingStickyCta
-        onSecureBooking={() => openSecure("sticky_book")}
-        onVr={() => setVrOpen(true)}
-        whatsappBaseUrl={whatsappUrl}
-      />
 
       <SecureBookingDialog
         open={secureOpen}

@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { portalLoginUrl, portalRegisterUrl, portalDashboardUrl, portalAdminUrl } from "@/config";
 
 const desktopNavItemClass =
-  "shrink-0 whitespace-nowrap text-sm font-medium px-2.5 xl:px-3 py-2 rounded-full transition-all duration-200";
+  "shrink-0 whitespace-nowrap text-sm font-medium px-3 py-2 rounded-full transition-all duration-200";
 
 const Navigation = () => {
   const { user, profile, role, signOut } = useAuth();
@@ -234,10 +234,18 @@ const Navigation = () => {
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <nav className={isShortTermPage ? "w-full pt-3 md:pt-5 px-0 md:px-[100px]" : `container mx-auto px-2 md:px-4 ${isContactOrFAQ || isBlogPage ? "pt-4 md:pt-6" : "pt-3 md:pt-5"}`}>
+      <nav
+        className={
+          isShortTermPage
+            ? "w-full px-0 pt-3 md:px-[100px] md:pt-5"
+            : `w-full px-3 md:px-6 xl:px-8 ${
+                isContactOrFAQ || isBlogPage ? "pt-4 md:pt-6" : "pt-3 md:pt-5"
+              }`
+        }
+      >
         {isContactOrFAQ || isBlogPage ? (
           <div
-            className={`pointer-events-auto flex items-center justify-between px-2 md:px-6 py-2 md:py-3 transition-all duration-300 ${
+            className={`pointer-events-auto flex items-center justify-between gap-3 px-3 py-2 md:gap-4 md:px-6 md:py-3 transition-all duration-300 ${
               (isScrolled || isBlogPage) && isVisible
                 ? "bg-black rounded-xl shadow-lg backdrop-blur-md" 
                 : "bg-transparent"
@@ -248,8 +256,8 @@ const Navigation = () => {
               <img src={logoUrl} alt={companyName || "StudentStaySolutions"} className="h-6 md:h-8" />
             </Link>
 
-            {/* Nav items in center */}
-            <div className="hidden lg:flex min-w-0 flex-1 flex-nowrap items-center justify-center gap-1.5 xl:gap-2">
+            {/* Nav items in center — xl+ only so links never fight CTAs for space */}
+            <div className="hidden xl:flex flex-1 flex-nowrap items-center justify-center gap-2 2xl:gap-3">
               {isLandingPage
                 ? (
                   <>
@@ -427,7 +435,7 @@ const Navigation = () => {
           </div>
         ) : (
           <div
-            className={`pointer-events-auto flex items-center justify-between px-2 md:px-6 py-2 md:py-3 transition-all duration-300 ${
+            className={`pointer-events-auto flex items-center justify-between gap-3 px-3 py-2 md:gap-4 md:px-6 md:py-3 transition-all duration-300 ${
               ((isScrolled || isBlogPage) && isVisible)
                 ? "bg-black rounded-xl shadow-lg backdrop-blur-md" 
                 : (isAboutPage && isVisible)
@@ -440,8 +448,8 @@ const Navigation = () => {
               <img src={logoUrl} alt={companyName || "StudentStaySolutions"} className="h-6 md:h-8" />
             </Link>
 
-            {/* Nav items in center */}
-            <div className="hidden lg:flex min-w-0 flex-1 flex-nowrap items-center justify-center gap-1.5 xl:gap-2">
+            {/* Nav items in center — xl+ only so links never fight CTAs for space */}
+            <div className="hidden xl:flex flex-1 flex-nowrap items-center justify-center gap-2 2xl:gap-3">
               {isLandingPage
                 ? (
                   <>

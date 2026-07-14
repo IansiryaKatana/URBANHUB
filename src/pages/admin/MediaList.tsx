@@ -165,7 +165,7 @@ export default function MediaList() {
       </div>
 
       <Tabs defaultValue="library" className="space-y-4">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+        <TabsList className="grid w-full max-w-4xl grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="library" className="flex items-center gap-2">
             <ImageIcon className="h-4 w-4" />
             Media Library
@@ -173,6 +173,10 @@ export default function MediaList() {
           <TabsTrigger value="testimonials" className="flex items-center gap-2">
             <Video className="h-4 w-4" />
             Testimonials
+          </TabsTrigger>
+          <TabsTrigger value="intl-testimonials" className="flex items-center gap-2">
+            <Video className="h-4 w-4" />
+            Intl Students
           </TabsTrigger>
           <TabsTrigger value="slots" className="flex items-center gap-2">
             <Layout className="h-4 w-4" />
@@ -299,6 +303,14 @@ export default function MediaList() {
 
         <TabsContent value="testimonials" className="space-y-4">
           <TestimonialsList />
+        </TabsContent>
+
+        <TabsContent value="intl-testimonials" className="space-y-4">
+          <TestimonialsList
+            placement="international_students"
+            title="International Students Testimonials"
+            description={`Manage video testimonials for the /international-students landing page ("Watch the moments students care about").`}
+          />
         </TabsContent>
 
         <TabsContent value="slots" className="space-y-4">

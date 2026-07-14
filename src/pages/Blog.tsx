@@ -233,7 +233,7 @@ const Blog = () => {
                   placeholder="Search blogs"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-12 rounded-lg border-2 border-white/30 bg-white/95 text-gray-900 placeholder:text-gray-500 focus:border-white focus:ring-2 focus:ring-white/30 w-full"
+                  className="pl-10 h-12 w-full rounded-lg border-2 border-white/30 bg-white/95 text-gray-900 placeholder:text-gray-500 transition-colors focus:border-white focus:outline-none focus:ring-0 focus-visible:ring-0"
                 />
               </div>
             </AnimatedText>

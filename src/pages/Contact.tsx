@@ -95,7 +95,7 @@ const Contact = () => {
                 {whatsappUrl && (
                   <Button
                     onClick={handleWhatsAppClick}
-                    className="bg-[#25D366] hover:bg-[#128C7E] text-white rounded-md px-6 py-3 font-semibold text-sm uppercase tracking-wide flex items-center gap-2"
+                    className="bg-[#128C7E] hover:bg-[#0E7368] text-white rounded-md px-6 py-3 font-semibold text-sm uppercase tracking-wide flex items-center gap-2"
                     data-analytics="contact-whatsapp"
                   >
                     SEND A MESSAGE

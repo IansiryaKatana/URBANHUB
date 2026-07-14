@@ -157,19 +157,19 @@ export const LeadForm = ({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={`space-y-4 ${compact ? "" : "p-4 md:p-0"} ${className ?? ""}`}
+        className={`space-y-6 ${compact ? "" : "px-4 pb-4 pt-0 md:p-0"} ${className ?? ""}`}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
             name="full_name"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className={compact ? "sr-only" : undefined}>Full Name</FormLabel>
+              <FormItem className="space-y-0">
+                <FormLabel className="sr-only">Full Name</FormLabel>
                 <FormControl>
-                  <Input placeholder={compact ? "Your Name" : "John Doe"} {...field} />
+                  <Input placeholder="Full Name" {...field} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="mt-1.5" />
               </FormItem>
             )}
           />
@@ -177,33 +177,34 @@ export const LeadForm = ({
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className={compact ? "sr-only" : undefined}>Email Address</FormLabel>
+              <FormItem className="space-y-0">
+                <FormLabel className="sr-only">Email Address</FormLabel>
                 <FormControl>
-                  <Input placeholder={compact ? "Your Email Address" : "john@example.com"} type="email" {...field} />
+                  <Input placeholder="Email Address" type="email" {...field} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="mt-1.5" />
               </FormItem>
             )}
           />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="phone"
             render={({ field, fieldState }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className={compact ? "sr-only" : undefined}>Phone Number</FormLabel>
+              <FormItem className="space-y-0">
+                <FormLabel className="sr-only">Phone Number</FormLabel>
                 <FormControl>
-                  <div className={`flex w-full rounded-md border bg-transparent ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${fieldState.error ? 'border-destructive' : 'border-input'}`}>
+                  <div
+                    className={`flex h-10 w-full rounded-md border bg-transparent transition-colors focus-within:outline-none focus-within:ring-0 ${
+                      fieldState.error ? "border-destructive" : "border-input focus-within:border-ring"
+                    }`}
+                  >
                     <PhoneInput
                       defaultCountry="gb"
                       value={field.value}
                       onChange={(phone) => field.onChange(phone)}
                       className="flex w-full"
                       inputProps={{
-                        placeholder: compact ? "Your Phone Number" : "Enter your phone number",
+                        placeholder: "Phone Number",
                       }}
                       inputClassName="!flex !h-10 !w-full !border-none !bg-transparent !px-3 !py-2 !text-sm !placeholder:text-muted-foreground focus:!outline-none disabled:!cursor-not-allowed disabled:!opacity-50 !shadow-none"
                       countrySelectorStyleProps={{
@@ -212,7 +213,7 @@ export const LeadForm = ({
                     />
                   </div>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="mt-1.5" />
               </FormItem>
             )}
           />
@@ -220,12 +221,12 @@ export const LeadForm = ({
             control={form.control}
             name="studio_type"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className={compact ? "sr-only" : undefined}>Studio Preference</FormLabel>
+              <FormItem className="space-y-0">
+                <FormLabel className="sr-only">Studio Preference</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-transparent [&>span]:text-muted-foreground">
-                      <SelectValue placeholder={compact ? "Choose Studio Type" : "Select studio type"} />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Studio Preference" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -236,41 +237,54 @@ export const LeadForm = ({
                     <SelectItem value="rhodium-plus">Rhodium Plus Studio</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                <FormMessage className="mt-1.5" />
               </FormItem>
             )}
           />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="preferred_date"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className={compact ? "sr-only" : undefined}>Preferred Date</FormLabel>
+              <FormItem className="space-y-0">
+                <FormLabel className="sr-only">Preferred Date</FormLabel>
                 <FormControl>
                   {compact ? (
-                    <div className="relative h-12 rounded-xl border border-white/35 overflow-hidden">
+                    <div className="relative h-12 overflow-hidden rounded-xl border border-white/35">
                       <Input
                         type="date"
                         min={new Date().toISOString().split("T")[0]}
                         style={!field.value ? { color: "transparent" } : undefined}
-                        className={`h-full w-full rounded-xl border border-transparent outline-none ring-0 bg-black/50 focus:bg-black/60 focus-visible:ring-0 pr-10 cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-0 [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:bottom-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer ${field.value ? "text-white" : ""}`}
+                        className={`h-full w-full cursor-pointer rounded-xl border border-transparent bg-black/50 outline-none ring-0 focus:bg-black/60 focus-visible:ring-0 pr-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 ${field.value ? "text-white" : ""}`}
                         {...field}
                       />
                       {!field.value && (
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/55 text-sm pointer-events-none">
-                          Preferred date
+                        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-white/55">
+                          Preferred Date
                         </span>
                       )}
-                      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white pointer-events-none" aria-hidden />
+                      <Calendar
+                        className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-white"
+                        aria-hidden
+                      />
                     </div>
                   ) : (
-                    <Input type="date" min={new Date().toISOString().split("T")[0]} {...field} />
+                    <div className="relative">
+                      <Input
+                        type="date"
+                        min={new Date().toISOString().split("T")[0]}
+                        style={!field.value ? { color: "transparent" } : undefined}
+                        className="cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                        {...field}
+                      />
+                      {!field.value && (
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                          Preferred Date
+                        </span>
+                      )}
+                    </div>
                   )}
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="mt-1.5" />
               </FormItem>
             )}
           />
@@ -278,12 +292,12 @@ export const LeadForm = ({
             control={form.control}
             name="preferred_time"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className={compact ? "sr-only" : undefined}>Preferred Time</FormLabel>
+              <FormItem className="space-y-0">
+                <FormLabel className="sr-only">Preferred Time</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="bg-transparent [&>span]:text-muted-foreground">
-                      <SelectValue placeholder={compact ? "Choose Time" : "Select a time slot"} />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Preferred Time" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -294,39 +308,37 @@ export const LeadForm = ({
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                <FormMessage className="mt-1.5" />
               </FormItem>
             )}
           />
+          {!hideMessageField && (
+            <FormField
+              control={form.control}
+              name="message"
+              render={({ field }) => (
+                <FormItem className="space-y-0 md:col-span-2">
+                  <FormLabel className="sr-only">Additional Message (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Additional Message (Optional)"
+                      className={`min-h-[100px] resize-none ${compact ? "border-white/35 bg-white/0 text-white placeholder:text-white/55" : ""}`}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="mt-1.5" />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
-        {!hideMessageField && (
-          <FormField
-            control={form.control}
-            name="message"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel className={compact ? "sr-only" : undefined}>Additional Message (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder={compact ? "Any additional information..." : "Add any additional information or questions..."}
-                    className={`min-h-[100px] resize-none ${compact ? "bg-white/0 text-white placeholder:text-white/55 border-white/35" : ""}`}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
-        <div className={`flex ${showCancel ? "flex-col-reverse md:flex-row md:justify-end" : "flex-col"} gap-3 pt-4`}>
+        <div className={`flex gap-4 ${showCancel ? "flex-row" : "flex-col"}`}>
           {showCancel && (
             <Button
               type="button"
-              variant="outline"
               onClick={onCancel}
-              className="w-full md:w-auto rounded-full uppercase tracking-wider text-xs font-semibold"
+              className="w-1/2 rounded-md bg-zinc-900 text-xs font-semibold uppercase tracking-wider text-white hover:bg-zinc-800 hover:text-white"
             >
               Cancel
             </Button>
@@ -337,8 +349,8 @@ export const LeadForm = ({
             data-analytics={formType === "booking" ? "form-viewing-submit" : "form-callback-submit"}
             className={
               compact
-                ? "w-full bg-primary text-white hover:bg-primary/90 rounded-2xl uppercase tracking-normal text-xs font-bold py-6"
-                : "w-full md:w-auto bg-accent-yellow text-black hover:bg-accent-yellow/90 rounded-full uppercase tracking-wider text-xs font-semibold"
+                ? "w-full rounded-2xl bg-primary py-6 text-xs font-bold uppercase tracking-normal text-white hover:bg-primary/90"
+                : `${showCancel ? "w-1/2" : "w-full"} rounded-md bg-accent-yellow text-xs font-semibold uppercase tracking-wider text-black hover:bg-accent-yellow/90`
             }
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

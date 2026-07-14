@@ -25,7 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Pencil, Trash2, Plus, Upload, Video, ImageIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Testimonial } from "@/hooks/useTestimonials";
+import type { Testimonial, TestimonialPlacement } from "@/hooks/useTestimonials";
 
 const BUCKET = "website";
 const MAX_VIDEO_SIZE_MB = 100; // 100MB for videos
@@ -34,7 +34,17 @@ const MAX_IMAGE_SIZE_MB = 5; // 5MB for cover images
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
-export default function TestimonialsList() {
+type TestimonialsListProps = {
+  placement?: TestimonialPlacement;
+  title?: string;
+  description?: string;
+};
+
+export default function TestimonialsList({
+  placement = "homepage",
+  title = "Testimonials",
+  description = 'Manage "Real People, Real Results" video testimonials',
+}: TestimonialsListProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -46,11 +56,12 @@ export default function TestimonialsList() {
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const { data: testimonials, isLoading } = useQuery({
-    queryKey: ["admin-testimonials"],
+    queryKey: ["admin-testimonials", placement],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("website_testimonials")
         .select("*")
+        .eq("placement", placement)
         .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
 
@@ -68,6 +79,7 @@ export default function TestimonialsList() {
       // First create the testimonial
       const { data, error } = await supabase.from("website_testimonials").insert({
         ...payload,
+        placement,
         created_by: user?.id || null,
       }).select().single();
       if (error) throw error;
@@ -271,8 +283,8 @@ export default function TestimonialsList() {
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Testimonials</h2>
-          <p className="text-sm text-muted-foreground">Manage "Real People, Real Results" video testimonials</p>
+          <h2 className="text-xl font-bold tracking-tight">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <div className="flex gap-2">
           {selectedIds.size > 0 && (
@@ -296,7 +308,7 @@ export default function TestimonialsList() {
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Testimonial</DialogTitle>
-                <DialogDescription>Add a new video testimonial for the "Real People, Real Results" section.</DialogDescription>
+                <DialogDescription>{description}</DialogDescription>
               </DialogHeader>
               <TestimonialForm
                 onSubmit={async (data, videoFile, coverFile) => {
@@ -324,7 +336,7 @@ export default function TestimonialsList() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">All Testimonials</CardTitle>
+          <CardTitle className="text-base">All {title}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (

@@ -260,7 +260,7 @@ export const CreatorFormDialog = ({
       </p>
       <div className="flex gap-3">
         <Button
-          className="w-full rounded-full uppercase text-xs font-semibold"
+          className="w-full rounded-md uppercase text-xs font-semibold"
           variant="outline"
           onClick={() => {
             resetState();
@@ -269,7 +269,7 @@ export const CreatorFormDialog = ({
           Submit another
         </Button>
         <Button
-          className="w-full rounded-full uppercase text-xs font-semibold"
+          className="w-full rounded-md uppercase text-xs font-semibold"
           onClick={() => handleOpenChange(false)}
         >
           Close
@@ -333,8 +333,8 @@ export const CreatorFormDialog = ({
                     <FormLabel>Phone number</FormLabel>
                     <FormControl>
                       <div
-                        className={`flex w-full rounded-md border bg-transparent ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${
-                          fieldState.error ? "border-destructive" : "border-input"
+                        className={`flex w-full rounded-md border bg-transparent transition-colors focus-within:outline-none focus-within:ring-0 ${
+                          fieldState.error ? "border-destructive" : "border-input focus-within:border-ring"
                         }`}
                       >
                         <PhoneInput
@@ -438,7 +438,7 @@ export const CreatorFormDialog = ({
                   <FormLabel>What type of content do you create?</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
                       {...field}
                     >
                       {contentTypeOptions.map((opt) => (
@@ -514,7 +514,7 @@ export const CreatorFormDialog = ({
                   <FormLabel>Have you worked with brands before?</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
                       {...field}
                     >
                       {yesNoOptions.map((opt) => (
@@ -553,7 +553,7 @@ export const CreatorFormDialog = ({
                   <FormLabel>Are you able to visit Urban Hub Preston to create content?</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
                       {...field}
                     >
                       {yesNoOptions.map((opt) => (
@@ -575,7 +575,7 @@ export const CreatorFormDialog = ({
                   <FormLabel>Preferred collaboration format</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
                       {...field}
                     >
                       {collaborationFormatOptions.map((opt) => (
@@ -645,7 +645,7 @@ export const CreatorFormDialog = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="rounded-full"
+                className="rounded-md"
                 onClick={prevStep}
               >
                 Back
@@ -655,7 +655,7 @@ export const CreatorFormDialog = ({
               type="button"
               variant="ghost"
               size="sm"
-              className="rounded-full"
+              className="rounded-md"
               onClick={() => handleOpenChange(false)}
             >
               Close
@@ -664,7 +664,7 @@ export const CreatorFormDialog = ({
           {step < 3 ? (
             <Button
               type="button"
-              className="rounded-full md:ml-auto"
+              className="rounded-md md:ml-auto"
               onClick={nextStep}
             >
               Next step
@@ -672,7 +672,7 @@ export const CreatorFormDialog = ({
           ) : (
             <Button
               type="submit"
-              className="rounded-full md:ml-auto"
+              className="rounded-md md:ml-auto"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Submitting..." : "Submit application"}
@@ -687,13 +687,11 @@ export const CreatorFormDialog = ({
     return (
       <Drawer open={open} onOpenChange={handleOpenChange}>
         <DrawerContent className="mb-0 rounded-t-[28px]">
-          <DrawerHeader className="text-left px-6 pt-8">
+          <DrawerHeader className="gap-0 px-6 pb-3 pt-8 text-center">
             <DrawerTitle className="text-2xl font-display font-black uppercase tracking-wide">
               {title}
             </DrawerTitle>
-            <DrawerDescription className="text-sm text-muted-foreground mt-2">
-              {description}
-            </DrawerDescription>
+            <DrawerDescription className="sr-only">{description}</DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-8">
             {isCompleted ? successContent : shell(formContent)}

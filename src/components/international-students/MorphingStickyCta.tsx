@@ -21,7 +21,6 @@ const CTA_MAP: Record<string, CtaConfig> = {
   },
   rooms: { label: "See Rooms & Prices", icon: "home", action: "scroll_rooms" },
   community: { label: "Secure Your Studio (£99)", icon: "book", action: "secure_booking" },
-  "book-viewing": { label: "Tour in VR", icon: "vr", action: "vr" },
   faq: {
     label: "Ask on WhatsApp",
     icon: "wa",
@@ -131,7 +130,7 @@ export function MorphingStickyCta({
       tabIndex={visible ? 0 : -1}
       className={`fixed bottom-6 left-6 z-40 flex items-center gap-2.5 rounded-[16px] px-5 py-3.5 text-sm font-bold uppercase tracking-wide text-white shadow-[0_12px_32px_rgba(0,0,0,0.28)] transition-all duration-300 md:bottom-8 md:left-8 ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
-      } ${isWa ? "bg-[#25D366] hover:bg-[#128C7E]" : "bg-primary hover:bg-primary/90"}`}
+      } ${isWa ? "bg-[#128C7E] hover:bg-[#0E7368]" : "bg-primary hover:bg-primary/90"}`}
     >
       <Icon key={`ico-${labelKey}`} className="h-5 w-5 shrink-0" />
       <span key={`lbl-${labelKey}`}>{cfg.label}</span>

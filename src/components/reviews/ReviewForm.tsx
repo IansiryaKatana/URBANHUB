@@ -99,7 +99,7 @@ export const ReviewForm = ({ onSuccess }: ReviewFormProps) => {
                       key={star}
                       type="button"
                       onClick={() => field.onChange(star)}
-                      className="p-1 rounded focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                      className="rounded p-1 transition-colors focus:outline-none focus:ring-0 focus:border-primary"
                       aria-label={`${star} star${star > 1 ? "s" : ""}`}
                     >
                       <Star

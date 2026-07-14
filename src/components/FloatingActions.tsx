@@ -75,7 +75,7 @@ export default function FloatingActions() {
       {whatsappUrl && (
         <button
           onClick={() => window.open(whatsappUrl, "_blank")}
-          className="h-14 w-14 rounded-full bg-[#25D366] text-white shadow-lg hover:bg-[#128C7E] transition-all duration-300 hover:scale-110 flex items-center justify-center"
+          className="h-14 w-14 rounded-full bg-[#128C7E] text-white shadow-lg hover:bg-[#0E7368] transition-all duration-300 hover:scale-110 flex items-center justify-center"
           aria-label="Contact us on WhatsApp"
           data-analytics={`float-whatsapp-${pageSlug}`}
         >

@@ -1,9 +1,16 @@
 import { useRef, useState } from "react";
 import { Play, Volume2, VolumeX } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import type { Testimonial } from "@/hooks/useTestimonials";
 
-export function VideoTestimonialCard({ testimonial }: { testimonial: Testimonial }) {
+export function VideoTestimonialCard({
+  testimonial,
+  className,
+}: {
+  testimonial: Testimonial;
+  className?: string;
+}) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -73,7 +80,10 @@ export function VideoTestimonialCard({ testimonial }: { testimonial: Testimonial
 
   return (
     <div
-      className="relative h-[480px] overflow-hidden rounded-[28px] bg-black shadow-2xl group md:h-[520px]"
+      className={cn(
+        "relative h-[480px] overflow-hidden rounded-lg bg-black shadow-2xl group md:h-[520px]",
+        className,
+      )}
       onMouseEnter={() => !isMobile && handlePlay()}
       onMouseLeave={() => !isMobile && handlePause()}
       onClick={() => isMobile && togglePlay({ stopPropagation: () => {} } as React.MouseEvent)}

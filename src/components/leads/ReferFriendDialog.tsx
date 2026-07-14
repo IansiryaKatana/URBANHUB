@@ -130,7 +130,7 @@ function ReferFriendPaymentStep({
           },
         }}
       />
-      <Button type="submit" disabled={submitting || !stripe} className="w-full rounded-full uppercase text-xs font-semibold">
+      <Button type="submit" disabled={submitting || !stripe} className="w-full rounded-md uppercase text-xs font-semibold">
         {submitting ? "Processing..." : "Pay £99 Deposit"}
       </Button>
     </form>
@@ -415,8 +415,8 @@ export const ReferFriendDialog = ({
                 <FormLabel>Your phone</FormLabel>
                 <FormControl>
                   <div
-                    className={`flex w-full rounded-md border bg-transparent ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${
-                      fieldState.error ? "border-destructive" : "border-input"
+                    className={`flex w-full rounded-md border bg-transparent transition-colors focus-within:outline-none focus-within:ring-0 ${
+                      fieldState.error ? "border-destructive" : "border-input focus-within:border-ring"
                     }`}
                   >
                     <PhoneInput
@@ -498,7 +498,7 @@ export const ReferFriendDialog = ({
           <Button
             type="submit"
             disabled={isCreatingIntent}
-            className="w-full rounded-full uppercase text-xs font-semibold"
+            className="w-full rounded-md uppercase text-xs font-semibold"
           >
             {isCreatingIntent ? "Starting payment..." : "Continue to £99 deposit"}
           </Button>
@@ -517,7 +517,7 @@ export const ReferFriendDialog = ({
         be in touch.
       </p>
       <Button
-        className="w-full rounded-full uppercase text-xs font-semibold"
+        className="w-full rounded-md uppercase text-xs font-semibold"
         onClick={() => {
           setClientSecret(null);
           setIsCompleted(false);
@@ -534,13 +534,11 @@ export const ReferFriendDialog = ({
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="mb-0 rounded-t-[28px]">
-          <DrawerHeader className="text-left px-6 pt-8">
+          <DrawerHeader className="gap-0 px-6 pb-3 pt-8 text-center">
             <DrawerTitle className="text-2xl font-display font-black uppercase tracking-wide">
               {title}
             </DrawerTitle>
-            <DrawerDescription className="text-sm text-muted-foreground mt-2">
-              {description}
-            </DrawerDescription>
+            <DrawerDescription className="sr-only">{description}</DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-8">
             {isCompleted ? (
@@ -564,15 +562,15 @@ export const ReferFriendDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] rounded-[28px] p-8">
-        <DialogHeader>
+        <DialogHeader className="space-y-1.5">
           <DialogTitle className="text-3xl font-display font-black uppercase tracking-wide">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-base text-muted-foreground mt-4">
+          <DialogDescription className="text-[10px] leading-relaxed text-muted-foreground md:text-xs">
             {description}
           </DialogDescription>
         </DialogHeader>
-        <div className="mt-6">
+        <div className="mt-3">
           {isCompleted ? (
             successContent
           ) : (
