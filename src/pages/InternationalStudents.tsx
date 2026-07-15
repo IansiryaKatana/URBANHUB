@@ -984,7 +984,7 @@ const InternationalStudents = () => {
         open={viewingOpen}
         onOpenChange={setViewingOpen}
         landingPageSlug={LANDING_SLUG}
-        openSource="landing_hero"
+        openSource="international_students"
         ctaTrackingKey={ctaKey}
         ctaType="viewing"
       />
@@ -992,7 +992,7 @@ const InternationalStudents = () => {
         open={callbackOpen}
         onOpenChange={setCallbackOpen}
         landingPageSlug={LANDING_SLUG}
-        openSource="landing_hero"
+        openSource="international_students"
         ctaTrackingKey={ctaKey}
         ctaType="callback"
       />

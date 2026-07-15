@@ -650,8 +650,38 @@ const Navigation = () => {
           </div>
         )}
       </nav>
-      <GetCallbackDialog open={callbackDialogOpen} onOpenChange={setCallbackDialogOpen} openSource="nav" />
-      <BookViewingDialog open={viewingDialogOpen} onOpenChange={setViewingDialogOpen} openSource="nav" />
+      <GetCallbackDialog
+        open={callbackDialogOpen}
+        onOpenChange={setCallbackDialogOpen}
+        openSource="nav"
+        landingPageSlug={
+          location.pathname.startsWith("/international-students")
+            ? "/international-students"
+            : undefined
+        }
+        ctaTrackingKey={
+          location.pathname.startsWith("/international-students")
+            ? "intl_nav_callback"
+            : "nav-callback"
+        }
+        ctaType="callback"
+      />
+      <BookViewingDialog
+        open={viewingDialogOpen}
+        onOpenChange={setViewingDialogOpen}
+        openSource="nav"
+        landingPageSlug={
+          location.pathname.startsWith("/international-students")
+            ? "/international-students"
+            : undefined
+        }
+        ctaTrackingKey={
+          location.pathname.startsWith("/international-students")
+            ? "intl_nav_book_viewing"
+            : "nav-book-viewing"
+        }
+        ctaType="viewing"
+      />
     </header>
   );
 };

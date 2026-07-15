@@ -82,13 +82,15 @@ export const useLeadsCRM = () => {
       await saveLeadToDb(formData).catch((err) => console.warn("Website form save:", err));
       const dbFormType = formData.form_type === "booking" ? "viewing" : "callback";
       recordFormSubmitEvent(dbFormType, typeof window !== "undefined" ? window.location.pathname : "/");
-      const landingSlug = (formData.landing_page || "").replace(/^\/landing\//, "");
+      const landingSlug = (formData.landing_page || "")
+        .replace(/^\/landing\//, "")
+        .replace(/^\//, "") || undefined;
       const eventId = createTrackingEventId("lp-lead");
       pushDataLayer("lp_form_submit", {
         event_action: "lp_form_submit",
         form_type: dbFormType,
         page_path: typeof window !== "undefined" ? window.location.pathname : "/",
-        landing_slug: landingSlug || undefined,
+        landing_slug: landingSlug,
         cta_tracking_key: formData.tracking_key,
         cta_type: formData.cta_type,
         cta_source: formData.cta_source,
@@ -98,7 +100,7 @@ export const useLeadsCRM = () => {
         event_action: "lp_lead",
         form_type: dbFormType,
         page_path: typeof window !== "undefined" ? window.location.pathname : "/",
-        landing_slug: landingSlug || undefined,
+        landing_slug: landingSlug,
         cta_tracking_key: formData.tracking_key,
         cta_type: formData.cta_type,
         cta_source: formData.cta_source,

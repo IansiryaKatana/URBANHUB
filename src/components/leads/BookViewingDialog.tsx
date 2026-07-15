@@ -52,7 +52,7 @@ export const BookViewingDialog = ({
         event_action: "lp_form_start",
         form_type: "viewing",
         page_path: window.location.pathname || "/",
-        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "").replace(/^\//, "") || undefined,
         cta_tracking_key: ctaTrackingKey,
         cta_type: ctaType,
         cta_source: openSource,

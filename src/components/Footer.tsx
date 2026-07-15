@@ -5,7 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { FaInstagram, FaTiktok, FaLinkedin, FaFacebook, FaWhatsapp } from "react-icons/fa";
 import { useBrandingSettings, useNavigationItems } from "@/hooks/useBranding";
 import logo from "@/assets/urban-hub-logo.webp";
+import ncAccre from "@/assets/nc accre.png";
+import ulAccre from "@/assets/UL accree.png";
+import anukAccre from "@/assets/anuk accre.png";
 import Noise from "@/components/Noise";
+import { cn } from "@/lib/utils";
 
 const platformConfig: Record<string, { icon: React.ReactNode }> = {
   instagram: { icon: <FaInstagram className="h-5 w-5" /> },
@@ -14,6 +18,59 @@ const platformConfig: Record<string, { icon: React.ReactNode }> = {
   facebook: { icon: <FaFacebook className="h-5 w-5" /> },
   whatsapp: { icon: <FaWhatsapp className="h-5 w-5" /> },
 };
+
+const ACCREDITATION_LOGOS = [
+  { src: ncAccre, alt: "Accredited by National Code assured accommodation" },
+  { src: ulAccre, alt: "Accredited by University of Lancashire" },
+  { src: anukAccre, alt: "Accredited by ANUK Accreditation Network UK" },
+] as const;
+
+function AccreditationLogoMarquee() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setIndex((i) => (i + 1) % ACCREDITATION_LOGOS.length);
+    }, 3200);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <>
+      {/* Mobile / tablet: one logo at a time */}
+      <div
+        className="relative mx-auto h-16 w-full max-w-xs overflow-hidden sm:h-[4.5rem] lg:hidden"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {ACCREDITATION_LOGOS.map((item, i) => (
+          <img
+            key={item.alt}
+            src={item.src}
+            alt={i === index ? item.alt : ""}
+            aria-hidden={i !== index}
+            className={cn(
+              "absolute left-1/2 top-1/2 h-14 w-auto max-w-[90%] -translate-x-1/2 -translate-y-1/2 object-contain transition-opacity duration-500 sm:h-16",
+              i === index ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          />
+        ))}
+      </div>
+
+      {/* Desktop: all logos */}
+      <div className="hidden min-w-0 flex-1 flex-wrap items-center justify-end gap-8 lg:flex lg:gap-10">
+        {ACCREDITATION_LOGOS.map((item) => (
+          <img
+            key={item.alt}
+            src={item.src}
+            alt={item.alt}
+            className="h-16 w-auto max-w-[16rem] object-contain"
+          />
+        ))}
+      </div>
+    </>
+  );
+}
 
 const Footer = () => {
   const [socials, setSocials] = useState<Array<{ name: string; url: string; icon: React.ReactNode }>>([]);
@@ -62,10 +119,29 @@ const Footer = () => {
   }, []);
 
   return (
-    <footer style={{ backgroundColor: 'hsl(0 0% 0%)' }} className="relative text-white py-12 md:py-16 overflow-hidden">
+    <>
+      {/* Accreditation strip — above main footer */}
+      <section
+        aria-label="Accreditation"
+        className="relative border-y border-white/25 bg-zinc-950 text-white"
+      >
+        <div className="container relative z-10 mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 md:flex-row md:items-center md:gap-10 md:py-10">
+          <div className="shrink-0 text-center md:text-left">
+            <h2 className="font-display text-2xl font-black uppercase tracking-tight md:text-3xl">
+              Accreditation
+            </h2>
+            <p className="mt-2 max-w-xs text-sm font-medium leading-snug text-white/70 md:mx-0 mx-auto">
+              The gold standard for student housing in the UK.
+            </p>
+          </div>
+          <AccreditationLogoMarquee />
+        </div>
+      </section>
+
+      <footer style={{ backgroundColor: "hsl(0 0% 0%)" }} className="relative overflow-hidden py-12 text-white md:py-16">
       <Noise patternAlpha={15} />
-      <div className="container mx-auto px-4 max-w-7xl relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+      <div className="container relative z-10 mx-auto max-w-7xl px-4">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12 lg:grid-cols-3">
           <div>
             <div className="mb-4">
               <img src={logoUrl} alt={settings?.company_name || "StudentStaySolutions"} className="h-12" />
@@ -133,27 +209,6 @@ const Footer = () => {
               </li>
             </ul>
           </div>
-
-          <div>
-            <h4 className="text-lg font-display font-black mb-4 uppercase">Accreditation</h4>
-            <div>
-              <div className="flex flex-wrap items-center gap-4">
-                <img
-                  src="/anuk-logo.png"
-                  alt="ANUK Accreditation Network UK"
-                  className="h-12 w-auto object-contain brightness-0 invert"
-                />
-                <img
-                  src="/unipol-code-logo.webp"
-                  alt="Unipol National Code"
-                  className="h-10 w-auto object-contain brightness-0 invert"
-                />
-              </div>
-              <p className="mt-3 text-left text-xs font-medium leading-snug text-white/70">
-                The gold standard for student housing in the UK.
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="mt-12 flex flex-col gap-4 border-t border-white/20 pt-8 text-sm text-white/60 md:flex-row md:items-center md:justify-between md:gap-8">
@@ -180,6 +235,7 @@ const Footer = () => {
         </div>
       </div>
     </footer>
+    </>
   );
 };
 

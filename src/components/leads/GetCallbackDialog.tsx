@@ -18,7 +18,13 @@ import { LeadForm } from "./LeadForm";
 import { pushDataLayer } from "@/utils/dataLayer";
 
 /** Source that opened the form (for conversion attribution in GTM/GA). */
-export type LeadFormOpenSource = "nav" | "landing_hero" | "studios_hero" | "landing_grade" | "inline";
+export type LeadFormOpenSource =
+  | "nav"
+  | "landing_hero"
+  | "studios_hero"
+  | "landing_grade"
+  | "international_students"
+  | "inline";
 
 interface GetCallbackDialogProps {
   open: boolean;
@@ -54,7 +60,7 @@ export const GetCallbackDialog = ({
         event_action: "lp_form_start",
         form_type: "callback",
         page_path: window.location.pathname || "/",
-        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "") || undefined,
+        landing_slug: (landingPageSlug || "").replace(/^\/landing\//, "").replace(/^\//, "") || undefined,
         cta_tracking_key: ctaTrackingKey,
         cta_type: ctaType,
         cta_source: openSource,
