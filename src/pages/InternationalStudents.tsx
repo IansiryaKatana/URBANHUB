@@ -544,23 +544,21 @@ const InternationalStudents = () => {
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500 md:text-center">
             Your first 24 hours, mapped out
           </p>
-          <h2 className="mt-3 max-w-3xl font-display text-4xl font-black uppercase leading-none tracking-tight md:mx-auto md:text-center md:text-6xl">
+          <h2 className="mt-3 max-w-3xl font-display text-4xl font-black uppercase leading-none tracking-tight md:mx-auto md:text-center md:text-6xl [font-weight:900]">
             From your front door at home <span className="text-primary">to your first night in Preston</span>
           </h2>
           <p className="mt-4 max-w-2xl text-sm text-muted-foreground md:mx-auto md:text-center md:text-base">
             The scariest part of moving abroad is the unknown. So we&apos;ve mapped the whole journey: exactly what
             happens, and who&apos;s with you at every step.
           </p>
-        </div>
 
-        {arrivalSteps.length > 0 ? (
-          <div className="mt-10 w-full">
-            <ArrivalCoverflow steps={arrivalSteps} />
-          </div>
-        ) : null}
+          {arrivalSteps.length > 0 ? (
+            <div className="mt-10">
+              <ArrivalCoverflow steps={arrivalSteps} />
+            </div>
+          ) : null}
 
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <div className="mt-8 flex flex-col items-start justify-center gap-3 sm:flex-row sm:items-center md:justify-center md:mt-4">
+          <div className="mt-8 flex flex-col items-start justify-center gap-3 sm:flex-row sm:items-center md:justify-center">
             <Button
               size="lg"
               className="rounded-[16px] bg-[#128C7E] px-7 font-bold uppercase tracking-wide text-white hover:bg-[#0E7368]"

@@ -313,13 +313,18 @@ function ArrivalStepForm({
 
       <div className="space-y-2">
         <Label htmlFor="arrival-title">Title</Label>
-        <Input
+        <Textarea
           id="arrival-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="We pick you up from the airport."
+          placeholder={"Meet people from\n52+ different countries"}
+          rows={3}
           required
+          className="font-medium uppercase"
         />
+        <p className="text-xs text-muted-foreground">
+          Press Enter to force a line break on the card. Leave as one line to auto-break longer titles.
+        </p>
       </div>
 
       <div className="space-y-2">
