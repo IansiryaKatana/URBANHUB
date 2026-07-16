@@ -55,6 +55,13 @@ import { BookViewingDialog } from "@/components/leads/BookViewingDialog";
 import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
 import { ReferFriendDialog } from "@/components/leads/ReferFriendDialog";
 import { CreatorFormDialog } from "@/components/leads/CreatorFormDialog";
+import { SecureBookingDialog } from "@/components/leads/SecureBookingDialog";
+import {
+  LandingHeroCtaButtons,
+  getLandingHeroLayoutClasses,
+} from "@/components/landing/LandingHeroCtaButtons";
+import type { LandingHeroAlignment, LandingHeroCtaType } from "@/lib/landingHeroCta";
+import { fetchLandingHeroSlides } from "@/lib/fetchLandingHeroSlides";
 import { portalStudiosUrl } from "@/config";
 
 // Import amenity images
@@ -91,11 +98,17 @@ type HomepageLandingHeroSlideRow = {
   title: string;
   subtitle: string | null;
   subtitle_link_url: string | null;
+  content_alignment: LandingHeroAlignment | null;
   desktop_image_url: string | null;
   mobile_image_url: string | null;
   cta_label: string | null;
-  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | null;
+  cta_type: LandingHeroCtaType | null;
+  cta_url: string | null;
   cta_tracking_key: string | null;
+  cta2_label: string | null;
+  cta2_type: LandingHeroCtaType | null;
+  cta2_url: string | null;
+  cta2_tracking_key: string | null;
   homepage_order: number | null;
   h1_image_url: string | null;
   h1_image_alt: string | null;
@@ -110,9 +123,15 @@ type HomepageHeroSlide = {
   title?: string | null;
   subtitle?: string | null;
   subtitleLinkUrl?: string | null;
+  contentAlignment?: LandingHeroAlignment;
   ctaLabel?: string | null;
-  ctaType?: "viewing" | "callback" | "refer_friend" | "content_creator" | null;
+  ctaType?: LandingHeroCtaType | null;
+  ctaUrl?: string | null;
   ctaTrackingKey?: string | null;
+  cta2Label?: string | null;
+  cta2Type?: LandingHeroCtaType | null;
+  cta2Url?: string | null;
+  cta2TrackingKey?: string | null;
   h1ImageUrl?: string | null;
   h1ImageAlt?: string | null;
   h1ImageScale?: number | null;
@@ -478,6 +497,7 @@ const StudiosHome = () => {
   const [callbackDialogOpen, setCallbackDialogOpen] = useState(false);
   const [referFriendDialogOpen, setReferFriendDialogOpen] = useState(false);
   const [creatorDialogOpen, setCreatorDialogOpen] = useState(false);
+  const [secureBookingDialogOpen, setSecureBookingDialogOpen] = useState(false);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
   const [contractLength, setContractLength] = useState<"45" | "51">("45");
   const { data: brandingSettings } = useBrandingSettings();
@@ -774,14 +794,17 @@ const StudiosHome = () => {
     let mounted = true;
 
     const loadHomepageLandingHeroSlides = async () => {
-      const { data, error } = await supabase
-        .from("website_landing_hero_slides")
-        .select(
+      const { data, error } = await fetchLandingHeroSlides({
+        select:
+          "id, title, subtitle, subtitle_link_url, content_alignment, desktop_image_url, mobile_image_url, cta_label, cta_type, cta_url, cta_tracking_key, cta2_label, cta2_type, cta2_url, cta2_tracking_key, homepage_order, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, show_on_homepage, is_active",
+        legacySelect:
           "id, title, subtitle, subtitle_link_url, desktop_image_url, mobile_image_url, cta_label, cta_type, cta_tracking_key, homepage_order, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, show_on_homepage, is_active",
-        )
-        .eq("show_on_homepage", true)
-        .eq("is_active", true)
-        .order("homepage_order", { ascending: true });
+        applyFilters: (query) =>
+          query
+            .eq("show_on_homepage", true)
+            .eq("is_active", true)
+            .order("homepage_order", { ascending: true }),
+      });
 
       if (error) {
         console.error("Unable to load homepage landing hero slides:", error);
@@ -790,7 +813,7 @@ const StudiosHome = () => {
 
       if (!mounted) return;
 
-      const rows = (data || []) as HomepageLandingHeroSlideRow[];
+      const rows = data as HomepageLandingHeroSlideRow[];
       const mapped: HomepageHeroSlide[] =
         rows
           .map((row) => {
@@ -802,9 +825,15 @@ const StudiosHome = () => {
               title: row.title,
               subtitle: row.subtitle,
               subtitleLinkUrl: row.subtitle_link_url,
+              contentAlignment: row.content_alignment === "left" ? "left" : "center",
               ctaLabel: row.cta_label,
               ctaType: row.cta_type,
+              ctaUrl: row.cta_url ?? null,
               ctaTrackingKey: row.cta_tracking_key,
+              cta2Label: row.cta2_label ?? null,
+              cta2Type: row.cta2_type ?? null,
+              cta2Url: row.cta2_url ?? null,
+              cta2TrackingKey: row.cta2_tracking_key ?? null,
               h1ImageUrl: row.h1_image_url,
               h1ImageAlt: row.h1_image_alt,
               h1ImageScale: row.h1_image_scale,
@@ -953,10 +982,12 @@ const StudiosHome = () => {
                   slide.desktopImageUrl ||
                   slide.mobileImageUrl ||
                   "";
+                const alignment = slide.contentAlignment === "left" ? "left" : "center";
+                const layout = getLandingHeroLayoutClasses(alignment);
                 return (
                   <CarouselItem key={slide.id} className="pl-0 h-full flex-[0_0_100%]">
                     <div
-                      className="relative flex items-start md:items-center justify-center h-full pt-28 md:pt-0"
+                      className={layout.shell}
                       style={{
                         height: "100%",
                         backgroundImage: bg
@@ -966,8 +997,8 @@ const StudiosHome = () => {
                         backgroundPosition: "center",
                       }}
                     >
-                      <div className="container mx-auto px-4 text-white py-10 md:py-24 h-full overflow-y-auto min-h-0 flex flex-col items-center justify-start md:justify-center">
-                        <div className="max-w-3xl text-center space-y-6">
+                      <div className={layout.container}>
+                        <div className={layout.content}>
                           <AnimatedText delay={0.1}>
                             <p className="text-[11px] uppercase tracking-[0.5em] text-white/70 font-normal">
                               URBAN HUB STUDENT
@@ -983,7 +1014,7 @@ const StudiosHome = () => {
                             <span className={slide.h1ImageUrl ? "sr-only" : ""}>{slide.title}</span>
                           </AnimatedHeading>
                           {slide.h1ImageUrl && (
-                            <div className="flex justify-center">
+                            <div className={layout.h1Wrap}>
                               <img
                                 src={slide.h1ImageUrl}
                                 alt={slide.h1ImageAlt || slide.title || undefined}
@@ -994,16 +1025,13 @@ const StudiosHome = () => {
                                       ? slide.h1ImageScaleMobile ?? slide.h1ImageScale ?? 1
                                       : slide.h1ImageScale ?? 1
                                   })`,
-                                  transformOrigin: "center",
+                                  transformOrigin: layout.transformOrigin,
                                 }}
                               />
                             </div>
                           )}
                           {slide.subtitle && (
-                            <AnimatedParagraph
-                              delay={0.3}
-                              className="text-sm md:text-lg text-white/80 max-w-2xl mx-auto"
-                            >
+                            <AnimatedParagraph delay={0.3} className={layout.subtitle}>
                               {slide.subtitleLinkUrl ? (
                                 <a
                                   href={slide.subtitleLinkUrl}
@@ -1016,32 +1044,29 @@ const StudiosHome = () => {
                               )}
                             </AnimatedParagraph>
                           )}
-                          <AnimatedText delay={0.4}>
-                            <Button
-                              onClick={() => {
-                                if (slide.ctaType === "callback") {
-                                  setCallbackDialogOpen(true);
-                                } else if (slide.ctaType === "refer_friend") {
-                                  setReferFriendDialogOpen(true);
-                                } else if (slide.ctaType === "content_creator") {
-                                  setCreatorDialogOpen(true);
-                                } else {
-                                  setViewingDialogOpen(true);
-                                }
-                              }}
-                              className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
-                              data-analytics={slide.ctaTrackingKey || "homepage-landing-hero-cta"}
-                            >
-                              {slide.ctaLabel ||
-                                (slide.ctaType === "callback"
-                                  ? "Get a callback"
-                                  : slide.ctaType === "refer_friend"
-                                    ? "Refer a friend"
-                                    : slide.ctaType === "content_creator"
-                                      ? "Apply as content creator"
-                                      : "Book a viewing")}
-                            </Button>
-                          </AnimatedText>
+                          <LandingHeroCtaButtons
+                            alignment={alignment}
+                            primary={{
+                              label: slide.ctaLabel ?? null,
+                              type: slide.ctaType || "viewing",
+                              url: slide.ctaUrl,
+                              trackingKey: slide.ctaTrackingKey,
+                            }}
+                            secondary={{
+                              label: slide.cta2Label ?? null,
+                              type: slide.cta2Type ?? null,
+                              url: slide.cta2Url,
+                              trackingKey: slide.cta2TrackingKey,
+                            }}
+                            analyticsFallback="homepage-landing-hero-cta"
+                            onAction={({ type }) => {
+                              if (type === "callback") setCallbackDialogOpen(true);
+                              else if (type === "refer_friend") setReferFriendDialogOpen(true);
+                              else if (type === "content_creator") setCreatorDialogOpen(true);
+                              else if (type === "secure_booking") setSecureBookingDialogOpen(true);
+                              else if (type !== "custom_link") setViewingDialogOpen(true);
+                            }}
+                          />
                         </div>
                       </div>
 
@@ -1547,6 +1572,12 @@ const StudiosHome = () => {
         open={creatorDialogOpen}
         onOpenChange={setCreatorDialogOpen}
         landingPageSlug="/studios"
+      />
+      <SecureBookingDialog
+        open={secureBookingDialogOpen}
+        onOpenChange={setSecureBookingDialogOpen}
+        landingPageSlug="/studios"
+        ctaSource="homepage_landing_hero"
       />
     </div>
   );

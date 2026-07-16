@@ -29,6 +29,12 @@ import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
 import { CreatorFormDialog } from "@/components/leads/CreatorFormDialog";
 import { ReferFriendDialog } from "@/components/leads/ReferFriendDialog";
 import { SecureBookingDialog } from "@/components/leads/SecureBookingDialog";
+import {
+  LandingHeroCtaButtons,
+  getLandingHeroLayoutClasses,
+} from "@/components/landing/LandingHeroCtaButtons";
+import type { LandingHeroAlignment, LandingHeroCtaType } from "@/lib/landingHeroCta";
+import { fetchLandingHeroSlides } from "@/lib/fetchLandingHeroSlides";
 import { useAllStudioAvailability, getAvailabilityTag, isFullyBooked } from "@/hooks/useStudioAvailability";
 import { portalStudiosUrl } from "@/config";
 import type { Database } from "@/integrations/supabase/types";
@@ -44,7 +50,7 @@ type LandingPageRecord = {
   hero_heading: string | null;
   hero_subheading: string | null;
   default_cta_label: string | null;
-  default_cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking";
+  default_cta_type: Exclude<LandingHeroCtaType, "custom_link">;
   default_cta_tracking_key: string | null;
   room_grades_heading: string | null;
   room_grades_description: string | null;
@@ -63,9 +69,15 @@ type HeroSlideRecord = {
   title: string;
   subtitle: string | null;
   subtitle_link_url: string | null;
+  content_alignment: LandingHeroAlignment | null;
   cta_label: string | null;
-  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking";
+  cta_type: LandingHeroCtaType;
+  cta_url: string | null;
   cta_tracking_key: string | null;
+  cta2_label: string | null;
+  cta2_type: LandingHeroCtaType | null;
+  cta2_url: string | null;
+  cta2_tracking_key: string | null;
   desktop_image_url: string | null;
   desktop_image_alt: string | null;
   mobile_image_url: string | null;
@@ -307,14 +319,17 @@ const LandingPage = () => {
           : [],
       });
 
-      const { data: slideRows, error: slidesError } = await supabase
-        .from("website_landing_hero_slides")
-        .select(
+      const { data: slideRows, error: slidesError } = await fetchLandingHeroSlides({
+        select:
+          "id, title, subtitle, subtitle_link_url, content_alignment, cta_label, cta_type, cta_url, cta_tracking_key, cta2_label, cta2_type, cta2_url, cta2_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order",
+        legacySelect:
           "id, title, subtitle, subtitle_link_url, cta_label, cta_type, cta_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order",
-        )
-        .eq("landing_page_id", data.id)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
+        applyFilters: (query) =>
+          query
+            .eq("landing_page_id", data.id)
+            .eq("is_active", true)
+            .order("sort_order", { ascending: true }),
+      });
       if (!slidesError && slideRows) {
         setSlides(slideRows as HeroSlideRecord[]);
       } else {
@@ -449,15 +464,26 @@ const LandingPage = () => {
           id: landing.id,
           title: landing.hero_heading || landing.name,
           subtitle: landing.hero_subheading,
+          subtitle_link_url: null,
+          content_alignment: "center",
           cta_label:
             landing.default_cta_label ||
             (landing.default_cta_type === "callback" ? "Get a callback" : "Book a viewing"),
           cta_type: landing.default_cta_type,
+          cta_url: null,
           cta_tracking_key: landing.default_cta_tracking_key,
+          cta2_label: null,
+          cta2_type: null,
+          cta2_url: null,
+          cta2_tracking_key: null,
           desktop_image_url: null,
           desktop_image_alt: null,
           mobile_image_url: null,
           mobile_image_alt: null,
+          h1_image_url: null,
+          h1_image_alt: null,
+          h1_image_scale: null,
+          h1_image_scale_mobile: null,
           sort_order: 0,
         } as HeroSlideRecord,
       ];
@@ -466,9 +492,10 @@ const LandingPage = () => {
   }, [slides, landing]);
 
   const handleHeroCta = (
-    ctaType: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking",
+    ctaType: LandingHeroCtaType,
     trackingKey?: string | null,
   ) => {
+    if (ctaType === "custom_link") return;
     setCtaTrackingContext({
       key: trackingKey || landing.default_cta_tracking_key || "landing-hero-cta",
       ctaType,
@@ -601,10 +628,12 @@ const LandingPage = () => {
                 slide.desktop_image_url ||
                 slide.mobile_image_url ||
                 "";
+              const alignment = slide.content_alignment === "left" ? "left" : "center";
+              const layout = getLandingHeroLayoutClasses(alignment);
               return (
                 <CarouselItem key={slide.id} className="pl-0 h-full flex-[0_0_100%]">
                   <div
-                    className="relative flex items-start md:items-center justify-center h-full pt-28 md:pt-0"
+                    className={layout.shell}
                     style={{
                       height: "100%",
                       backgroundImage: bg
@@ -614,8 +643,8 @@ const LandingPage = () => {
                       backgroundPosition: "center",
                     }}
                   >
-                    <div className="container mx-auto px-4 text-white py-10 md:py-24 h-full overflow-y-auto min-h-0 flex flex-col items-center justify-start md:justify-center">
-                      <div className="max-w-3xl text-center space-y-6">
+                    <div className={layout.container}>
+                      <div className={layout.content}>
                         <AnimatedText delay={0.1}>
                           <p className="text-[11px] uppercase tracking-[0.5em] text-white/70 font-normal">
                             URBAN HUB STUDENT
@@ -635,7 +664,7 @@ const LandingPage = () => {
                           </span>
                         </AnimatedHeading>
                         {slide.h1_image_url && (
-                          <div className="flex justify-center">
+                          <div className={layout.h1Wrap}>
                             <img
                               src={slide.h1_image_url}
                               alt={slide.h1_image_alt || slide.title}
@@ -646,16 +675,13 @@ const LandingPage = () => {
                                     ? slide.h1_image_scale_mobile ?? slide.h1_image_scale ?? 1
                                     : slide.h1_image_scale ?? 1
                                 })`,
-                                transformOrigin: "center",
+                                transformOrigin: layout.transformOrigin,
                               }}
                             />
                           </div>
                         )}
                         {slide.subtitle && (
-                          <AnimatedParagraph
-                            delay={0.3}
-                            className="text-sm md:text-lg text-white/80 max-w-2xl mx-auto"
-                          >
+                          <AnimatedParagraph delay={0.3} className={layout.subtitle}>
                             {slide.subtitle_link_url ? (
                               <a
                                 href={slide.subtitle_link_url}
@@ -668,30 +694,29 @@ const LandingPage = () => {
                             )}
                           </AnimatedParagraph>
                         )}
-                        <AnimatedText delay={0.4}>
-                          <Button
-                            onClick={() =>
-                              handleHeroCta(
-                                slide.cta_type || landing.default_cta_type,
-                                slide.cta_tracking_key || landing.default_cta_tracking_key,
-                              )
-                            }
-                            className="rounded-full bg-[#ff2020] hover:bg-[#ff4040] px-8 py-3 text-sm font-semibold uppercase tracking-[0.35em]"
-                            data-analytics={slide.cta_tracking_key || landing.default_cta_tracking_key || "landing-hero-cta"}
-                          >
-                            {slide.cta_label ||
-                              landing.default_cta_label ||
-                              (slide.cta_type === "callback"
-                                ? "Get a callback"
-                                : slide.cta_type === "refer_friend"
-                                ? "Refer a friend"
-                                : slide.cta_type === "content_creator"
-                                ? "Apply as content creator"
-                                : slide.cta_type === "secure_booking"
-                                ? "Secure your booking"
-                                : "Book a viewing")}
-                          </Button>
-                        </AnimatedText>
+                        <LandingHeroCtaButtons
+                          alignment={alignment}
+                          primary={{
+                            label: slide.cta_label,
+                            type: slide.cta_type || landing.default_cta_type,
+                            url: slide.cta_url,
+                            trackingKey: slide.cta_tracking_key || landing.default_cta_tracking_key,
+                          }}
+                          secondary={{
+                            label: slide.cta2_label,
+                            type: slide.cta2_type,
+                            url: slide.cta2_url,
+                            trackingKey: slide.cta2_tracking_key,
+                          }}
+                          analyticsFallback={
+                            slide.cta_tracking_key ||
+                            landing.default_cta_tracking_key ||
+                            "landing-hero-cta"
+                          }
+                          onAction={({ type, trackingKey }) =>
+                            handleHeroCta(type, trackingKey)
+                          }
+                        />
                       </div>
                     </div>
                     <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center px-4">

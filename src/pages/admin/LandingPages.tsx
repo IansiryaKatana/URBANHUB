@@ -40,12 +40,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminListPagination } from "@/components/admin/AdminRecordList";
 import { ImageUpload } from "@/components/admin/ImageUpload";
 import { fetchAllSupabaseRows } from "@/utils/fetchAllSupabaseRows";
-import { Loader2, Pencil, Plus, Trash2, Copy, Eye, Search } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2, Copy, Eye, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import {
+  getLandingHeroCtaLabel,
+  LANDING_HERO_CTA_OPTIONS,
+  type LandingHeroAlignment,
+  type LandingHeroCtaType,
+} from "@/lib/landingHeroCta";
+import { fetchLandingHeroSlides } from "@/lib/fetchLandingHeroSlides";
 
 const PAGES_PER_PAGE = 10;
 
@@ -54,6 +61,7 @@ type LandingPageRow = {
   name: string;
   slug: string;
   is_active: boolean;
+  sort_order: number;
   hero_heading: string | null;
   hero_subheading: string | null;
   default_cta_label: string | null;
@@ -89,9 +97,15 @@ type HeroSlideRow = {
   title: string;
   subtitle: string | null;
   subtitle_link_url: string | null;
+  content_alignment: LandingHeroAlignment;
   cta_label: string | null;
-  cta_type: "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking";
+  cta_type: LandingHeroCtaType;
+  cta_url: string | null;
   cta_tracking_key: string | null;
+  cta2_label: string | null;
+  cta2_type: LandingHeroCtaType | null;
+  cta2_url: string | null;
+  cta2_tracking_key: string | null;
   desktop_image_url: string | null;
   desktop_image_alt: string | null;
   mobile_image_url: string | null;
@@ -118,6 +132,7 @@ export default function LandingPages() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [ctaFilter, setCtaFilter] = useState<"all" | LandingPageRow["default_cta_type"]>("all");
+  const [mainTab, setMainTab] = useState<"pages" | "homepage">("pages");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -143,8 +158,9 @@ export default function LandingPages() {
         supabase
           .from("website_landing_pages")
           .select(
-            "id, name, slug, is_active, hero_heading, hero_subheading, default_cta_label, default_cta_type, default_cta_tracking_key, room_grades_heading, room_grades_description, info_stack_items, faq_items, meta_pixel_id, tiktok_pixel_id, snapchat_pixel_id, google_ads_conversion_id, google_ads_conversion_label_lead, google_ads_conversion_label_purchase",
+            "id, name, slug, is_active, sort_order, hero_heading, hero_subheading, default_cta_label, default_cta_type, default_cta_tracking_key, room_grades_heading, room_grades_description, info_stack_items, faq_items, meta_pixel_id, tiktok_pixel_id, snapchat_pixel_id, google_ads_conversion_id, google_ads_conversion_label_lead, google_ads_conversion_label_purchase",
           )
+          .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false })
           .range(from, to)
       ),
@@ -235,6 +251,7 @@ export default function LandingPages() {
         name: `${page.name} (Copy)`,
         slug: newSlug,
         is_active: false,
+        sort_order: (pages?.length ?? 0),
         hero_heading: page.hero_heading,
         hero_subheading: page.hero_subheading,
         default_cta_label: page.default_cta_label,
@@ -262,7 +279,7 @@ export default function LandingPages() {
       const { data: slides, error: slidesError } = await supabase
         .from("website_landing_hero_slides")
         .select(
-          "title, subtitle, subtitle_link_url, cta_label, cta_type, cta_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order, is_active, show_on_homepage, homepage_order",
+          "title, subtitle, subtitle_link_url, content_alignment, cta_label, cta_type, cta_url, cta_tracking_key, cta2_label, cta2_type, cta2_url, cta2_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order, is_active, show_on_homepage, homepage_order",
         )
         .eq("landing_page_id", page.id);
       if (slidesError) throw slidesError;
@@ -336,14 +353,31 @@ export default function LandingPages() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Landing Pages</h1>
-        <Button onClick={() => setCreateOpen(true)} className="w-fit">
-          <Plus className="h-4 w-4 mr-2" />
-          Add landing page
-        </Button>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Landing Pages</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage campaign pages and the homepage hero carousel order.
+          </p>
+        </div>
+        {mainTab === "pages" ? (
+          <Button onClick={() => setCreateOpen(true)} className="w-fit">
+            <Plus className="h-4 w-4 mr-2" />
+            Add landing page
+          </Button>
+        ) : null}
       </div>
 
-      <div className="space-y-4">
+      <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "pages" | "homepage")}>
+        <TabsList>
+          <TabsTrigger value="pages">Landing pages</TabsTrigger>
+          <TabsTrigger value="homepage">Homepage hero order</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="homepage" className="mt-4">
+          <HomepageHeroOrderPanel onEditLandingPage={(id) => setEditingId(id)} />
+        </TabsContent>
+
+        <TabsContent value="pages" className="mt-4 space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full max-w-md flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -472,6 +506,7 @@ export default function LandingPages() {
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
+                      <TableHead className="h-9 w-14 px-3 text-xs">Order</TableHead>
                       <TableHead className="h-9 px-3 text-xs">Name</TableHead>
                       <TableHead className="h-9 px-3 text-xs">Slug</TableHead>
                       <TableHead className="h-9 px-3 text-xs">Default CTA</TableHead>
@@ -488,6 +523,9 @@ export default function LandingPages() {
                             checked={selectedIds.has(page.id)}
                             onCheckedChange={() => toggleSelect(page.id)}
                           />
+                        </TableCell>
+                        <TableCell className="px-3 py-1.5 text-sm text-muted-foreground">
+                          {page.sort_order}
                         </TableCell>
                         <TableCell className="max-w-[220px] truncate px-3 py-1.5 text-sm font-medium">
                           {page.name}
@@ -564,7 +602,8 @@ export default function LandingPages() {
               />
             </>
           )}
-      </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Edit sheet */}
       <Sheet open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
@@ -600,6 +639,7 @@ export default function LandingPages() {
             onSubmit={(payload) =>
               createMutation.mutate({
                 ...payload,
+                sort_order: payload.sort_order ?? pages?.length ?? 0,
                 is_active: false,
               } as Omit<LandingPageRow, "id">)
             }
@@ -680,6 +720,7 @@ function LandingPageForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [isActive, setIsActive] = useState(initial?.is_active ?? true);
+  const [sortOrder, setSortOrder] = useState(initial?.sort_order ?? 0);
   const [heroHeading, setHeroHeading] = useState(initial?.hero_heading ?? "");
   const [heroSubheading, setHeroSubheading] = useState(initial?.hero_subheading ?? "");
   const [defaultCtaLabel, setDefaultCtaLabel] = useState(initial?.default_cta_label ?? "");
@@ -753,6 +794,7 @@ function LandingPageForm({
       name: name.trim(),
       slug: cleanSlug,
       is_active: isActive,
+      sort_order: Number(sortOrder) || 0,
       hero_heading: heroHeading.trim() || null,
       hero_subheading: heroSubheading.trim() || null,
       default_cta_label: defaultCtaLabel.trim() || null,
@@ -799,9 +841,21 @@ function LandingPageForm({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Switch id="landing-active" checked={isActive} onCheckedChange={setIsActive} />
-        <Label htmlFor="landing-active">Active (publicly accessible)</Label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex items-center gap-2">
+          <Switch id="landing-active" checked={isActive} onCheckedChange={setIsActive} />
+          <Label htmlFor="landing-active">Active (publicly accessible)</Label>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="landing-sort-order">Sort order</Label>
+          <Input
+            id="landing-sort-order"
+            type="number"
+            min={0}
+            value={sortOrder}
+            onChange={(e) => setSortOrder(Number(e.target.value) || 0)}
+          />
+        </div>
       </div>
 
       <div className="border-t pt-4 space-y-4">
@@ -1058,6 +1112,282 @@ function LandingPageForm({
   );
 }
 
+type HomepageHeroSlideAdmin = {
+  id: string;
+  landing_page_id: string;
+  title: string;
+  subtitle: string | null;
+  cta_label: string | null;
+  cta_type: LandingHeroCtaType | null;
+  desktop_image_url: string | null;
+  mobile_image_url: string | null;
+  homepage_order: number | null;
+  content_alignment?: LandingHeroAlignment | null;
+  page_name?: string;
+  page_slug?: string;
+};
+
+function HomepageHeroOrderPanel({
+  onEditLandingPage,
+}: {
+  onEditLandingPage: (landingPageId: string) => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const { data: slides, isLoading } = useQuery({
+    queryKey: ["admin-homepage-hero-slides"],
+    queryFn: async () => {
+      const { data, error } = await fetchLandingHeroSlides({
+        select:
+          "id, landing_page_id, title, subtitle, cta_label, cta_type, desktop_image_url, mobile_image_url, homepage_order, content_alignment, show_on_homepage, is_active",
+        legacySelect:
+          "id, landing_page_id, title, subtitle, cta_label, cta_type, desktop_image_url, mobile_image_url, homepage_order, show_on_homepage, is_active",
+        applyFilters: (query) =>
+          query
+            .eq("show_on_homepage", true)
+            .eq("is_active", true)
+            .order("homepage_order", { ascending: true }),
+      });
+      if (error) throw error;
+
+      const pageIds = Array.from(
+        new Set(data.map((s) => s.landing_page_id).filter(Boolean) as string[]),
+      );
+      let pageMap = new Map<string, { name: string; slug: string }>();
+      if (pageIds.length) {
+        const { data: pages, error: pagesError } = await supabase
+          .from("website_landing_pages")
+          .select("id, name, slug")
+          .in("id", pageIds);
+        if (pagesError) throw pagesError;
+        pageMap = new Map((pages || []).map((p) => [p.id, { name: p.name, slug: p.slug }]));
+      }
+
+      return data
+        .map((slide) => {
+          const page = slide.landing_page_id ? pageMap.get(slide.landing_page_id) : undefined;
+          return {
+            id: slide.id,
+            landing_page_id: slide.landing_page_id || "",
+            title: slide.title,
+            subtitle: slide.subtitle,
+            cta_label: slide.cta_label,
+            cta_type: slide.cta_type,
+            desktop_image_url: slide.desktop_image_url,
+            mobile_image_url: slide.mobile_image_url,
+            homepage_order: slide.homepage_order ?? null,
+            content_alignment: slide.content_alignment ?? "center",
+            page_name: page?.name,
+            page_slug: page?.slug,
+          } as HomepageHeroSlideAdmin;
+        })
+        .sort((a, b) => (a.homepage_order ?? 9999) - (b.homepage_order ?? 9999));
+    },
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      const updates = orderedIds.map((id, index) =>
+        supabase
+          .from("website_landing_hero_slides")
+          .update({ homepage_order: index + 1, show_on_homepage: true })
+          .eq("id", id),
+      );
+      const results = await Promise.all(updates);
+      const firstError = results.find((r) => r.error)?.error;
+      if (firstError) throw firstError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-homepage-hero-slides"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-website-landing-hero-slides"] });
+      toast.success("Homepage hero order updated.");
+    },
+    onError: () => toast.error("Failed to update homepage hero order."),
+  });
+
+  const removeFromHomepageMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const remainingIds = (slides || []).filter((s) => s.id !== id).map((s) => s.id);
+      const { error } = await supabase
+        .from("website_landing_hero_slides")
+        .update({ show_on_homepage: false, homepage_order: null })
+        .eq("id", id);
+      if (error) throw error;
+      if (remainingIds.length) {
+        const updates = remainingIds.map((slideId, index) =>
+          supabase
+            .from("website_landing_hero_slides")
+            .update({ homepage_order: index + 1 })
+            .eq("id", slideId),
+        );
+        const results = await Promise.all(updates);
+        const firstError = results.find((r) => r.error)?.error;
+        if (firstError) throw firstError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-homepage-hero-slides"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-website-landing-hero-slides"] });
+      toast.success("Slide removed from homepage hero.");
+    },
+    onError: () => toast.error("Failed to remove slide from homepage."),
+  });
+
+  const move = (index: number, direction: -1 | 1) => {
+    if (!slides?.length) return;
+    const target = index + direction;
+    if (target < 0 || target >= slides.length) return;
+    const next = [...slides];
+    const tmp = next[index];
+    next[index] = next[target];
+    next[target] = tmp;
+    reorderMutation.mutate(next.map((s) => s.id));
+  };
+
+  const renumberAll = () => {
+    if (!slides?.length) return;
+    reorderMutation.mutate(slides.map((s) => s.id));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Homepage hero slides</h2>
+          <p className="text-sm text-muted-foreground">
+            These are the active slides currently shown on the homepage carousel. Use the arrows to
+            set 1st, 2nd, 3rd…
+          </p>
+        </div>
+        {slides && slides.length > 0 ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={renumberAll}
+            disabled={reorderMutation.isPending}
+          >
+            {reorderMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Normalize order (1…{slides.length})
+          </Button>
+        ) : null}
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : !slides?.length ? (
+        <div className="rounded-lg border border-dashed px-6 py-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            No homepage hero slides yet. Open a landing page, edit a hero slide, and turn on
+            “Also show on homepage hero”.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {slides.map((slide, index) => {
+            const thumb = slide.desktop_image_url || slide.mobile_image_url;
+            return (
+              <div
+                key={slide.id}
+                className="flex items-center gap-3 rounded-xl border bg-background px-3 py-2.5 shadow-sm"
+              >
+                <div className="flex w-12 flex-col items-center gap-0.5">
+                  <span className="font-display text-xl font-black leading-none text-foreground">
+                    {index + 1}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {slide.homepage_order != null ? `#${slide.homepage_order}` : "—"}
+                  </span>
+                </div>
+
+                <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+                  {thumb ? (
+                    <img src={thumb} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[10px] uppercase text-muted-foreground">
+                      No img
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="truncate text-sm font-semibold">{slide.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {slide.page_name || "Unknown landing page"}
+                    {slide.page_slug ? (
+                      <code className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[10px]">
+                        /landing/{slide.page_slug}
+                      </code>
+                    ) : null}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {getLandingHeroCtaLabel(slide.cta_type, slide.cta_label)}
+                    {slide.content_alignment
+                      ? ` · ${slide.content_alignment === "left" ? "Left" : "Center"}`
+                      : ""}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 flex-col gap-0.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={index === 0 || reorderMutation.isPending}
+                    onClick={() => move(index, -1)}
+                    aria-label="Move up"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={index === slides.length - 1 || reorderMutation.isPending}
+                    onClick={() => move(index, 1)}
+                    aria-label="Move down"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-0.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onEditLandingPage(slide.landing_page_id)}
+                    aria-label="Edit landing page"
+                    disabled={!slide.landing_page_id}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => removeFromHomepageMutation.mutate(slide.id)}
+                    disabled={removeFromHomepageMutation.isPending}
+                    aria-label="Remove from homepage"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HeroSlidesManager({ landingPageId }: { landingPageId: string }) {
   const queryClient = useQueryClient();
   const [editingSlideId, setEditingSlideId] = useState<string | null>(null);
@@ -1066,15 +1396,30 @@ function HeroSlidesManager({ landingPageId }: { landingPageId: string }) {
   const { data: slides, isLoading } = useQuery({
     queryKey: ["admin-website-landing-hero-slides", landingPageId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("website_landing_hero_slides")
-        .select(
+      const { data, error } = await fetchLandingHeroSlides({
+        select:
+          "id, landing_page_id, title, subtitle, subtitle_link_url, content_alignment, cta_label, cta_type, cta_url, cta_tracking_key, cta2_label, cta2_type, cta2_url, cta2_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order, is_active, show_on_homepage, homepage_order",
+        legacySelect:
           "id, landing_page_id, title, subtitle, subtitle_link_url, cta_label, cta_type, cta_tracking_key, desktop_image_url, desktop_image_alt, mobile_image_url, mobile_image_alt, h1_image_url, h1_image_alt, h1_image_scale, h1_image_scale_mobile, sort_order, is_active, show_on_homepage, homepage_order",
-        )
-        .eq("landing_page_id", landingPageId)
-        .order("sort_order", { ascending: true });
+        applyFilters: (query) =>
+          query.eq("landing_page_id", landingPageId).order("sort_order", { ascending: true }),
+      });
       if (error) throw error;
-      return (data || []) as HeroSlideRow[];
+      return data.map((slide) => ({
+        ...slide,
+        content_alignment: slide.content_alignment === "left" ? "left" : "center",
+        cta_type: (slide.cta_type || "viewing") as LandingHeroCtaType,
+        cta_url: slide.cta_url ?? null,
+        cta2_label: slide.cta2_label ?? null,
+        cta2_type: (slide.cta2_type ?? null) as LandingHeroCtaType | null,
+        cta2_url: slide.cta2_url ?? null,
+        cta2_tracking_key: slide.cta2_tracking_key ?? null,
+        landing_page_id: slide.landing_page_id || landingPageId,
+        is_active: slide.is_active ?? true,
+        show_on_homepage: slide.show_on_homepage ?? false,
+        homepage_order: slide.homepage_order ?? null,
+        sort_order: slide.sort_order ?? 0,
+      })) as HeroSlideRow[];
     },
   });
 
@@ -1085,10 +1430,19 @@ function HeroSlidesManager({ landingPageId }: { landingPageId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-hero-slides", landingPageId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-homepage-hero-slides"] });
       toast.success("Hero slide updated.");
       setEditingSlideId(null);
     },
-    onError: () => toast.error("Failed to update hero slide."),
+    onError: (err: { message?: string; code?: string }) => {
+      if (err?.code === "42703" || err?.message?.includes("does not exist")) {
+        toast.error(
+          "Database migration required. Run 041_landing_hero_slide_layout_and_secondary_cta.sql in Supabase.",
+        );
+        return;
+      }
+      toast.error("Failed to update hero slide.");
+    },
   });
 
   const createMutation = useMutation({
@@ -1100,10 +1454,19 @@ function HeroSlidesManager({ landingPageId }: { landingPageId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-hero-slides", landingPageId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-homepage-hero-slides"] });
       toast.success("Hero slide created.");
       setCreateOpen(false);
     },
-    onError: () => toast.error("Failed to create hero slide."),
+    onError: (err: { message?: string; code?: string }) => {
+      if (err?.code === "42703" || err?.message?.includes("does not exist")) {
+        toast.error(
+          "Database migration required. Run 041_landing_hero_slide_layout_and_secondary_cta.sql in Supabase.",
+        );
+        return;
+      }
+      toast.error("Failed to create hero slide.");
+    },
   });
 
   const deleteMutation = useMutation({
@@ -1113,6 +1476,7 @@ function HeroSlidesManager({ landingPageId }: { landingPageId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-hero-slides", landingPageId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-homepage-hero-slides"] });
       toast.success("Hero slide deleted.");
       setEditingSlideId(null);
     },
@@ -1148,7 +1512,11 @@ function HeroSlidesManager({ landingPageId }: { landingPageId: string }) {
               <div className="min-w-0 space-y-1">
                 <p className="text-sm font-medium truncate">{slide.title}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {slide.cta_label || (slide.cta_type === "callback" ? "Get a callback" : "Book a viewing")}
+                  {getLandingHeroCtaLabel(slide.cta_type, slide.cta_label)}
+                  {slide.cta2_label?.trim() && slide.cta2_type
+                    ? ` · ${getLandingHeroCtaLabel(slide.cta2_type, slide.cta2_label)}`
+                    : ""}
+                  {` · ${slide.content_alignment === "left" ? "Left" : "Center"}`}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1241,11 +1609,20 @@ function HeroSlideForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [subtitle, setSubtitle] = useState(initial?.subtitle ?? "");
   const [subtitleLinkUrl, setSubtitleLinkUrl] = useState(initial?.subtitle_link_url ?? "");
+  const [contentAlignment, setContentAlignment] = useState<LandingHeroAlignment>(
+    initial?.content_alignment ?? "center",
+  );
   const [ctaLabel, setCtaLabel] = useState(initial?.cta_label ?? "");
-  const [ctaType, setCtaType] = useState<
-    "viewing" | "callback" | "refer_friend" | "content_creator" | "secure_booking"
-  >(initial?.cta_type ?? "viewing");
+  const [ctaType, setCtaType] = useState<LandingHeroCtaType>(initial?.cta_type ?? "viewing");
+  const [ctaUrl, setCtaUrl] = useState(initial?.cta_url ?? "");
   const [ctaTrackingKey, setCtaTrackingKey] = useState(initial?.cta_tracking_key ?? "");
+  const [cta2Enabled, setCta2Enabled] = useState(
+    Boolean(initial?.cta2_label?.trim() && initial?.cta2_type),
+  );
+  const [cta2Label, setCta2Label] = useState(initial?.cta2_label ?? "");
+  const [cta2Type, setCta2Type] = useState<LandingHeroCtaType>(initial?.cta2_type ?? "callback");
+  const [cta2Url, setCta2Url] = useState(initial?.cta2_url ?? "");
+  const [cta2TrackingKey, setCta2TrackingKey] = useState(initial?.cta2_tracking_key ?? "");
   const [desktopImageUrl, setDesktopImageUrl] = useState(initial?.desktop_image_url ?? "");
   const [desktopImageAlt, setDesktopImageAlt] = useState(initial?.desktop_image_alt ?? "");
   const [mobileImageUrl, setMobileImageUrl] = useState(initial?.mobile_image_url ?? "");
@@ -1271,13 +1648,33 @@ function HeroSlideForm({
       toast.error("At least one image (desktop or mobile) is required.");
       return;
     }
+    if (ctaType === "custom_link" && !ctaUrl.trim()) {
+      toast.error("Primary CTA custom link requires a URL.");
+      return;
+    }
+    if (cta2Enabled) {
+      if (!cta2Label.trim()) {
+        toast.error("Secondary CTA needs a label.");
+        return;
+      }
+      if (cta2Type === "custom_link" && !cta2Url.trim()) {
+        toast.error("Secondary CTA custom link requires a URL.");
+        return;
+      }
+    }
     const payload: Omit<HeroSlideRow, "id" | "landing_page_id"> | Partial<HeroSlideRow> = {
       title: title.trim(),
       subtitle: subtitle.trim() || null,
       subtitle_link_url: subtitleLinkUrl.trim() || null,
+      content_alignment: contentAlignment,
       cta_label: ctaLabel.trim() || null,
       cta_type: ctaType,
+      cta_url: ctaType === "custom_link" ? ctaUrl.trim() || null : null,
       cta_tracking_key: ctaTrackingKey.trim() || null,
+      cta2_label: cta2Enabled ? cta2Label.trim() || null : null,
+      cta2_type: cta2Enabled ? cta2Type : null,
+      cta2_url: cta2Enabled && cta2Type === "custom_link" ? cta2Url.trim() || null : null,
+      cta2_tracking_key: cta2Enabled ? cta2TrackingKey.trim() || null : null,
       desktop_image_url: desktopImageUrl.trim() || null,
       desktop_image_alt: desktopImageAlt.trim() || null,
       mobile_image_url: mobileImageUrl.trim() || null,
@@ -1285,7 +1682,11 @@ function HeroSlideForm({
       h1_image_url: h1ImageUrl.trim() || null,
       h1_image_alt: h1ImageAlt.trim() || null,
       h1_image_scale: Number.isFinite(h1ImageScale) ? h1ImageScale : 1,
-      h1_image_scale_mobile: Number.isFinite(h1ImageScaleMobile) ? h1ImageScaleMobile : Number.isFinite(h1ImageScale) ? h1ImageScale : 1,
+      h1_image_scale_mobile: Number.isFinite(h1ImageScaleMobile)
+        ? h1ImageScaleMobile
+        : Number.isFinite(h1ImageScale)
+          ? h1ImageScale
+          : 1,
       sort_order: Number(sortOrder) || 0,
       is_active: isActive,
       show_on_homepage: showOnHomepage,
@@ -1308,7 +1709,7 @@ function HeroSlideForm({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="hero-subtitle">Subtitle (H4/span)</Label>
+        <Label htmlFor="hero-subtitle">Subtitle</Label>
         <Textarea
           id="hero-subtitle"
           value={subtitle}
@@ -1322,44 +1723,130 @@ function HeroSlideForm({
           className="mt-2"
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+
+      <div className="space-y-2">
+        <Label htmlFor="hero-alignment">Content alignment</Label>
+        <select
+          id="hero-alignment"
+          value={contentAlignment}
+          onChange={(e) => setContentAlignment(e.target.value as LandingHeroAlignment)}
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        >
+          <option value="center">Center (classic homepage)</option>
+          <option value="left">Left (international students style)</option>
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Left aligns content bottom-left with dual CTAs; center keeps the classic middle layout.
+        </p>
+      </div>
+
+      <div className="space-y-3 rounded-lg border p-3">
+        <p className="text-sm font-medium">Primary CTA</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="hero-cta-label">CTA label</Label>
+            <Input
+              id="hero-cta-label"
+              value={ctaLabel}
+              onChange={(e) => setCtaLabel(e.target.value)}
+              placeholder={getLandingHeroCtaLabel(ctaType)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="hero-cta-type">CTA type</Label>
+            <select
+              id="hero-cta-type"
+              value={ctaType}
+              onChange={(e) => setCtaType(e.target.value as LandingHeroCtaType)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              {LANDING_HERO_CTA_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {ctaType === "custom_link" ? (
+          <div className="space-y-2">
+            <Label htmlFor="hero-cta-url">Custom link URL</Label>
+            <Input
+              id="hero-cta-url"
+              value={ctaUrl}
+              onChange={(e) => setCtaUrl(e.target.value)}
+              placeholder="https://…"
+              required
+            />
+          </div>
+        ) : null}
         <div className="space-y-2">
-          <Label htmlFor="hero-cta-label">CTA label</Label>
+          <Label htmlFor="hero-cta-key">CTA tracking key (optional)</Label>
           <Input
-            id="hero-cta-label"
-            value={ctaLabel}
-            onChange={(e) => setCtaLabel(e.target.value)}
-            placeholder={ctaType === "callback" ? "Get a callback" : "Book a viewing"}
+            id="hero-cta-key"
+            value={ctaTrackingKey}
+            onChange={(e) => setCtaTrackingKey(e.target.value)}
+            placeholder="e.g. med-hero-slide-1"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="hero-cta-type">CTA type</Label>
-          <select
-            id="hero-cta-type"
-            value={ctaType}
-            onChange={(e) =>
-              setCtaType(
-                e.target.value as "viewing" | "callback" | "refer_friend" | "content_creator",
-              )
-            }
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="viewing">Book a viewing</option>
-            <option value="callback">Get a callback</option>
-            <option value="refer_friend">Refer a friend</option>
-            <option value="content_creator">Content creator form</option>
-            <option value="secure_booking">Secure booking payment</option>
-          </select>
-        </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="hero-cta-key">CTA tracking key (optional)</Label>
-        <Input
-          id="hero-cta-key"
-          value={ctaTrackingKey}
-          onChange={(e) => setCtaTrackingKey(e.target.value)}
-          placeholder="e.g. med-hero-slide-1"
-        />
+
+      <div className="space-y-3 rounded-lg border p-3">
+        <div className="flex items-center gap-2">
+          <Switch id="hero-cta2-enabled" checked={cta2Enabled} onCheckedChange={setCta2Enabled} />
+          <Label htmlFor="hero-cta2-enabled">Add secondary CTA</Label>
+        </div>
+        {cta2Enabled ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="hero-cta2-label">Secondary CTA label</Label>
+                <Input
+                  id="hero-cta2-label"
+                  value={cta2Label}
+                  onChange={(e) => setCta2Label(e.target.value)}
+                  placeholder={getLandingHeroCtaLabel(cta2Type)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hero-cta2-type">Secondary CTA type</Label>
+                <select
+                  id="hero-cta2-type"
+                  value={cta2Type}
+                  onChange={(e) => setCta2Type(e.target.value as LandingHeroCtaType)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {LANDING_HERO_CTA_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {cta2Type === "custom_link" ? (
+              <div className="space-y-2">
+                <Label htmlFor="hero-cta2-url">Secondary custom link URL</Label>
+                <Input
+                  id="hero-cta2-url"
+                  value={cta2Url}
+                  onChange={(e) => setCta2Url(e.target.value)}
+                  placeholder="https://…"
+                  required
+                />
+              </div>
+            ) : null}
+            <div className="space-y-2">
+              <Label htmlFor="hero-cta2-key">Secondary tracking key (optional)</Label>
+              <Input
+                id="hero-cta2-key"
+                value={cta2TrackingKey}
+                onChange={(e) => setCta2TrackingKey(e.target.value)}
+                placeholder="e.g. med-hero-slide-1-secondary"
+              />
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className="space-y-3 border-t pt-3">
