@@ -66,6 +66,10 @@ const HERO_IMAGE_MOBILE =
 const HERO_IMAGE_DESKTOP =
   "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/media/4a210e79-968c-41df-baa1-f051694b0f74.webp";
 
+const HERO_INTRO_SHORT =
+  "Thousands of miles from home, arranging everything online. We get it. Urban Hub is built so international students can book, arrive and settle in without the stress.";
+const HERO_INTRO_FULL = `${HERO_INTRO_SHORT}: pay in full with no UK guarantor, protected if your visa is refused, no surprises.`;
+
 const WORRIES = [
   {
     q: '"Do I need a UK guarantor?"',
@@ -366,25 +370,35 @@ const InternationalStudents = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
-        <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-end px-4 pb-28 pt-32 md:px-8 md:pb-20">
-          <div className="max-w-2xl">
-            <p className="mb-4 text-[12px] font-semibold uppercase tracking-[0.28em] text-white/70">
+        <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-between px-4 pb-5 pt-24 md:justify-end md:px-8 md:pb-20 md:pt-32">
+          <div className="max-w-2xl space-y-3 md:hidden">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.28em] text-white/70">
               University of Lancashire
             </p>
-            <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-wide sm:text-5xl md:text-6xl lg:text-7xl">
+            <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-wide">
               For international
               <br />
               students
             </h1>
-            <p className="mt-5 hidden max-w-xl text-sm leading-relaxed text-white/80 md:block md:text-base">
-              Thousands of miles from home, arranging everything online. We get it. Urban Hub is built so international
-              students can book, arrive and settle in without the stress: pay in full with no UK guarantor, protected if
-              your visa is refused, no surprises.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <p className="max-w-xl text-sm leading-relaxed text-white/80">{HERO_INTRO_SHORT}</p>
+          </div>
+
+          <div className="max-w-2xl">
+            <div className="hidden md:block">
+              <p className="mb-4 text-[12px] font-semibold uppercase tracking-[0.28em] text-white/70">
+                University of Lancashire
+              </p>
+              <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-wide sm:text-5xl md:text-6xl lg:text-7xl">
+                For international
+                <br />
+                students
+              </h1>
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-white/80">{HERO_INTRO_FULL}</p>
+            </div>
+            <div className="flex w-full gap-3 md:mt-8 md:w-auto md:flex-wrap">
               <Button
                 size="lg"
-                className="rounded-[16px] bg-primary px-7 font-bold uppercase tracking-wide text-white hover:bg-primary/90"
+                className="flex-1 basis-0 rounded-[16px] bg-primary px-4 font-bold uppercase tracking-wide text-white hover:bg-primary/90 md:flex-none md:basis-auto md:px-7"
                 onClick={() => openSecure("hero_book")}
               >
                 <span className="md:hidden">Secure Studio</span>
@@ -392,7 +406,7 @@ const InternationalStudents = () => {
               </Button>
               <Button
                 size="lg"
-                className="rounded-[16px] bg-white px-7 font-bold uppercase tracking-wide text-black hover:bg-zinc-100"
+                className="flex-1 basis-0 rounded-[16px] bg-white px-4 font-bold uppercase tracking-wide text-black hover:bg-zinc-100 md:flex-none md:basis-auto md:px-7"
                 onClick={() => openViewing("hero_viewing")}
               >
                 Book a Viewing
@@ -501,9 +515,11 @@ const InternationalStudents = () => {
                       </CarouselItem>
                     ))}
                   </CarouselContent>
-                  <div className="mt-8 flex items-center justify-center gap-4">
-                    <CarouselPrevious className="static translate-y-0 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50" />
-                    <CarouselNext className="static translate-y-0 border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50" />
+                  <div className="mt-8 flex items-center justify-center">
+                    <div className="inline-flex items-center gap-3 rounded-full border border-zinc-200 bg-white/90 px-3 py-2 shadow-sm backdrop-blur-sm">
+                      <CarouselPrevious className="static h-11 w-11 translate-y-0 border-zinc-200 bg-white text-zinc-900 shadow-none hover:bg-zinc-100" />
+                      <CarouselNext className="static h-11 w-11 translate-y-0 border-zinc-200 bg-white text-zinc-900 shadow-none hover:bg-zinc-100" />
+                    </div>
                   </div>
                 </Carousel>
               </div>
