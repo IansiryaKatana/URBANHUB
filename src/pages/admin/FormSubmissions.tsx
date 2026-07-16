@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -43,6 +42,17 @@ import { Loader2, Eye, MessageSquare, Archive, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
+import { fetchAllSupabaseRows } from "@/utils/fetchAllSupabaseRows";
+import {
+  AdminListPagination,
+  AdminListToolbar,
+  adminIconButtonClass,
+  adminIconClass,
+  adminTableCellClass,
+  adminTableHeadClass,
+  paginateItems,
+  useDebouncedAdminSearch,
+} from "@/components/admin/AdminRecordList";
 
 type FormType =
   | "contact"
@@ -95,14 +105,29 @@ type SubmissionRow = {
   created_at: string;
 };
 
+const VALID_STATUSES = new Set<Status>(["new", "read", "replied", "archived"]);
+const VALID_FORM_TYPES = new Set<string>(Object.keys(formTypeLabels));
+
+function parseStatusFilter(value: string | null): Status | "" {
+  if (!value || value === "all" || !VALID_STATUSES.has(value as Status)) return "";
+  return value as Status;
+}
+
+function parseTypeFilter(value: string | null): string {
+  if (!value || value === "all" || !VALID_FORM_TYPES.has(value)) return "";
+  return value;
+}
+
 export default function FormSubmissions() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const statusFilter = (searchParams.get("status") as Status) || "";
-  const typeFilter = searchParams.get("type") || "";
+  const statusFilter = parseStatusFilter(searchParams.get("status"));
+  const typeFilter = parseTypeFilter(searchParams.get("type"));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const { searchQuery, setSearchQuery, debouncedSearch, currentPage, setCurrentPage } =
+    useDebouncedAdminSearch();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -115,26 +140,58 @@ export default function FormSubmissions() {
     });
   };
 
-  const toggleSelectAll = () => {
-    if (!rows?.length) return;
-    if (selectedIds.size === rows.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(rows.map((r) => r.id)));
-  };
-
-  const { data: rows, isLoading } = useQuery({
-    queryKey: ["admin-form-submissions", statusFilter, typeFilter],
-    queryFn: async () => {
-      let q = supabase
-        .from("website_form_submissions")
-        .select("id, form_type, name, email, phone, message, status, metadata, created_at")
-        .order("created_at", { ascending: false });
-      if (statusFilter) q = q.eq("status", statusFilter);
-      if (typeFilter) q = q.eq("form_type", typeFilter);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data || []) as SubmissionRow[];
-    },
+  const { data: rows, isLoading, isError, error } = useQuery({
+    queryKey: ["admin-form-submissions"],
+    queryFn: async () =>
+      fetchAllSupabaseRows<SubmissionRow>((from, to) =>
+        supabase
+          .from("website_form_submissions")
+          .select("id, form_type, name, email, phone, message, status, metadata, created_at")
+          .order("created_at", { ascending: false })
+          .range(from, to)
+      ),
   });
+
+  const filteredRows = useMemo(() => {
+    if (!rows?.length) return [];
+    let result = rows;
+    if (statusFilter) {
+      result = result.filter((row) => row.status === statusFilter);
+    }
+    if (typeFilter) {
+      result = result.filter((row) => row.form_type === typeFilter);
+    }
+    const q = debouncedSearch.toLowerCase();
+    if (!q) return result;
+    return result.filter(
+      (row) =>
+        row.name.toLowerCase().includes(q) ||
+        row.email.toLowerCase().includes(q) ||
+        (formTypeLabels[row.form_type] ?? row.form_type).toLowerCase().includes(q) ||
+        (row.message ?? "").toLowerCase().includes(q)
+    );
+  }, [rows, debouncedSearch, statusFilter, typeFilter]);
+
+  const { paginated: paginatedRows, totalPages, safePage } = paginateItems(filteredRows, currentPage);
+
+  const toggleSelectAll = () => {
+    if (!paginatedRows.length) return;
+    const pageIds = paginatedRows.map((r) => r.id);
+    const allPageSelected = pageIds.every((id) => selectedIds.has(id));
+    if (allPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  };
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Status }) => {
@@ -220,47 +277,67 @@ export default function FormSubmissions() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Form Submissions</h1>
-          <p className="text-muted-foreground">
-            View and manage contact, callback, viewing, short-term, refer-a-friend, and content creator
-            submissions.
-          </p>
-        </div>
-      </div>
-      <Card>
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-2">
-          <CardTitle className="text-base">All submissions</CardTitle>
-          <div className="flex flex-wrap gap-2">
-            <Select value={statusFilter || "all"} onValueChange={(v) => setSearchParams((p) => ({ ...p, status: v === "all" ? "" : v }))}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
-                {(Object.entries(statusLabels) as [Status, string][]).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter || "all"} onValueChange={(v) => setSearchParams((p) => ({ ...p, type: v === "all" ? "" : v }))}>
-              <SelectTrigger className="w-[130px]">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All types</SelectItem>
-                {Object.entries(formTypeLabels).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {selectedArray.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-lg bg-muted/50 border">
-              <span className="text-sm font-medium">{selectedArray.length} selected</span>
+      <h1 className="text-2xl font-bold tracking-tight">Form Submissions</h1>
+
+      <div className="space-y-4">
+        <AdminListToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search name, email, type or message..."
+          searchAriaLabel="Search form submissions"
+          filters={
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                value={statusFilter || "all"}
+                onValueChange={(v) => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    if (v === "all") next.delete("status");
+                    else next.set("status", v);
+                    return next;
+                  });
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[130px] text-xs">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  {(Object.entries(statusLabels) as [Status, string][]).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={typeFilter || "all"}
+                onValueChange={(v) => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    if (v === "all") next.delete("type");
+                    else next.set("type", v);
+                    return next;
+                  });
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[130px] text-xs">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  {Object.entries(formTypeLabels).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
+
+        {selectedArray.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 rounded-md border bg-muted/40 px-2.5 py-1.5">
+              <span className="text-xs font-medium">{selectedArray.length} selected</span>
               <Button
                 variant="secondary"
                 className="bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
@@ -306,77 +383,107 @@ export default function FormSubmissions() {
             </div>
           )}
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : isError ? (
+            <p className="py-8 text-center text-sm text-destructive">
+              Failed to load submissions{error instanceof Error ? `: ${error.message}` : "."}
+            </p>
           ) : !rows?.length ? (
-            <p className="py-8 text-center text-muted-foreground">No submissions found.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">No submissions found.</p>
+          ) : !filteredRows.length ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {debouncedSearch ? `No submissions found matching "${debouncedSearch}".` : "No submissions match the current filters."}
+            </p>
           ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
+            <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className={`${adminTableHeadClass} w-10`}>
                       <Checkbox
-                        checked={rows.length > 0 && selectedIds.size === rows.length}
+                        checked={paginatedRows.length > 0 && paginatedRows.every((r) => selectedIds.has(r.id))}
                         onCheckedChange={toggleSelectAll}
-                        aria-label="Select all"
+                        aria-label="Select all on this page"
                       />
                     </TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className={`${adminTableHeadClass} w-36`}>Date</TableHead>
+                    <TableHead className={adminTableHeadClass}>Type</TableHead>
+                    <TableHead className={adminTableHeadClass}>Name</TableHead>
+                    <TableHead className={adminTableHeadClass}>Email</TableHead>
+                    <TableHead className={`${adminTableHeadClass} w-24`}>Status</TableHead>
+                    <TableHead className={`${adminTableHeadClass} w-24 text-right`}>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((row) => (
+                  {paginatedRows.map((row) => (
                     <TableRow
                       key={row.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-muted/40"
                       onClick={() => setSelectedId(row.id)}
                     >
-                      <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className={adminTableCellClass} onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedIds.has(row.id)}
                           onCheckedChange={() => toggleSelect(row.id)}
                           aria-label={`Select ${row.name}`}
                         />
                       </TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                      <TableCell className={`${adminTableCellClass} whitespace-nowrap text-xs text-muted-foreground`}>
                         {format(new Date(row.created_at), "dd MMM yyyy, HH:mm")}
                       </TableCell>
-                      <TableCell>{formTypeLabels[row.form_type] ?? row.form_type}</TableCell>
-                      <TableCell>{row.name}</TableCell>
-                      <TableCell className="max-w-[180px] truncate">{row.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={row.status === "new" ? "default" : "secondary"}>
+                      <TableCell className={`${adminTableCellClass} text-xs`}>
+                        {formTypeLabels[row.form_type] ?? row.form_type}
+                      </TableCell>
+                      <TableCell className={`${adminTableCellClass} text-sm font-medium`}>{row.name}</TableCell>
+                      <TableCell className={`${adminTableCellClass} max-w-[180px] truncate text-xs text-muted-foreground`}>
+                        {row.email}
+                      </TableCell>
+                      <TableCell className={adminTableCellClass}>
+                        <Badge
+                          variant={row.status === "new" ? "default" : "secondary"}
+                          className="h-5 px-1.5 text-[10px] font-medium"
+                        >
                           {statusLabels[row.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedId(row.id)} aria-label="View">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteConfirmId(row.id)}
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <TableCell className={adminTableCellClass} onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-0.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={adminIconButtonClass}
+                            onClick={() => setSelectedId(row.id)}
+                            aria-label="View"
+                          >
+                            <Eye className={adminIconClass} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`${adminIconButtonClass} text-destructive hover:text-destructive`}
+                            onClick={() => setDeleteConfirmId(row.id)}
+                            aria-label="Delete"
+                          >
+                            <Trash2 className={adminIconClass} />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
+
+              <AdminListPagination
+                currentPage={safePage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={filteredRows.length}
+              />
+            </>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       <Dialog open={!!selectedId} onOpenChange={(open) => !open && setSelectedId(null)}>
         <DialogContent

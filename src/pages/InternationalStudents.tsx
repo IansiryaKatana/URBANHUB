@@ -45,7 +45,6 @@ import { VideoTestimonialCard } from "@/components/international-students/VideoT
 import { ArrivalCoverflow } from "@/components/international-students/ArrivalCoverflow";
 import type { Database } from "@/integrations/supabase/types";
 import Autoplay from "embla-carousel-autoplay";
-import heroImage from "@/assets/international-students/hero.png";
 import communityImage from "@/assets/international-students/community.jpg";
 import vrThumbnail from "@/assets/international-students/vr.webp";
 
@@ -61,6 +60,11 @@ type StudioGradeSummary = {
 };
 
 const LANDING_SLUG = "/international-students";
+
+const HERO_IMAGE_MOBILE =
+  "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/media/18b3d9fc-134f-45a2-99bd-5848a073164c.webp";
+const HERO_IMAGE_DESKTOP =
+  "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/media/4a210e79-968c-41df-baa1-f051694b0f74.webp";
 
 const WORRIES = [
   {
@@ -350,11 +354,15 @@ const InternationalStudents = () => {
 
       {/* Hero */}
       <section id="intl-hero" className="relative min-h-[100dvh] overflow-hidden bg-black text-white">
-        <img
-          src={heroImage}
-          alt="International students arriving at Urban Hub"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <picture>
+          <source media="(min-width: 768px)" srcSet={HERO_IMAGE_DESKTOP} />
+          <img
+            src={HERO_IMAGE_MOBILE}
+            alt="International students arriving at Urban Hub"
+            className="absolute inset-0 h-full w-full object-cover"
+            fetchPriority="high"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/20 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 

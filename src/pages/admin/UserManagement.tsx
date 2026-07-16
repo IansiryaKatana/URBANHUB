@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Users, Plus, Pencil, Mail, Search, Trash2 } from "lucide-react";
+import { Users, Plus, Pencil, Mail, Trash2, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +41,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AdminListPagination,
+  AdminListToolbar,
+  adminIconButtonClass,
+  adminIconClass,
+  adminTableCellClass,
+  adminTableHeadClass,
+  paginateItems,
+  useDebouncedAdminSearch,
+} from "@/components/admin/AdminRecordList";
 
 type Profile = {
   id: string;
@@ -73,7 +82,6 @@ const WEBSITE_SUBROLES = [
 export default function UserManagement() {
   const { role } = useAuth();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -85,6 +93,8 @@ export default function UserManagement() {
   const [inviteLastName, setInviteLastName] = useState("");
   const [inviteRole, setInviteRole] = useState<string>("staff");
   const [inviteSubrole, setInviteSubrole] = useState<string | null>(null);
+  const { searchQuery, setSearchQuery, debouncedSearch, currentPage, setCurrentPage } =
+    useDebouncedAdminSearch();
 
   // Allow superadmin and admin
   if (role !== "superadmin" && role !== "admin") {
@@ -296,16 +306,21 @@ export default function UserManagement() {
     },
   });
 
-  const filteredUsers = users?.filter((user) => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      user.email.toLowerCase().includes(searchLower) ||
-      user.first_name?.toLowerCase().includes(searchLower) ||
-      user.last_name?.toLowerCase().includes(searchLower) ||
-      user.role.toLowerCase().includes(searchLower) ||
-      user.staff_subrole?.toLowerCase().includes(searchLower)
+  const filteredUsers = useMemo(() => {
+    if (!users?.length) return [];
+    const searchLower = debouncedSearch.toLowerCase();
+    if (!searchLower) return users;
+    return users.filter((user) =>
+      [
+        user.email,
+        user.first_name ?? "",
+        user.last_name ?? "",
+        user.role,
+        user.staff_subrole ?? "",
+      ].some((value) => value.toLowerCase().includes(searchLower))
     );
-  });
+  }, [users, debouncedSearch]);
+  const { paginated: paginatedUsers, totalPages, safePage } = paginateItems(filteredUsers, currentPage);
 
   const handleEdit = (user: Profile) => {
     setEditingUser(user);
@@ -375,12 +390,7 @@ export default function UserManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage website admin users and their roles
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
         <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -492,80 +502,75 @@ export default function UserManagement() {
         </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search users by name, email, or role..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+      <div className="space-y-4">
+        <AdminListToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search users by name, email, role or subrole..."
+          searchAriaLabel="Search users"
+        />
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-muted-foreground">Loading users...</div>
-            </div>
-          ) : filteredUsers && filteredUsers.length > 0 ? (
+        ) : filteredUsers.length > 0 ? (
+          <>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Subrole</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={adminTableHeadClass}>Name</TableHead>
+                  <TableHead className={adminTableHeadClass}>Email</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-20`}>Role</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-28`}>Subrole</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-28`}>Created</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-24 text-right`}>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
+                {paginatedUsers.map((user) => (
+                  <TableRow key={user.id} className="hover:bg-muted/40">
+                    <TableCell className={`${adminTableCellClass} text-sm`}>
                       {user.first_name || user.last_name
                         ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
                         : "—"}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate" title={user.email || undefined}>
+                    <TableCell className={adminTableCellClass}>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate text-xs" title={user.email || undefined}>
                           {user.email || "—"}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{getRoleLabel(user.role)}</span>
+                    <TableCell className={`${adminTableCellClass} text-sm font-medium`}>
+                      {getRoleLabel(user.role)}
                     </TableCell>
-                    <TableCell>
-                      <span className="text-muted-foreground">
-                        {getSubroleLabel(user.staff_subrole)}
-                      </span>
+                    <TableCell className={`${adminTableCellClass} text-xs text-muted-foreground`}>
+                      {getSubroleLabel(user.staff_subrole)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className={`${adminTableCellClass} text-xs text-muted-foreground`}>
                       {new Date(user.created_at).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <TableCell className={adminTableCellClass}>
+                      <div className="flex items-center justify-end gap-0.5">
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          className={adminIconButtonClass}
                           onClick={() => handleEdit(user)}
+                          aria-label="Edit"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className={adminIconClass} />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          className={`${adminIconButtonClass} text-destructive hover:text-destructive`}
                           onClick={() => handleDelete(user)}
-                          className="text-destructive hover:text-destructive"
+                          aria-label="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className={adminIconClass} />
                         </Button>
                       </div>
                     </TableCell>
@@ -573,16 +578,23 @@ export default function UserManagement() {
                 ))}
               </TableBody>
             </Table>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Users className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                {searchQuery ? "No users found matching your search." : "No users found."}
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+            <AdminListPagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredUsers.length}
+            />
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Users className="mb-4 h-12 w-12 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {debouncedSearch ? "No users found matching your search." : "No users found."}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

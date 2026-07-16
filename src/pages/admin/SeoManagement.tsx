@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -26,6 +25,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Pencil, Plus, Trash2, Search, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import {
+  AdminListPagination,
+  AdminListToolbar,
+  adminIconButtonClass,
+  adminIconClass,
+  adminTableCellClass,
+  adminTableHeadClass,
+  paginateItems,
+  useDebouncedAdminSearch,
+} from "@/components/admin/AdminRecordList";
 
 // SEO character limits
 const META_TITLE_LIMIT = 60;
@@ -108,6 +117,8 @@ export default function SeoManagement() {
   const queryClient = useQueryClient();
   const [pageEditId, setPageEditId] = useState<string | null>(null);
   const [pageCreateOpen, setPageCreateOpen] = useState(false);
+  const { searchQuery, setSearchQuery, debouncedSearch, currentPage, setCurrentPage } =
+    useDebouncedAdminSearch();
 
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["admin-website-seo-settings"],
@@ -188,6 +199,21 @@ export default function SeoManagement() {
   });
 
   const editingPage = pages?.find((p) => p.id === pageEditId);
+  const filteredPages = useMemo(() => {
+    if (!pages?.length) return [];
+    const q = debouncedSearch.toLowerCase();
+    if (!q) return pages;
+    return pages.filter((row) =>
+      [
+        row.page_path,
+        row.page_type,
+        row.meta_title ?? "",
+        row.focus_keyword ?? "",
+        row.meta_description ?? "",
+      ].some((value) => value.toLowerCase().includes(q))
+    );
+  }, [pages, debouncedSearch]);
+  const { paginated: paginatedPages, totalPages, safePage } = paginateItems(filteredPages, currentPage);
 
   return (
     <div className="space-y-6">
@@ -209,96 +235,117 @@ export default function SeoManagement() {
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Website general SEO settings</CardTitle>
-              <p className="text-sm text-muted-foreground">Defaults used when a page has no specific SEO.</p>
-            </CardHeader>
-            <CardContent>
-              {settingsLoading || !settings ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <GeneralSeoForm
-                  initial={settings}
-                  onSubmit={(payload) => updateSettingsMutation.mutate(payload)}
-                  isLoading={updateSettingsMutation.isPending}
-                />
-              )}
-            </CardContent>
-          </Card>
+          <div className="max-w-3xl space-y-4">
+            {settingsLoading || !settings ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <GeneralSeoForm
+                initial={settings}
+                onSubmit={(payload) => updateSettingsMutation.mutate(payload)}
+                isLoading={updateSettingsMutation.isPending}
+              />
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="pages" className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">All pages are pre-seeded with recommended SEO. Edit any row to refine title, description, focus keyphrase, social and slug.</p>
+            <h2 className="text-base font-semibold">Page SEO</h2>
             <Button onClick={() => setPageCreateOpen(true)} className="w-fit">
               <Plus className="h-4 w-4 mr-2" />
               Add page SEO
             </Button>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">All page SEO</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pagesLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : !pages?.length ? (
-                <p className="py-8 text-center text-muted-foreground">No page SEO yet. Run the seed migration (006) or add a page.</p>
-              ) : (
-                <div className="overflow-x-auto -mx-6 px-6">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Slug / Path</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Used for</TableHead>
-                        <TableHead>Meta title</TableHead>
-                        <TableHead>Focus keyphrase</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pages.map((row) => (
-                        <TableRow key={row.id}>
-                          <TableCell className="font-mono text-sm">{row.page_path}</TableCell>
-                          <TableCell>{row.page_type}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[140px]">
-                            {row.page_path === "/"
-                              ? "Homepage (/)"
-                              : row.page_path === "/studios"
-                                ? "Studios; Home if no / row"
-                                : "—"}
-                          </TableCell>
-                          <TableCell className="max-w-[220px] truncate">{row.meta_title ?? "—"}</TableCell>
-                          <TableCell className="max-w-[160px] truncate text-muted-foreground">{row.focus_keyword ?? "—"}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => setPageEditId(row.id)} aria-label="Edit">
-                              <Pencil className="h-4 w-4" />
+          <div className="space-y-4">
+            <AdminListToolbar
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder="Search path, type, title or keyphrase..."
+              searchAriaLabel="Search page SEO"
+            />
+
+            {pagesLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : !pages?.length ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No page SEO yet. Run the seed migration (`006`) or add a page.
+              </p>
+            ) : !filteredPages.length ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {debouncedSearch ? `No page SEO found matching "${debouncedSearch}".` : "No page SEO matches the current filters."}
+              </p>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className={adminTableHeadClass}>Slug / Path</TableHead>
+                      <TableHead className={`${adminTableHeadClass} w-20`}>Type</TableHead>
+                      <TableHead className={adminTableHeadClass}>Used for</TableHead>
+                      <TableHead className={adminTableHeadClass}>Meta title</TableHead>
+                      <TableHead className={adminTableHeadClass}>Focus keyphrase</TableHead>
+                      <TableHead className={`${adminTableHeadClass} w-24 text-right`}>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedPages.map((row) => (
+                      <TableRow key={row.id} className="hover:bg-muted/40">
+                        <TableCell className={`${adminTableCellClass} font-mono text-xs`}>{row.page_path}</TableCell>
+                        <TableCell className={`${adminTableCellClass} text-xs`}>{row.page_type}</TableCell>
+                        <TableCell className={`${adminTableCellClass} max-w-[180px] text-xs text-muted-foreground`}>
+                          {row.page_path === "/"
+                            ? "Homepage (/)"
+                            : row.page_path === "/studios"
+                              ? "Studios; Home if no / row"
+                              : "—"}
+                        </TableCell>
+                        <TableCell className={`${adminTableCellClass} max-w-[240px] truncate text-sm`}>
+                          {row.meta_title ?? "—"}
+                        </TableCell>
+                        <TableCell className={`${adminTableCellClass} max-w-[180px] truncate text-xs text-muted-foreground`}>
+                          {row.focus_keyword ?? "—"}
+                        </TableCell>
+                        <TableCell className={adminTableCellClass}>
+                          <div className="flex items-center justify-end gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={adminIconButtonClass}
+                              onClick={() => setPageEditId(row.id)}
+                              aria-label="Edit"
+                            >
+                              <Pencil className={adminIconClass} />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive"
+                              className={`${adminIconButtonClass} text-destructive hover:text-destructive`}
                               onClick={() => deletePageMutation.mutate(row.id)}
                               disabled={deletePageMutation.isPending}
                               aria-label="Delete"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className={adminIconClass} />
                             </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                <AdminListPagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  totalItems={filteredPages.length}
+                />
+              </>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 

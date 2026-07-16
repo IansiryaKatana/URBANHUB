@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -15,16 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet, ImageIcon, AlertCircle, ArrowUpRight } from "lucide-react";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { FileText, Loader2, Eye, Send, Pencil, Trash2, Archive, PlusCircle, Upload, FileSpreadsheet, ImageIcon, AlertCircle, ArrowUpRight, Search } from "lucide-react";
+  AdminListPagination,
+  AdminListToolbar,
+  adminIconButtonClass,
+  adminIconClass,
+  adminTableCellClass,
+  adminTableHeadClass,
+} from "@/components/admin/AdminRecordList";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import WordPressImport from "@/components/admin/WordPressImport";
@@ -42,6 +39,9 @@ type BlogPostRow = {
 };
 
 const POSTS_PER_PAGE = 12;
+
+/** Temporarily hide WordPress/CSV import and image-fix tooling in the blog admin UI. */
+const SHOW_BLOG_IMPORT_AND_IMAGE_FIX = false;
 
 /** Escape characters that break PostgREST `or` / `ilike` filters. */
 function escapeIlikePattern(value: string): string {
@@ -487,16 +487,13 @@ export default function BlogAdmin() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
-          <p className="text-muted-foreground">Import from WordPress or manage blog posts, categories, and tags.</p>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => navigate("/admin/blog/new")} className="w-fit">
             <PlusCircle className="h-4 w-4 mr-2" />
             New post
           </Button>
-          {isSuperAdmin && (
+          {SHOW_BLOG_IMPORT_AND_IMAGE_FIX && isSuperAdmin && (
             <>
               <Button variant="outline" className="w-fit" onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />
@@ -521,80 +518,80 @@ export default function BlogAdmin() {
         </div>
       </div>
 
-      {isSuperAdmin && (
+      {SHOW_BLOG_IMPORT_AND_IMAGE_FIX && isSuperAdmin && (
         <>
           <WordPressImport open={importOpen} onOpenChange={setImportOpen} />
           <CsvBlogImport open={csvImportOpen} onOpenChange={setCsvImportOpen} />
         </>
       )}
 
-      <Card>
-        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="text-base">Blog posts</CardTitle>
-            <CardDescription>
-              {totalCount ?? 0} total post{(totalCount ?? 0) !== 1 ? "s" : ""} ({posts?.length ?? 0} on this page). Click a row to edit. Only &quot;published&quot; posts appear on the public blog.
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Tabs
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value as "all" | "draft" | "published");
-                setCurrentPage(1);
-              }}
-            >
-              <TabsList className="h-9">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="published">Published</TabsTrigger>
-                <TabsTrigger value="draft">Drafts</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            {draftCount > 0 && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => publishDraftsMutation.mutate()}
-                disabled={publishDraftsMutation.isPending}
+      <div className="space-y-4">
+        <AdminListToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search by title or slug..."
+          searchAriaLabel="Search blog posts"
+          filters={
+            <div className="flex flex-wrap items-center gap-2">
+              <Tabs
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value as "all" | "draft" | "published");
+                  setCurrentPage(1);
+                }}
               >
-                {publishDraftsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-                Publish all drafts ({draftCount})
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (window.confirm("This will download and upload ALL external blog images to Supabase storage. This may take a while. Continue?")) {
-                  fixAllBrokenImagesMutation.mutate();
-                }
-              }}
-              disabled={fixAllBrokenImagesMutation.isPending}
-              title="Download all external WordPress images and upload to Supabase storage"
-            >
-              {fixAllBrokenImagesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
-              Fix All Images
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="relative mb-4 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="search"
-              placeholder="Search by title or slug..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-              aria-label="Search blog posts"
-            />
-          </div>
-          {selectedArray.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-lg bg-muted/50 border">
-              <span className="text-sm font-medium">{selectedArray.length} selected</span>
+                <TabsList className="h-8">
+                  <TabsTrigger value="all" className="px-2.5 text-xs">
+                    All
+                  </TabsTrigger>
+                  <TabsTrigger value="published" className="px-2.5 text-xs">
+                    Published
+                  </TabsTrigger>
+                  <TabsTrigger value="draft" className="px-2.5 text-xs">
+                    Drafts
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {draftCount > 0 && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => publishDraftsMutation.mutate()}
+                  disabled={publishDraftsMutation.isPending}
+                >
+                  {publishDraftsMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}
+                  Publish drafts ({draftCount})
+                </Button>
+              )}
+              {SHOW_BLOG_IMPORT_AND_IMAGE_FIX && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    if (window.confirm("This will download and upload ALL external blog images to Supabase storage. This may take a while. Continue?")) {
+                      fixAllBrokenImagesMutation.mutate();
+                    }
+                  }}
+                  disabled={fixAllBrokenImagesMutation.isPending}
+                  title="Download all external WordPress images and upload to Supabase storage"
+                >
+                  {fixAllBrokenImagesMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <ImageIcon className="h-3.5 w-3.5 mr-1.5" />}
+                  Fix images
+                </Button>
+              )}
+            </div>
+          }
+        />
+
+        {selectedArray.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 rounded-md border bg-muted/40 px-2.5 py-1.5">
+              <span className="text-xs font-medium">{selectedArray.length} selected</span>
               <Button
                 variant="secondary"
                 size="sm"
+                className="h-7 text-xs"
                 onClick={() => bulkPublishMutation.mutate(selectedArray)}
                 disabled={bulkPublishMutation.isPending}
               >
@@ -610,16 +607,18 @@ export default function BlogAdmin() {
                 {bulkUnpublishMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Archive className="h-4 w-4 mr-2" />}
                 Unpublish selected
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fixBrokenImagesMutation.mutate(selectedArray)}
-                disabled={fixBrokenImagesMutation.isPending}
-                title="Download and re-upload external images to Supabase storage"
-              >
-                {fixBrokenImagesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
-                Fix Images
-              </Button>
+              {SHOW_BLOG_IMPORT_AND_IMAGE_FIX && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fixBrokenImagesMutation.mutate(selectedArray)}
+                  disabled={fixBrokenImagesMutation.isPending}
+                  title="Download and re-upload external images to Supabase storage"
+                >
+                  {fixBrokenImagesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
+                  Fix Images
+                </Button>
+              )}
               <Button
                 variant="destructive"
                 size="sm"
@@ -639,196 +638,135 @@ export default function BlogAdmin() {
             </div>
           )}
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : !posts?.length ? (
-            <p className="py-8 text-center text-muted-foreground">
+            <p className="py-8 text-center text-sm text-muted-foreground">
               {debouncedSearch
                 ? `No posts found matching "${debouncedSearch}".`
                 : "No blog posts yet. Import from WordPress above."}
             </p>
           ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
+            <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className={`${adminTableHeadClass} w-10`}>
                       <Checkbox
                         checked={posts.length > 0 && posts.every((p) => selectedIds.has(p.id))}
                         onCheckedChange={toggleSelectAll}
                         aria-label="Select all on this page"
                       />
                     </TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Image</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Published</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className={`${adminTableHeadClass} w-20`}>Image</TableHead>
+                    <TableHead className={adminTableHeadClass}>Title</TableHead>
+                    <TableHead className={adminTableHeadClass}>Slug</TableHead>
+                    <TableHead className={`${adminTableHeadClass} w-24`}>Status</TableHead>
+                    <TableHead className={`${adminTableHeadClass} w-28`}>Published</TableHead>
+                    <TableHead className={`${adminTableHeadClass} w-28 text-right`}>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {posts.map((row) => (
                     <TableRow
                       key={row.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="cursor-pointer hover:bg-muted/40"
                       onClick={() => navigate(`/admin/blog/${row.id}`)}
                     >
-                      <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className={adminTableCellClass} onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedIds.has(row.id)}
                           onCheckedChange={() => toggleSelect(row.id)}
                           aria-label={`Select ${row.title}`}
                         />
                       </TableCell>
-                      <TableCell className="font-medium max-w-[240px] truncate">{row.title}</TableCell>
-                      <TableCell className="font-mono text-xs max-w-[160px] truncate">{row.slug}</TableCell>
-                      <TableCell>
+                      <TableCell className={adminTableCellClass}>
                         {row.featured_image_url ? (
-                          row.featured_image_url.includes("supabase.co") || row.featured_image_url.includes("urbanhub.uk") ? (
-                            <span className="text-xs text-green-600 flex items-center gap-1">
-                              <ImageIcon className="h-3 w-3" />
-                              OK
-                            </span>
-                          ) : (
-                            <span className="text-xs text-amber-600 flex items-center gap-1" title="External URL - may break">
-                              <AlertCircle className="h-3 w-3" />
-                              External
-                            </span>
-                          )
+                          <div className="relative h-12 w-12 overflow-hidden rounded bg-muted">
+                            <img
+                              src={row.featured_image_url}
+                              alt={row.title}
+                              className="h-full w-full object-cover"
+                            />
+                            {!(row.featured_image_url.includes("supabase.co") || row.featured_image_url.includes("urbanhub.uk")) ? (
+                              <span
+                                className="absolute bottom-1 right-1 rounded bg-amber-600/90 px-1 py-0.5 text-[9px] font-medium text-white"
+                                title="External URL - may break"
+                              >
+                                Ext
+                              </span>
+                            ) : null}
+                          </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-[10px] text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={row.status === "published" ? "default" : "secondary"}>{row.status}</Badge>
+                      <TableCell className={`${adminTableCellClass} max-w-[220px] truncate text-sm font-medium`}>
+                        {row.title}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className={`${adminTableCellClass} max-w-[140px] truncate font-mono text-[10px] text-muted-foreground`}>
+                        {row.slug}
+                      </TableCell>
+                      <TableCell className={adminTableCellClass}>
+                        <Badge
+                          variant={row.status === "published" ? "default" : "secondary"}
+                          className="h-5 px-1.5 text-[10px] font-medium"
+                        >
+                          {row.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={`${adminTableCellClass} text-xs text-muted-foreground`}>
                         {row.published_at ? format(new Date(row.published_at), "MMM d, yyyy") : "—"}
                       </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigate(`/admin/blog/${row.id}`)}
-                          aria-label="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Link to={`/${row.slug}`} target="_blank" rel="noopener noreferrer">
-                          <Button variant="ghost" size="icon" aria-label="View on site">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        {row.status === "draft" && (
+                      <TableCell className={adminTableCellClass} onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-0.5">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              publishOneMutation.mutate(row.id);
-                            }}
-                            disabled={publishOneMutation.isPending}
-                            aria-label="Publish"
+                            className={adminIconButtonClass}
+                            onClick={() => navigate(`/admin/blog/${row.id}`)}
+                            aria-label="Edit"
                           >
-                            <Send className="h-4 w-4" />
+                            <Pencil className={adminIconClass} />
                           </Button>
-                        )}
+                          <Link to={`/${row.slug}`} target="_blank" rel="noopener noreferrer">
+                            <Button variant="ghost" size="icon" className={adminIconButtonClass} aria-label="View on site">
+                              <Eye className={adminIconClass} />
+                            </Button>
+                          </Link>
+                          {row.status === "draft" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={adminIconButtonClass}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                publishOneMutation.mutate(row.id);
+                              }}
+                              disabled={publishOneMutation.isPending}
+                              aria-label="Publish"
+                            >
+                              <Send className={adminIconClass} />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          )}
-          
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-6 flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage > 1) setCurrentPage(currentPage - 1);
-                      }}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                    // Show first page, last page, current page, and pages around current
-                    if (
-                      page === 1 ||
-                      page === totalPages ||
-                      (page >= currentPage - 1 && page <= currentPage + 1)
-                    ) {
-                      return (
-                        <PaginationItem key={page}>
-                          <PaginationLink
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setCurrentPage(page);
-                            }}
-                            isActive={currentPage === page}
-                            className="cursor-pointer"
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    } else if (page === currentPage - 2 || page === currentPage + 2) {
-                      return (
-                        <PaginationItem key={page}>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      );
-                    }
-                    return null;
-                  })}
-                  
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                      }}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Tables &amp; data</CardTitle>
-          <CardDescription>blog_posts, blog_categories, blog_tags, blog_post_tags (migration 001).</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Click a row to edit page content (WYSIWYG). Use &quot;New post&quot; to create a post or import from WordPress above.
-          </p>
-          <Link to="/blog" target="_blank" rel="noopener noreferrer">
-            <Button
-              variant="default"
-              size="icon"
-              className="w-9 h-9 rounded-full bg-black text-white hover:bg-black/90"
-              aria-label="View blog on site"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+              <AdminListPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={totalCount ?? 0}
+                pageSize={POSTS_PER_PAGE}
+              />
+            </>
+          )}
+      </div>
     </div>
   );
 }

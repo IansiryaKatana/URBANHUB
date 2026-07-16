@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { useBrandingSettings } from "@/hooks/useBranding";
+import logo from "@/assets/urban-hub-logo.webp";
 import {
   LayoutDashboard,
   Inbox,
@@ -41,12 +43,15 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, role, signOut } = useAuth();
+  const { data: branding } = useBrandingSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const userSubrole = profile?.staff_subrole;
   const websiteSubroles = ["seo_editor", "content_editor", "marketing_manager", "customer_support"];
   // AuthContext exposes subrole as role for staff (e.g. role === "seo_editor"); sidebar must treat that as website staff
   const effectiveSubrole = websiteSubroles.includes(role) ? role : userSubrole;
+  const logoUrl = branding?.logo_path || logo;
+  const companyName = branding?.company_name || "Urban Hub";
 
   const navItems = allNavItems.filter((item) => {
     if (item.roles?.length) {
@@ -94,9 +99,9 @@ export default function AdminLayout() {
         )}
       >
         <div className="flex flex-col h-full overflow-hidden">
-          <div className="flex items-center justify-between p-4 flex-shrink-0">
-            <div className="flex flex-col">
-              <span className="font-display font-black text-lg uppercase tracking-wide text-white">Urban Hub</span>
+          <div className="flex items-center justify-between bg-black p-4 flex-shrink-0">
+            <div className="flex flex-col gap-2">
+              <img src={logoUrl} alt={companyName} className="h-10 w-auto object-contain" />
               <span className="text-xs text-white/80 tracking-wide uppercase">Admin panel</span>
             </div>
             <Button
@@ -131,7 +136,7 @@ export default function AdminLayout() {
             })}
           </nav>
           <div className="p-3 space-y-2 flex-shrink-0">
-            <p className="text-xs text-white/70 truncate px-3" title={profile?.email ?? user?.email ?? ""}>
+            <p className="text-xs md:text-[20px] text-white/70 truncate px-3" title={profile?.email ?? user?.email ?? ""}>
               {profile?.email ?? user?.email ?? "—"}
             </p>
             <a

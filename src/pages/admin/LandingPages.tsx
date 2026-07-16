@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -34,9 +33,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminListPagination } from "@/components/admin/AdminRecordList";
 import { ImageUpload } from "@/components/admin/ImageUpload";
-import { Loader2, Pencil, Plus, Trash2, Copy, Eye } from "lucide-react";
+import { fetchAllSupabaseRows } from "@/utils/fetchAllSupabaseRows";
+import { Loader2, Pencil, Plus, Trash2, Copy, Eye, Search } from "lucide-react";
 import { toast } from "sonner";
+
+const PAGES_PER_PAGE = 10;
 
 type LandingPageRow = {
   id: string;
@@ -59,6 +70,18 @@ type LandingPageRow = {
   google_ads_conversion_label_lead: string | null;
   google_ads_conversion_label_purchase: string | null;
 };
+
+const CTA_TYPE_LABELS: Record<LandingPageRow["default_cta_type"], string> = {
+  viewing: "Book a viewing",
+  callback: "Get a callback",
+  refer_friend: "Refer a friend",
+  content_creator: "Content creator",
+  secure_booking: "Secure booking",
+};
+
+function getDefaultCtaLabel(page: LandingPageRow) {
+  return page.default_cta_label?.trim() || CTA_TYPE_LABELS[page.default_cta_type] || page.default_cta_type;
+}
 
 type HeroSlideRow = {
   id: string;
@@ -90,6 +113,19 @@ export default function LandingPages() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [ctaFilter, setCtaFilter] = useState<"all" | LandingPageRow["default_cta_type"]>("all");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setCurrentPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -100,24 +136,18 @@ export default function LandingPages() {
     });
   };
 
-  const toggleSelectAll = () => {
-    if (!pages?.length) return;
-    if (selectedIds.size === pages.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(pages.map((p) => p.id)));
-  };
-
   const { data: pages, isLoading } = useQuery({
     queryKey: ["admin-website-landing-pages"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("website_landing_pages")
-        .select(
-          "id, name, slug, is_active, hero_heading, hero_subheading, default_cta_label, default_cta_type, default_cta_tracking_key, room_grades_heading, room_grades_description, info_stack_items, faq_items, meta_pixel_id, tiktok_pixel_id, snapchat_pixel_id, google_ads_conversion_id, google_ads_conversion_label_lead, google_ads_conversion_label_purchase",
-        )
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as LandingPageRow[];
-    },
+    queryFn: async () =>
+      fetchAllSupabaseRows<LandingPageRow>((from, to) =>
+        supabase
+          .from("website_landing_pages")
+          .select(
+            "id, name, slug, is_active, hero_heading, hero_subheading, default_cta_label, default_cta_type, default_cta_tracking_key, room_grades_heading, room_grades_description, info_stack_items, faq_items, meta_pixel_id, tiktok_pixel_id, snapchat_pixel_id, google_ads_conversion_id, google_ads_conversion_label_lead, google_ads_conversion_label_purchase",
+          )
+          .order("created_at", { ascending: false })
+          .range(from, to)
+      ),
   });
 
   const updateMutation = useMutation({
@@ -254,6 +284,45 @@ export default function LandingPages() {
     onError: () => toast.error("Failed to duplicate landing page."),
   });
 
+  const filteredPages = useMemo(() => {
+    if (!pages?.length) return [];
+    const q = debouncedSearch.toLowerCase();
+    return pages.filter((page) => {
+      if (statusFilter === "active" && !page.is_active) return false;
+      if (statusFilter === "inactive" && page.is_active) return false;
+      if (ctaFilter !== "all" && page.default_cta_type !== ctaFilter) return false;
+      if (!q) return true;
+      const ctaLabel = getDefaultCtaLabel(page);
+      return (
+        page.name.toLowerCase().includes(q) ||
+        page.slug.toLowerCase().includes(q) ||
+        ctaLabel.toLowerCase().includes(q)
+      );
+    });
+  }, [pages, debouncedSearch, statusFilter, ctaFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPages.length / PAGES_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedPages = filteredPages.slice(
+    (safeCurrentPage - 1) * PAGES_PER_PAGE,
+    safeCurrentPage * PAGES_PER_PAGE,
+  );
+
+  const toggleSelectAll = () => {
+    if (!paginatedPages.length) return;
+    const pageIds = paginatedPages.map((p) => p.id);
+    const allSelected = pageIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
   const editing = pages?.find((p) => p.id === editingId) ?? null;
   const selectedArray = Array.from(selectedIds);
   const isPending =
@@ -267,32 +336,76 @@ export default function LandingPages() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Landing Pages</h1>
-          <p className="text-muted-foreground">
-            Manage one-page marketing landing pages with custom hero sliders, SEO copy, and tracking-friendly CTAs.
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Landing Pages</h1>
         <Button onClick={() => setCreateOpen(true)} className="w-fit">
           <Plus className="h-4 w-4 mr-2" />
           Add landing page
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">All landing pages</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedArray.length > 0 ? (
-            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3">
-              <p className="text-sm text-muted-foreground mr-2">
-                {selectedArray.length} selected
-              </p>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full max-w-md flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search name, slug, or CTA..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-8 text-sm"
+              aria-label="Search landing pages"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Tabs
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value as "all" | "active" | "inactive");
+                setCurrentPage(1);
+              }}
+            >
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="px-2.5 text-xs">
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="active" className="px-2.5 text-xs">
+                  Active
+                </TabsTrigger>
+                <TabsTrigger value="inactive" className="px-2.5 text-xs">
+                  Inactive
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Select
+              value={ctaFilter}
+              onValueChange={(value) => {
+                setCtaFilter(value as "all" | LandingPageRow["default_cta_type"]);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[170px] text-xs">
+                <SelectValue placeholder="CTA type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All CTA types</SelectItem>
+                <SelectItem value="viewing">Book a viewing</SelectItem>
+                <SelectItem value="callback">Get a callback</SelectItem>
+                <SelectItem value="refer_friend">Refer a friend</SelectItem>
+                <SelectItem value="content_creator">Content creator</SelectItem>
+                <SelectItem value="secure_booking">Secure booking</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {selectedArray.length > 0 ? (
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+              <span className="text-xs font-medium text-muted-foreground">{selectedArray.length} selected</span>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
+                className="h-7 text-xs"
                 disabled={isPending}
                 onClick={() => bulkUpdateMutation.mutate({ ids: selectedArray, isActive: true })}
               >
@@ -302,6 +415,7 @@ export default function LandingPages() {
                 type="button"
                 size="sm"
                 variant="outline"
+                className="h-7 text-xs"
                 disabled={isPending}
                 onClick={() => bulkUpdateMutation.mutate({ ids: selectedArray, isActive: false })}
               >
@@ -311,111 +425,146 @@ export default function LandingPages() {
                 type="button"
                 size="sm"
                 variant="destructive"
+                className="h-7 text-xs"
                 disabled={isPending}
                 onClick={() => setBulkDeleteConfirm(true)}
               >
                 Delete selected
               </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Clear
+              </Button>
             </div>
           ) : null}
+
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : !pages?.length ? (
-            <p className="py-8 text-center text-muted-foreground">
+            <p className="py-8 text-center text-sm text-muted-foreground">
               No landing pages yet. Create one to get started.
             </p>
+          ) : !filteredPages.length ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {debouncedSearch
+                ? `No landing pages found matching "${debouncedSearch}".`
+                : "No landing pages match the current filters."}
+            </p>
           ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
+            <>
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        aria-label="Select all landing pages"
-                        checked={pages.length > 0 && selectedIds.size === pages.length}
-                        onCheckedChange={toggleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Default CTA</TableHead>
-                    <TableHead>Active</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pages.map((page) => (
-                    <TableRow key={page.id}>
-                      <TableCell>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="h-9 w-10 px-2">
                         <Checkbox
-                          aria-label={`Select ${page.name}`}
-                          checked={selectedIds.has(page.id)}
-                          onCheckedChange={() => toggleSelect(page.id)}
+                          aria-label="Select all on this page"
+                          checked={
+                            paginatedPages.length > 0 &&
+                            paginatedPages.every((p) => selectedIds.has(p.id))
+                          }
+                          onCheckedChange={toggleSelectAll}
                         />
-                      </TableCell>
-                      <TableCell className="font-medium">{page.name}</TableCell>
-                      <TableCell className="font-mono text-xs">{page.slug}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {page.default_cta_label || (page.default_cta_type === "callback" ? "Get a callback" : "Book a viewing")}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={page.is_active ? "default" : "secondary"}>
-                          {page.is_active ? "Yes" : "No"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Preview"
-                        >
-                          <a
-                            href={`/landing/${page.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingId(page.id)}
-                          aria-label="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => duplicateMutation.mutate(page)}
-                          disabled={duplicateMutation.isPending}
-                          aria-label="Duplicate"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => setDeleteConfirmId(page.id)}
-                          disabled={isPending}
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      </TableHead>
+                      <TableHead className="h-9 px-3 text-xs">Name</TableHead>
+                      <TableHead className="h-9 px-3 text-xs">Slug</TableHead>
+                      <TableHead className="h-9 px-3 text-xs">Default CTA</TableHead>
+                      <TableHead className="h-9 w-20 px-3 text-xs">Status</TableHead>
+                      <TableHead className="h-9 w-[148px] px-2 text-right text-xs">Actions</TableHead>
                     </TableRow>
-                  ))}
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedPages.map((page) => (
+                      <TableRow key={page.id} className="hover:bg-muted/40">
+                        <TableCell className="px-2 py-1.5">
+                          <Checkbox
+                            aria-label={`Select ${page.name}`}
+                            checked={selectedIds.has(page.id)}
+                            onCheckedChange={() => toggleSelect(page.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="max-w-[220px] truncate px-3 py-1.5 text-sm font-medium">
+                          {page.name}
+                        </TableCell>
+                        <TableCell className="px-3 py-1.5">
+                          <code className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                            {page.slug}
+                          </code>
+                        </TableCell>
+                        <TableCell className="max-w-[180px] truncate px-3 py-1.5 text-xs text-muted-foreground">
+                          {getDefaultCtaLabel(page)}
+                        </TableCell>
+                        <TableCell className="px-3 py-1.5">
+                          <Badge
+                            variant={page.is_active ? "default" : "secondary"}
+                            className="h-5 px-1.5 text-[10px] font-medium"
+                          >
+                            {page.is_active ? "Active" : "Off"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-2 py-1.5">
+                          <div className="flex items-center justify-end gap-0.5">
+                            <Button asChild variant="ghost" size="icon" className="h-7 w-7" aria-label="Preview">
+                              <a
+                                href={`/landing/${page.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setEditingId(page.id)}
+                              aria-label="Edit"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => duplicateMutation.mutate(page)}
+                              disabled={duplicateMutation.isPending}
+                              aria-label="Duplicate"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteConfirmId(page.id)}
+                              disabled={isPending}
+                              aria-label="Delete"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
-            </div>
+
+              <AdminListPagination
+                currentPage={safeCurrentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={filteredPages.length}
+                pageSize={PAGES_PER_PAGE}
+              />
+            </>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Edit sheet */}
       <Sheet open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>

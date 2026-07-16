@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -41,9 +40,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Pencil, Trash2, CheckCircle, XCircle, Star, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useSearchParams } from "react-router-dom";
+import { fetchAllSupabaseRows } from "@/utils/fetchAllSupabaseRows";
+import {
+  AdminListPagination,
+  AdminListToolbar,
+  adminIconButtonClass,
+  adminIconClass,
+  adminTableCellClass,
+  adminTableHeadClass,
+  paginateItems,
+  useDebouncedAdminSearch,
+} from "@/components/admin/AdminRecordList";
 
 type ReviewStatus = "pending" | "approved" | "rejected";
 
@@ -67,27 +77,43 @@ const statusLabels: Record<ReviewStatus, string> = {
 };
 
 export default function ReviewsList() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const statusFilter = searchParams.get("status") || "pending";
+  const [statusFilter, setStatusFilter] = useState<"all" | ReviewStatus>("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { searchQuery, setSearchQuery, debouncedSearch, currentPage, setCurrentPage } =
+    useDebouncedAdminSearch();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const { data: rows, isLoading } = useQuery({
-    queryKey: ["admin-website-reviews", statusFilter],
-    queryFn: async () => {
-      let q = supabase
-        .from("website_reviews")
-        .select("id, reviewer_name, reviewer_email, rating, title, content, status, featured, verified_purchase, created_at")
-        .order("created_at", { ascending: false });
-      if (statusFilter && statusFilter !== "all") q = q.eq("status", statusFilter);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data || []) as ReviewRow[];
-    },
+    queryKey: ["admin-website-reviews"],
+    queryFn: async () =>
+      fetchAllSupabaseRows<ReviewRow>((from, to) =>
+        supabase
+          .from("website_reviews")
+          .select("id, reviewer_name, reviewer_email, rating, title, content, status, featured, verified_purchase, created_at")
+          .order("created_at", { ascending: false })
+          .range(from, to)
+      ),
   });
+
+  const filteredRows = useMemo(() => {
+    if (!rows?.length) return [];
+    const q = debouncedSearch.toLowerCase();
+    return rows.filter((row) => {
+      if (statusFilter !== "all" && row.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        row.reviewer_name.toLowerCase().includes(q) ||
+        (row.reviewer_email ?? "").toLowerCase().includes(q) ||
+        (row.title ?? "").toLowerCase().includes(q) ||
+        row.content.toLowerCase().includes(q)
+      );
+    });
+  }, [rows, debouncedSearch, statusFilter]);
+
+  const { paginated: paginatedRows, totalPages, safePage } = paginateItems(filteredRows, currentPage);
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -190,144 +216,175 @@ export default function ReviewsList() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reviews</h1>
-          <p className="text-muted-foreground">Approve, reject, or manage reviews shown on the Reviews page.</p>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Reviews</h1>
         <Button onClick={() => setCreateOpen(true)} className="w-fit">
           <Plus className="h-4 w-4 mr-2" />
           Add review
         </Button>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Select value={statusFilter} onValueChange={(v) => setSearchParams({ status: v })}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-            <SelectItem value="all">All</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <div className="space-y-4">
+        <AdminListToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search reviewer, title or content..."
+          searchAriaLabel="Search reviews"
+          filters={
+            <Tabs
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value as "all" | ReviewStatus);
+                setCurrentPage(1);
+              }}
+            >
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="px-2.5 text-xs">
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="pending" className="px-2.5 text-xs">
+                  Pending
+                </TabsTrigger>
+                <TabsTrigger value="approved" className="px-2.5 text-xs">
+                  Approved
+                </TabsTrigger>
+                <TabsTrigger value="rejected" className="px-2.5 text-xs">
+                  Rejected
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          }
+        />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {statusFilter && statusFilter !== "all" ? statusLabels[statusFilter as ReviewStatus] : "All"} reviews
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : !rows?.length ? (
-            <p className="py-8 text-center text-muted-foreground">No reviews yet.</p>
-          ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Reviewer</TableHead>
-                    <TableHead>Rating</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Content</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Featured</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>
-                        <div>
-                          <span className="font-medium">{row.reviewer_name}</span>
-                          {row.reviewer_email && (
-                            <p className="text-xs text-muted-foreground truncate max-w-[140px]">{row.reviewer_email}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-primary text-primary" />
-                          <span>{row.rating}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[160px] truncate">{row.title ?? "—"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{row.content}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            row.status === "approved"
-                              ? "default"
-                              : row.status === "rejected"
-                              ? "destructive"
-                              : "secondary"
-                          }
-                        >
-                          {statusLabels[row.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={row.featured}
-                          onCheckedChange={(checked) => toggleFeatured.mutate({ id: row.id, featured: checked })}
-                          disabled={row.status !== "approved" || toggleFeatured.isPending}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !rows?.length ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">No reviews yet.</p>
+        ) : !filteredRows.length ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {debouncedSearch ? `No reviews found matching "${debouncedSearch}".` : "No reviews match the current filters."}
+          </p>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={adminTableHeadClass}>Reviewer</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-16`}>Rating</TableHead>
+                  <TableHead className={adminTableHeadClass}>Title</TableHead>
+                  <TableHead className={adminTableHeadClass}>Content</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-24`}>Status</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-20`}>Featured</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-32 text-right`}>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedRows.map((row) => (
+                  <TableRow key={row.id} className="hover:bg-muted/40">
+                    <TableCell className={adminTableCellClass}>
+                      <div>
+                        <span className="text-sm font-medium">{row.reviewer_name}</span>
+                        {row.reviewer_email && (
+                          <p className="max-w-[140px] truncate text-[10px] text-muted-foreground">{row.reviewer_email}</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className={adminTableCellClass}>
+                      <div className="flex items-center gap-0.5 text-xs">
+                        <Star className="h-3 w-3 fill-primary text-primary" />
+                        <span>{row.rating}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={`${adminTableCellClass} max-w-[140px] truncate text-xs`}>
+                      {row.title ?? "—"}
+                    </TableCell>
+                    <TableCell className={`${adminTableCellClass} max-w-[180px] truncate text-xs text-muted-foreground`}>
+                      {row.content}
+                    </TableCell>
+                    <TableCell className={adminTableCellClass}>
+                      <Badge
+                        variant={
+                          row.status === "approved"
+                            ? "default"
+                            : row.status === "rejected"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                        className="h-5 px-1.5 text-[10px] font-medium"
+                      >
+                        {statusLabels[row.status]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className={adminTableCellClass}>
+                      <Switch
+                        checked={row.featured}
+                        onCheckedChange={(checked) => toggleFeatured.mutate({ id: row.id, featured: checked })}
+                        disabled={row.status !== "approved" || toggleFeatured.isPending}
+                        className="scale-75"
+                      />
+                    </TableCell>
+                    <TableCell className={adminTableCellClass}>
+                      <div className="flex items-center justify-end gap-0.5">
                         {row.status === "pending" && (
                           <>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-green-600"
+                              className={`${adminIconButtonClass} text-green-600 hover:text-green-600`}
                               onClick={() => approveMutation.mutate(row.id)}
                               disabled={approveMutation.isPending}
                               aria-label="Approve"
                             >
-                              <CheckCircle className="h-4 w-4" />
+                              <CheckCircle className={adminIconClass} />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive"
+                              className={`${adminIconButtonClass} text-destructive hover:text-destructive`}
                               onClick={() => rejectMutation.mutate(row.id)}
                               disabled={rejectMutation.isPending}
                               aria-label="Reject"
                             >
-                              <XCircle className="h-4 w-4" />
+                              <XCircle className={adminIconClass} />
                             </Button>
                           </>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => setEditingId(row.id)} aria-label="Edit">
-                          <Pencil className="h-4 w-4" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={adminIconButtonClass}
+                          onClick={() => setEditingId(row.id)}
+                          aria-label="Edit"
+                        >
+                          <Pencil className={adminIconClass} />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive"
+                          className={`${adminIconButtonClass} text-destructive hover:text-destructive`}
                           onClick={() => setDeleteId(row.id)}
                           aria-label="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className={adminIconClass} />
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
 
-      {/* Edit dialog */}
+            <AdminListPagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredRows.length}
+            />
+          </>
+        )}
+      </div>
+
       <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -346,7 +403,6 @@ export default function ReviewsList() {
         </DialogContent>
       </Dialog>
 
-      {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -369,7 +425,6 @@ export default function ReviewsList() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirm */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

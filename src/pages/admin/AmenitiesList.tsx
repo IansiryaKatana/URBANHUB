@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -24,8 +23,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { fetchAllSupabaseRows } from "@/utils/fetchAllSupabaseRows";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import {
+  AdminListPagination,
+  AdminListToolbar,
+  adminIconButtonClass,
+  adminIconClass,
+  adminTableCellClass,
+  adminTableHeadClass,
+  paginateItems,
+  useDebouncedAdminSearch,
+} from "@/components/admin/AdminRecordList";
 
 type AmenityRow = {
   id: string;
@@ -40,19 +51,38 @@ type AmenityRow = {
 export default function AmenitiesList() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const { searchQuery, setSearchQuery, debouncedSearch, currentPage, setCurrentPage } =
+    useDebouncedAdminSearch();
   const queryClient = useQueryClient();
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["admin-website-amenities"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("website_amenities")
-        .select("id, title, short_description, vertical_image_url, horizontal_image_url, display_order, is_active")
-        .order("display_order", { ascending: true });
-      if (error) throw error;
-      return (data || []) as AmenityRow[];
-    },
+    queryFn: async () =>
+      fetchAllSupabaseRows<AmenityRow>((from, to) =>
+        supabase
+          .from("website_amenities")
+          .select("id, title, short_description, vertical_image_url, horizontal_image_url, display_order, is_active")
+          .order("display_order", { ascending: true })
+          .range(from, to)
+      ),
   });
+
+  const filteredRows = useMemo(() => {
+    if (!rows?.length) return [];
+    const q = debouncedSearch.toLowerCase();
+    return rows.filter((row) => {
+      if (statusFilter === "active" && !row.is_active) return false;
+      if (statusFilter === "inactive" && row.is_active) return false;
+      if (!q) return true;
+      return (
+        row.title.toLowerCase().includes(q) ||
+        (row.short_description ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [rows, debouncedSearch, statusFilter]);
+
+  const { paginated: paginatedRows, totalPages, safePage } = paginateItems(filteredRows, currentPage);
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: Partial<AmenityRow> }) => {
@@ -105,76 +135,124 @@ export default function AmenitiesList() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Amenities</h1>
-          <p className="text-muted-foreground">Amenities shown on the Studios catalog and About page.</p>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Amenities</h1>
         <Button onClick={() => setCreateOpen(true)} className="w-fit">
           <Plus className="h-4 w-4 mr-2" />
           Add amenity
         </Button>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">All amenities</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : !rows?.length ? (
-            <p className="py-8 text-center text-muted-foreground">No amenities yet. Add one to get started.</p>
-          ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Images</TableHead>
-                    <TableHead>Active</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="w-16">{row.display_order}</TableCell>
-                      <TableCell className="font-medium">{row.title}</TableCell>
-                      <TableCell className="max-w-[280px] truncate text-muted-foreground">{row.short_description ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {(row.vertical_image_url || row.horizontal_image_url) ? "Yes" : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={row.is_active ? "default" : "secondary"}>{row.is_active ? "Yes" : "No"}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setEditingId(row.id)} aria-label="Edit">
-                          <Pencil className="h-4 w-4" />
+
+      <div className="space-y-4">
+        <AdminListToolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search title or description..."
+          searchAriaLabel="Search amenities"
+          filters={
+            <Tabs
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value as "all" | "active" | "inactive");
+                setCurrentPage(1);
+              }}
+            >
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="px-2.5 text-xs">
+                  All
+                </TabsTrigger>
+                <TabsTrigger value="active" className="px-2.5 text-xs">
+                  Active
+                </TabsTrigger>
+                <TabsTrigger value="inactive" className="px-2.5 text-xs">
+                  Inactive
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          }
+        />
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !rows?.length ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">No amenities yet. Add one to get started.</p>
+        ) : !filteredRows.length ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            {debouncedSearch ? `No amenities found matching "${debouncedSearch}".` : "No amenities match the current filters."}
+          </p>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={`${adminTableHeadClass} w-14`}>Order</TableHead>
+                  <TableHead className={adminTableHeadClass}>Title</TableHead>
+                  <TableHead className={adminTableHeadClass}>Description</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-16`}>Images</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-20`}>Status</TableHead>
+                  <TableHead className={`${adminTableHeadClass} w-24 text-right`}>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedRows.map((row) => (
+                  <TableRow key={row.id} className="hover:bg-muted/40">
+                    <TableCell className={`${adminTableCellClass} text-xs text-muted-foreground`}>
+                      {row.display_order}
+                    </TableCell>
+                    <TableCell className={`${adminTableCellClass} text-sm font-medium`}>{row.title}</TableCell>
+                    <TableCell className={`${adminTableCellClass} max-w-[280px] truncate text-xs text-muted-foreground`}>
+                      {row.short_description ?? "—"}
+                    </TableCell>
+                    <TableCell className={`${adminTableCellClass} text-xs text-muted-foreground`}>
+                      {row.vertical_image_url || row.horizontal_image_url ? "Yes" : "—"}
+                    </TableCell>
+                    <TableCell className={adminTableCellClass}>
+                      <Badge
+                        variant={row.is_active ? "default" : "secondary"}
+                        className="h-5 px-1.5 text-[10px] font-medium"
+                      >
+                        {row.is_active ? "Active" : "Off"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className={adminTableCellClass}>
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={adminIconButtonClass}
+                          onClick={() => setEditingId(row.id)}
+                          aria-label="Edit"
+                        >
+                          <Pencil className={adminIconClass} />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive"
+                          className={`${adminIconButtonClass} text-destructive hover:text-destructive`}
                           onClick={() => deleteMutation.mutate(row.id)}
                           disabled={deleteMutation.isPending}
                           aria-label="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className={adminIconClass} />
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
 
-      {/* Edit dialog */}
+            <AdminListPagination
+              currentPage={safePage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={filteredRows.length}
+            />
+          </>
+        )}
+      </div>
+
       <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -191,12 +269,13 @@ export default function AmenitiesList() {
         </DialogContent>
       </Dialog>
 
-      {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" aria-describedby="add-amenity-desc">
           <DialogHeader>
             <DialogTitle>Add amenity</DialogTitle>
-            <DialogDescription id="add-amenity-desc" className="sr-only">Add a new amenity with title, description and images.</DialogDescription>
+            <DialogDescription id="add-amenity-desc" className="sr-only">
+              Add a new amenity with title, description and images.
+            </DialogDescription>
           </DialogHeader>
           <AmenityForm
             initial={null}

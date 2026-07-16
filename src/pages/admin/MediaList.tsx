@@ -1,8 +1,7 @@
-import { useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -27,6 +26,16 @@ import { toast } from "sonner";
 import ImageSlotsList from "./ImageSlotsList";
 import TestimonialsList from "./TestimonialsList";
 import ArrivalStepsList from "./ArrivalStepsList";
+import {
+  AdminListPagination,
+  AdminListToolbar,
+  adminIconButtonClass,
+  adminIconClass,
+  adminTableCellClass,
+  adminTableHeadClass,
+  paginateItems,
+  useDebouncedAdminSearch,
+} from "@/components/admin/AdminRecordList";
 
 const BUCKET = "website";
 const MAX_SIZE_MB = 5;
@@ -52,6 +61,8 @@ export default function MediaList() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { searchQuery, setSearchQuery, debouncedSearch, currentPage, setCurrentPage } =
+    useDebouncedAdminSearch();
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["admin-website-media-library"],
@@ -151,19 +162,44 @@ export default function MediaList() {
   };
 
   const toggleSelectAll = () => {
-    if (!rows?.length) return;
-    if (selectedIds.size === rows.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(rows.map((r) => r.id)));
+    if (!paginatedRows.length) return;
+    const pageIds = paginatedRows.map((r) => r.id);
+    const allPageSelected = pageIds.every((id) => selectedIds.has(id));
+    if (allPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
   };
 
   const editing = rows?.find((r) => r.id === editingId);
+  const filteredRows = useMemo(() => {
+    if (!rows?.length) return [];
+    const q = debouncedSearch.toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) =>
+      [
+        row.file_name,
+        row.file_url,
+        row.alt_text ?? "",
+        row.caption ?? "",
+        row.folder ?? "",
+      ].some((value) => value.toLowerCase().includes(q))
+    );
+  }, [rows, debouncedSearch]);
+  const { paginated: paginatedRows, totalPages, safePage } = paginateItems(filteredRows, currentPage);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Media</h1>
-        <p className="text-muted-foreground">Upload and manage images. Assign images to hero sections in Website Image Slots.</p>
-      </div>
+      <h1 className="text-2xl font-bold tracking-tight">Media</h1>
 
       <Tabs defaultValue="library" className="space-y-4">
         <TabsList className="grid w-full max-w-5xl grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
@@ -190,120 +226,141 @@ export default function MediaList() {
         </TabsList>
 
         <TabsContent value="library" className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-2">
-          {selectedIds.size > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => deleteMutation.mutate(Array.from(selectedIds))}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-              Delete {selectedIds.size}
-            </Button>
-          )}
-          <Button onClick={() => inputRef.current?.click()} disabled={uploading} className="w-fit">
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-            Upload
-          </Button>
-          <input
-            ref={inputRef}
-            type="file"
-            accept={ALLOWED_TYPES.join(",")}
-            multiple
-            className="hidden"
-            onChange={handleUpload}
-          />
-        </div>
-      </div>
+          <div className="space-y-4">
+            <AdminListToolbar
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder="Search media by name, alt text, caption or folder..."
+              searchAriaLabel="Search media"
+              filters={
+                <div className="flex gap-2">
+                  {selectedIds.size > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => deleteMutation.mutate(Array.from(selectedIds))}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Trash2 className="h-3.5 w-3.5 mr-1.5" />}
+                      Delete {selectedIds.size}
+                    </Button>
+                  )}
+                  <Button onClick={() => inputRef.current?.click()} disabled={uploading} className="h-8 w-fit text-xs">
+                    {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                    Upload
+                  </Button>
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept={ALLOWED_TYPES.join(",")}
+                    multiple
+                    className="hidden"
+                    onChange={handleUpload}
+                  />
+                </div>
+              }
+            />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">All media</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : !rows?.length ? (
-            <div className="py-16 text-center border border-dashed rounded-lg">
-              <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">No media yet. Upload images to get started.</p>
-              <Button onClick={() => inputRef.current?.click()} disabled={uploading}>
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                Upload images
-              </Button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto -mx-6 px-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={rows.length > 0 && selectedIds.size === rows.length}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Select all"
-                      />
-                    </TableHead>
-                    <TableHead className="w-20">Preview</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Alt / Caption</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : !rows?.length ? (
+              <div className="rounded-lg border border-dashed py-16 text-center">
+                <ImageIcon className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                <p className="mb-4 text-sm text-muted-foreground">No media yet. Upload images to get started.</p>
+                <Button onClick={() => inputRef.current?.click()} disabled={uploading}>
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Upload images
+                </Button>
+              </div>
+            ) : !filteredRows.length ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {debouncedSearch ? `No media found matching "${debouncedSearch}".` : "No media matches the current filters."}
+              </p>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className={`${adminTableHeadClass} w-10`}>
                         <Checkbox
-                          checked={selectedIds.has(row.id)}
-                          onCheckedChange={() => toggleSelect(row.id)}
-                          aria-label={`Select ${row.file_name}`}
+                          checked={paginatedRows.length > 0 && paginatedRows.every((row) => selectedIds.has(row.id))}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all on this page"
                         />
-                      </TableCell>
-                      <TableCell>
-                        <div className="w-16 h-16 rounded overflow-hidden bg-muted flex-shrink-0">
-                          <img src={row.file_url} alt={row.alt_text || row.file_name} className="w-full h-full object-cover" />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium truncate block max-w-[200px]" title={row.file_name}>{row.file_name}</span>
-                        <span className="text-xs text-muted-foreground truncate block max-w-[200px]">{row.file_url}</span>
-                      </TableCell>
-                      <TableCell className="max-w-[180px]">
-                        <span className="truncate block text-sm">{row.alt_text || "—"}</span>
-                        <span className="truncate block text-xs text-muted-foreground">{row.caption || "—"}</span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {row.file_size ? `${(row.file_size / 1024).toFixed(1)} KB` : "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setEditingId(row.id)} aria-label="Edit">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => deleteMutation.mutate([row.id])}
-                          disabled={deleteMutation.isPending}
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      </TableHead>
+                      <TableHead className={`${adminTableHeadClass} w-20`}>Preview</TableHead>
+                      <TableHead className={adminTableHeadClass}>Name</TableHead>
+                      <TableHead className={adminTableHeadClass}>Alt / Caption</TableHead>
+                      <TableHead className={`${adminTableHeadClass} w-20`}>Size</TableHead>
+                      <TableHead className={`${adminTableHeadClass} w-24 text-right`}>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedRows.map((row) => (
+                      <TableRow key={row.id} className="hover:bg-muted/40">
+                        <TableCell className={adminTableCellClass}>
+                          <Checkbox
+                            checked={selectedIds.has(row.id)}
+                            onCheckedChange={() => toggleSelect(row.id)}
+                            aria-label={`Select ${row.file_name}`}
+                          />
+                        </TableCell>
+                        <TableCell className={adminTableCellClass}>
+                          <div className="h-12 w-12 overflow-hidden rounded bg-muted">
+                            <img src={row.file_url} alt={row.alt_text || row.file_name} className="h-full w-full object-cover" />
+                          </div>
+                        </TableCell>
+                        <TableCell className={adminTableCellClass}>
+                          <span className="block max-w-[220px] truncate text-sm font-medium" title={row.file_name}>{row.file_name}</span>
+                          <span className="block max-w-[220px] truncate text-[10px] text-muted-foreground">{row.file_url}</span>
+                        </TableCell>
+                        <TableCell className={`${adminTableCellClass} max-w-[220px]`}>
+                          <span className="block truncate text-sm">{row.alt_text || "—"}</span>
+                          <span className="block truncate text-[10px] text-muted-foreground">{row.caption || "—"}</span>
+                        </TableCell>
+                        <TableCell className={`${adminTableCellClass} text-xs text-muted-foreground`}>
+                          {row.file_size ? `${(row.file_size / 1024).toFixed(1)} KB` : "—"}
+                        </TableCell>
+                        <TableCell className={adminTableCellClass}>
+                          <div className="flex items-center justify-end gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={adminIconButtonClass}
+                              onClick={() => setEditingId(row.id)}
+                              aria-label="Edit"
+                            >
+                              <Pencil className={adminIconClass} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`${adminIconButtonClass} text-destructive hover:text-destructive`}
+                              onClick={() => deleteMutation.mutate([row.id])}
+                              disabled={deleteMutation.isPending}
+                              aria-label="Delete"
+                            >
+                              <Trash2 className={adminIconClass} />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                <AdminListPagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  totalItems={filteredRows.length}
+                />
+              </>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="testimonials" className="space-y-4">
