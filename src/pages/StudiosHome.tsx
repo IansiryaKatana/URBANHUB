@@ -390,12 +390,9 @@ const PricingCard = ({ plan, contractLength, availability }: { plan: any; contra
       <div className="flex justify-between items-start mb-6">
         <div className="space-y-1">
           <h3 className="text-3xl font-display font-black uppercase text-white tracking-wide leading-[1.1]">
-            {plan.name.split(' ').map((word: string, i: number) => (
-              <React.Fragment key={i}>
-                {word}
-                {i === 0 && <br/>}
-              </React.Fragment>
-            ))}
+            {plan.name.split(" ")[0]}
+            <br />
+            {plan.name.split(" ").slice(1).join(" ")}
           </h3>
         </div>
         <div className="text-right">

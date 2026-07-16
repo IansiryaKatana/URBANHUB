@@ -149,7 +149,7 @@ const FAQS = [
   },
   {
     q: "What should I do when I arrive in the UK?",
-    a: "Let your family know you've arrived safely, check into Urban Hub and settle in, enrol at UCLan and collect your student ID, register with a local GP, and open a UK bank account. Your Urban Hub licence agreement counts as proof of address for opening a bank account and registering with a doctor.",
+    a: "Let your family know you've arrived safely, check into Urban Hub and settle in, enrol at the University of Lancashire and collect your student ID, register with a local GP, and open a UK bank account. Your Urban Hub licence agreement counts as proof of address for opening a bank account and registering with a doctor.",
   },
 ];
 

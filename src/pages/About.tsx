@@ -458,8 +458,8 @@ const About = () => {
               success and personal well-being.
             </AnimatedParagraph>
             <AnimatedParagraph delay={0.6}>
-              Our prime location puts you within walking distance of the University of Central
-              Lancashire (UCLan) and Preston city centre, giving you easy access to everything
+              Our prime location puts you within walking distance of the University of
+              Lancashire and Preston city centre, giving you easy access to everything
               you need. Whether you&apos;re looking for{" "}
               <Link to="/short-term" className="underline hover:text-accent-yellow transition-colors">
                 short-term rentals
@@ -645,21 +645,21 @@ const FacilitiesSection = () => {
       id: 2,
       number: "02",
       title: "GAME ROOM",
-      description: "Our Game Room brings the fun to your UCLan student accommodation. Whether you're into table tennis, video games, or a bit of friendly competition, this space is the ultimate student hangout. It's all part of what makes Urban Hub one of the best student apartments in Preston – where study and play go hand-in-hand.",
+      description: "Our Game Room brings the fun to your University of Lancashire student accommodation. Whether you're into table tennis, video games, or a bit of friendly competition, this space is the ultimate student hangout. It's all part of what makes Urban Hub one of the best student apartments in Preston – where study and play go hand-in-hand.",
       image: gameRoomImg,
     },
     {
       id: 3,
       number: "03",
       title: "CAFE & RETAIL UNITS",
-      description: "On-Site Café & Retail Units – Preston Student Housing Made Easy. Living at Urban Hub means you don't need to travel far for your essentials or your caffeine fix. With on-site cafés and retail spaces, we bring convenience to student living in Preston – whether you're on a study break or doing a late-night snack run. Another reason why our accommodation near UCLan stands out.",
+      description: "On-Site Café & Retail Units – Preston Student Housing Made Easy. Living at Urban Hub means you don't need to travel far for your essentials or your caffeine fix. With on-site cafés and retail spaces, we bring convenience to student living in Preston – whether you're on a study break or doing a late-night snack run. Another reason why our accommodation near the University of Lancashire stands out.",
       image: cafeRetailImg,
     },
     {
       id: 4,
       number: "04",
       title: "TESCO RETAIL STORE",
-      description: "Tesco Onsite – UCLan Accommodation with Built-In Convenience. Forget the food shop struggles. At Urban Hub, you've got a Tesco grocery store right on your doorstep. Stock up on fresh food, snacks, or last-minute uni supplies – all without leaving your building. That's premium student accommodation in Preston, done right.",
+      description: "Tesco Onsite – University of Lancashire Accommodation with Built-In Convenience. Forget the food shop struggles. At Urban Hub, you've got a Tesco grocery store right on your doorstep. Stock up on fresh food, snacks, or last-minute uni supplies – all without leaving your building. That's premium student accommodation in Preston, done right.",
       image: tescoImg,
     },
     {
@@ -680,7 +680,7 @@ const FacilitiesSection = () => {
       id: 7,
       number: "07",
       title: "EQUIPPED GYM",
-      description: "Fully Equipped Gym – Fitness Built into Your Student Life in Preston. No more excuses. Our on-site gym means staying fit is easy, even during deadline season. From cardio to weights, everything you need is here – and it's all part of your UCLan student accommodation at Urban Hub. Healthier lifestyle, zero travel time.",
+      description: "Fully Equipped Gym – Fitness Built into Your Student Life in Preston. No more excuses. Our on-site gym means staying fit is easy, even during deadline season. From cardio to weights, everything you need is here – and it's all part of your University of Lancashire student accommodation at Urban Hub. Healthier lifestyle, zero travel time.",
       image: equippedGymImg,
     },
   ];

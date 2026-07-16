@@ -304,7 +304,7 @@ export const CreatorFormDialog = ({
                   <FormItem>
                     <FormLabel>City / University</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Preston / UCLan" {...field} />
+                      <Input placeholder="e.g. Preston / University of Lancashire" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

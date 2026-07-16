@@ -51,8 +51,8 @@ const locations: Record<string, MapLocation> = {
     ),
     color: "#ff2020",
   },
-  uclan: {
-    name: "University of Central Lancashire (UCLan)",
+  universityOfLancashire: {
+    name: "University of Lancashire",
     position: [53.7631, -2.7075],
     Icon: GraduationCap,
     markerSvg: iconSvg(
@@ -153,7 +153,7 @@ const FindUsMap = () => {
     setMapLoaded(true);
   }, []);
 
-  const routeToUCLan = calculateRoute(URBAN_HUB_POSITION, locations.uclan.position);
+  const routeToUniversity = calculateRoute(URBAN_HUB_POSITION, locations.universityOfLancashire.position);
   const columnHeight = "h-[500px] md:h-[600px] lg:h-[700px]";
   const selectedPosition = selectedLocation ? locations[selectedLocation]?.position ?? null : null;
 
@@ -259,7 +259,7 @@ const FindUsMap = () => {
                   />
 
                   <Polyline
-                    positions={routeToUCLan}
+                    positions={routeToUniversity}
                     pathOptions={{
                       color: "#ff2020",
                       weight: 4,
@@ -317,7 +317,7 @@ const FindUsMap = () => {
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-1 w-8 bg-[#ff2020] opacity-60" />
-                <span>Walking Route to UCLan</span>
+                <span>Walking Route to University of Lancashire</span>
               </div>
             </div>
           </div>

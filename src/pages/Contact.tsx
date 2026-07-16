@@ -81,7 +81,9 @@ const Contact = () => {
               <Link to="/studios" className="underline hover:text-accent-yellow transition-colors">book a viewing</Link>
               {" "}or have{" "}
               <Link to="/faq" className="underline hover:text-accent-yellow transition-colors">FAQ</Link>
-              {" "}queries? We&apos;ve got you covered.
+              {" "}queries?
+              <br className="hidden md:block" />
+              We&apos;ve got you covered.
             </AnimatedParagraph>
             <AnimatedText delay={0.3}>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

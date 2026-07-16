@@ -50,7 +50,7 @@ type ShortTermFormValues = zod.infer<typeof shortTermSchema>;
 
 const touristDescriptionParagraph = (
   <>
-    No surprise bills. Rooms for every budget. En-suites, studios & shared apartments. Close to everything that matters (UCLan, Aldi, bars, gym). Quiet study zones and party-ready social spaces. Need{" "}
+    No surprise bills. Rooms for every budget. En-suites, studios & shared apartments. Close to everything that matters (University of Lancashire, Aldi, bars, gym). Quiet study zones and party-ready social spaces. Need{" "}
     <Link to="/studios" className="underline hover:text-accent-yellow transition-colors">academic year</Link>{" "}
     stays? See our{" "}
     <Link to="/contact" className="underline hover:text-accent-yellow transition-colors">contact</Link>{" "}
@@ -60,7 +60,7 @@ const touristDescriptionParagraph = (
 
 const keyworkerDescriptionParagraph = (
   <>
-    No surprise bills. Rooms for every budget. En-suites, studios & shared apartments. Close to everything that matters (UCLan, Aldi, bars, gym). Quiet study zones and party-ready social spaces.{" "}
+    No surprise bills. Rooms for every budget. En-suites, studios & shared apartments. Close to everything that matters (University of Lancashire, Aldi, bars, gym). Quiet study zones and party-ready social spaces.{" "}
     <Link to="/studios" className="underline hover:text-accent-yellow transition-colors">View studios</Link>{" "}
     or{" "}
     <Link to="/faq" className="underline hover:text-accent-yellow transition-colors">FAQ</Link>{" "}

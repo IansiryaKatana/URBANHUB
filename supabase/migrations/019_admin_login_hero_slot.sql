@@ -1,4 +1,4 @@
--- Image slot for admin login page background (e.g. UCLAN / students happy).
+-- Image slot for admin login page background (e.g. University of Lancashire / students happy).
 -- Admins can replace via Website Admin → Image Slots.
 INSERT INTO website_image_slots (slot_key, display_name, fallback_url)
 VALUES (
