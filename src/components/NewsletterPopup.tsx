@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { isAnyLeadModalOpen, subscribeLeadModalGate } from "@/lib/leadModalGate";
 
 const STORAGE_KEY = "newsletter_popup_shown";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -27,6 +28,13 @@ const DEFAULT_SETTINGS = {
   success_message: "Thanks for subscribing!",
 };
 
+function hasOpenLeadUi() {
+  if (isAnyLeadModalOpen()) return true;
+  if (typeof document === "undefined") return false;
+  // Belt-and-suspenders for any Vaul drawer left open without gate registration
+  return Boolean(document.querySelector('[data-vaul-drawer][data-state="open"]'));
+}
+
 export default function NewsletterPopup() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
@@ -36,6 +44,7 @@ export default function NewsletterPopup() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [settings, setSettings] = useState<typeof DEFAULT_SETTINGS | null>(null);
+  const pendingShowRef = useRef(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -58,6 +67,15 @@ export default function NewsletterPopup() {
     fetchSettings();
   }, []);
 
+  const tryShow = () => {
+    if (hasOpenLeadUi()) {
+      pendingShowRef.current = true;
+      return;
+    }
+    pendingShowRef.current = false;
+    setOpen(true);
+  };
+
   useEffect(() => {
     if (isAdmin) return;
     const s = settings ?? DEFAULT_SETTINGS;
@@ -70,12 +88,30 @@ export default function NewsletterPopup() {
     }
 
     const delay = (s.show_after_seconds || 5) * 1000;
-    const t = setTimeout(() => setOpen(true), delay);
+    const t = setTimeout(tryShow, delay);
     return () => clearTimeout(t);
   }, [settings, isAdmin]);
 
+  // Defer Stay Updated while any lead dialog/drawer is open; resume when they close
+  useEffect(() => {
+    if (isAdmin) return;
+    return subscribeLeadModalGate(() => {
+      if (hasOpenLeadUi()) {
+        setOpen((wasOpen) => {
+          if (wasOpen) pendingShowRef.current = true;
+          return false;
+        });
+        return;
+      }
+      if (pendingShowRef.current) {
+        tryShow();
+      }
+    });
+  }, [isAdmin]);
+
   const handleClose = () => {
     setOpen(false);
+    pendingShowRef.current = false;
     const s = settings ?? DEFAULT_SETTINGS;
     if (s.show_once_per_session) sessionStorage.setItem(STORAGE_KEY, "1");
     if (s.show_once_per_day) localStorage.setItem(STORAGE_KEY, String(Date.now()));

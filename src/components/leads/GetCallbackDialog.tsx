@@ -14,6 +14,7 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLeadModalGate } from "@/hooks/useLeadModalGate";
 import { LeadForm } from "./LeadForm";
 import { pushDataLayer } from "@/utils/dataLayer";
 
@@ -46,6 +47,7 @@ export const GetCallbackDialog = ({
   ctaType,
 }: GetCallbackDialogProps) => {
   const isMobile = useIsMobile();
+  useLeadModalGate(open);
 
   useEffect(() => {
     if (open && typeof window !== "undefined") {
@@ -73,7 +75,7 @@ export const GetCallbackDialog = ({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
+      <Drawer open={open} onOpenChange={onOpenChange} handleOnly>
         <DrawerContent className="mb-0 rounded-t-[28px]">
           <DrawerHeader className="gap-0 px-6 pb-3 pt-8 text-center">
             <DrawerTitle className="text-2xl font-display font-black uppercase tracking-wide">

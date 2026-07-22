@@ -25,6 +25,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { AnimatedText } from "@/components/animations/AnimatedText";
 import TypingTitle from "@/components/TypingTitle";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLeadModalGate } from "@/hooks/useLeadModalGate";
 import {
   Drawer,
   DrawerContent,
@@ -269,6 +270,7 @@ const ShortTerm = () => {
   const [submittedTab, setSubmittedTab] = useState<"tourist" | "keyworker" | null>(null);
   const isMobile = useIsMobile();
   const [bookDrawerOpen, setBookDrawerOpen] = useState(false);
+  useLeadModalGate(bookDrawerOpen);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("choose");
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") === "keyworker" ? "keyworker" : "tourist";
@@ -399,7 +401,7 @@ const ShortTerm = () => {
       </main>
 
       {/* Mobile: bottom drawer — choose Tourist or Keyworker, then form */}
-      <Drawer open={bookDrawerOpen} onOpenChange={handleDrawerOpenChange}>
+      <Drawer open={bookDrawerOpen} onOpenChange={handleDrawerOpenChange} handleOnly>
         <DrawerContent className="mb-0 rounded-t-2xl rounded-b-none border-t border-x-0 border-b-0 [&>div:first-child]:hidden">
           {drawerStep === "choose" ? (
             <>

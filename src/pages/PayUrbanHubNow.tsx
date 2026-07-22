@@ -25,6 +25,7 @@ import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
 import { isPossiblePhoneNumber } from "libphonenumber-js";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLeadModalGate } from "@/hooks/useLeadModalGate";
 import {
   Drawer,
   DrawerContent,
@@ -324,6 +325,7 @@ const PayUrbanHubNow = () => {
   const [bankDetailsOpen, setBankDetailsOpen] = useState(false);
   const isMobile = useIsMobile();
   const [payDrawerOpen, setPayDrawerOpen] = useState(false);
+  useLeadModalGate(payDrawerOpen);
   const [drawerStep, setDrawerStep] = useState<DrawerStep>("choose");
   const [phase, setPhase] = useState<"details" | "payment">("details");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -570,7 +572,7 @@ const PayUrbanHubNow = () => {
       </main>
 
       {/* Mobile drawer */}
-      <Drawer open={payDrawerOpen} onOpenChange={handleDrawerOpenChange}>
+      <Drawer open={payDrawerOpen} onOpenChange={handleDrawerOpenChange} handleOnly>
         <DrawerContent className="mb-0 rounded-t-2xl rounded-b-none border-t border-x-0 border-b-0 [&>div:first-child]:hidden bg-white">
           {drawerStep === "choose" ? (
             <>

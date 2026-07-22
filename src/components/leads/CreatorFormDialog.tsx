@@ -13,6 +13,7 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLeadModalGate } from "@/hooks/useLeadModalGate";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
@@ -111,6 +112,7 @@ export const CreatorFormDialog = ({
   ctaSource = "inline",
 }: CreatorFormDialogProps) => {
   const isMobile = useIsMobile();
+  useLeadModalGate(open);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isCompleted, setIsCompleted] = useState(false);
   const { submitCreatorForm, isSubmitting } = useCreatorForm();
@@ -685,7 +687,7 @@ export const CreatorFormDialog = ({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={handleOpenChange}>
+      <Drawer open={open} onOpenChange={handleOpenChange} handleOnly>
         <DrawerContent className="mb-0 rounded-t-[28px]">
           <DrawerHeader className="gap-0 px-6 pb-3 pt-8 text-center">
             <DrawerTitle className="text-2xl font-display font-black uppercase tracking-wide">

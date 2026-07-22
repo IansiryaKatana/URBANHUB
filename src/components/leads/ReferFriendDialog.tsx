@@ -13,6 +13,7 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLeadModalGate } from "@/hooks/useLeadModalGate";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
@@ -146,6 +147,7 @@ export const ReferFriendDialog = ({
   ctaSource = "inline",
 }: ReferFriendDialogProps) => {
   const isMobile = useIsMobile();
+  useLeadModalGate(open);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -532,7 +534,7 @@ export const ReferFriendDialog = ({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
+      <Drawer open={open} onOpenChange={onOpenChange} handleOnly>
         <DrawerContent className="mb-0 rounded-t-[28px]">
           <DrawerHeader className="gap-0 px-6 pb-3 pt-8 text-center">
             <DrawerTitle className="text-2xl font-display font-black uppercase tracking-wide">

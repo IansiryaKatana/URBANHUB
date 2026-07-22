@@ -3,8 +3,16 @@ import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
 
-const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
+const Drawer = ({
+  shouldScaleBackground = false,
+  repositionInputs = false,
+  ...props
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+  <DrawerPrimitive.Root
+    shouldScaleBackground={shouldScaleBackground}
+    repositionInputs={repositionInputs}
+    {...props}
+  />
 );
 Drawer.displayName = "Drawer";
 
@@ -31,13 +39,19 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+        "fixed inset-x-0 bottom-0 z-50 mt-24 flex max-h-[90dvh] flex-col rounded-t-[10px] border bg-background outline-none",
         className,
       )}
       {...props}
     >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-      {children}
+      <div
+        data-vaul-handle
+        className="mx-auto mt-4 h-2 w-[100px] shrink-0 rounded-full bg-muted"
+        aria-hidden
+      />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+        {children}
+      </div>
     </DrawerPrimitive.Content>
   </DrawerPortal>
 ));
