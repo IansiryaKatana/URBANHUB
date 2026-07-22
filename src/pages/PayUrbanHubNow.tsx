@@ -202,7 +202,7 @@ function PayUrbanHubFormSection({
                     value={typeof field.value === "string" ? field.value : ""}
                     onChange={(phone) => field.onChange(phone)}
                     className={phoneInputClass}
-                    inputClassName={`!flex !h-full !w-full !border-none !bg-transparent !px-4 !py-0 focus:!outline-none focus:!ring-0 ${isLight ? "!text-gray-900 placeholder:!text-gray-500" : "!text-white placeholder:!text-white/55"}`}
+                    inputClassName={`!flex !h-full !w-full !border-none !bg-transparent !px-4 !py-0 !text-base focus:!outline-none focus:!ring-0 ${isLight ? "!text-gray-900 placeholder:!text-gray-500" : "!text-white placeholder:!text-white/55"}`}
                     countrySelectorStyleProps={{ buttonClassName: phoneButtonClass }}
                   />
                 </div>

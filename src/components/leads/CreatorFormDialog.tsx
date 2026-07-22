@@ -345,7 +345,7 @@ export const CreatorFormDialog = ({
                           onChange={(phone) => field.onChange(phone)}
                           className="flex w-full"
                           inputProps={{ placeholder: "Enter your phone number" }}
-                          inputClassName="!flex !h-10 !w-full !border-none !bg-transparent !px-3 !py-2 !text-sm !placeholder:text-muted-foreground focus:!outline-none disabled:!cursor-not-allowed disabled:!opacity-50 !shadow-none"
+                          inputClassName="!flex !h-10 !w-full !border-none !bg-transparent !px-3 !py-2 !text-base md:!text-sm !placeholder:text-muted-foreground focus:!outline-none disabled:!cursor-not-allowed disabled:!opacity-50 !shadow-none"
                           countrySelectorStyleProps={{
                             buttonClassName:
                               "!h-10 !border-none !rounded-l-md !bg-transparent !px-3 hover:!bg-accent",
@@ -440,7 +440,7 @@ export const CreatorFormDialog = ({
                   <FormLabel>What type of content do you create?</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
                       {...field}
                     >
                       {contentTypeOptions.map((opt) => (
@@ -516,7 +516,7 @@ export const CreatorFormDialog = ({
                   <FormLabel>Have you worked with brands before?</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
                       {...field}
                     >
                       {yesNoOptions.map((opt) => (
@@ -555,7 +555,7 @@ export const CreatorFormDialog = ({
                   <FormLabel>Are you able to visit Urban Hub Preston to create content?</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
                       {...field}
                     >
                       {yesNoOptions.map((opt) => (
@@ -577,7 +577,7 @@ export const CreatorFormDialog = ({
                   <FormLabel>Preferred collaboration format</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm transition-colors focus-visible:outline-none focus-visible:ring-0 focus-visible:border-ring"
                       {...field}
                     >
                       {collaborationFormatOptions.map((opt) => (

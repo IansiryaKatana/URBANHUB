@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { ArrowUp, Eye } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { supabase } from "@/integrations/supabase/client";
+import { isAnyLeadModalOpen, subscribeLeadModalGate } from "@/lib/leadModalGate";
 
 const VR_URL = "https://vr.urbanhub.uk/";
 
@@ -21,6 +22,7 @@ export default function FloatingActions() {
   const pageSlug = useMemo(() => getFloatingPageSlug(location.pathname), [location.pathname]);
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [leadModalOpen, setLeadModalOpen] = useState(() => isAnyLeadModalOpen());
 
   useEffect(() => {
     const fetchWhatsApp = async () => {
@@ -43,12 +45,18 @@ export default function FloatingActions() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    return subscribeLeadModalGate(() => {
+      setLeadModalOpen(isAnyLeadModalOpen());
+    });
+  }, []);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const isInternationalStudents = location.pathname.startsWith("/international-students");
-  if (isAdmin || isInternationalStudents) return null;
+  if (isAdmin || isInternationalStudents || leadModalOpen) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3" aria-label="Quick actions">

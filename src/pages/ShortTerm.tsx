@@ -216,7 +216,7 @@ const ShortTermFormSection = ({
                     value={typeof field.value === "string" ? field.value : ""}
                     onChange={(phone) => field.onChange(phone)}
                     className="flex w-full h-full [&_input]:!bg-transparent [&_input]:!text-white [&_input]:!outline-none [&_input]:placeholder:!text-white/55 [&_.react-international-phone-country-selector-button]:!bg-transparent [&_.react-international-phone-country-selector-button]:!text-white [&_.react-international-phone-country-selector-button]:!border-none"
-                    inputClassName="!flex !h-full !w-full !border-none !bg-transparent !px-4 !py-0 !text-white placeholder:!text-white/55 focus:!outline-none focus:!ring-0"
+                    inputClassName="!flex !h-full !w-full !border-none !bg-transparent !px-4 !py-0 !text-base !text-white placeholder:!text-white/55 focus:!outline-none focus:!ring-0"
                     countrySelectorStyleProps={{
                       buttonClassName: "!h-full !border-none !rounded-l-xl !bg-transparent !px-3 !text-white hover:!bg-white/10",
                     }}

@@ -129,14 +129,29 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    overflow-x: clip;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-size: 12px;
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   @media (min-width: 768px) {
     body {
       font-size: 16px;
+    }
+  }
+
+  /* Prevent iOS Safari auto-zoom on focus (requires >= 16px computed font-size) */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
     }
   }
 }

@@ -206,7 +206,7 @@ export const LeadForm = ({
                       inputProps={{
                         placeholder: "Phone Number",
                       }}
-                      inputClassName="!flex !h-10 !w-full !border-none !bg-transparent !px-3 !py-2 !text-sm !placeholder:text-muted-foreground focus:!outline-none disabled:!cursor-not-allowed disabled:!opacity-50 !shadow-none"
+                      inputClassName="!flex !h-10 !w-full !border-none !bg-transparent !px-3 !py-2 !text-base md:!text-sm !placeholder:text-muted-foreground focus:!outline-none disabled:!cursor-not-allowed disabled:!opacity-50 !shadow-none"
                       countrySelectorStyleProps={{
                         buttonClassName: "!h-10 !border-none !rounded-l-md !bg-transparent !px-3 hover:!bg-accent",
                       }}
