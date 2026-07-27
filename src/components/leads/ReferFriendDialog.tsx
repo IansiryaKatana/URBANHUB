@@ -32,6 +32,7 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 import { toast } from "sonner";
 import { CONTACT_WEBHOOK_URL } from "@/hooks/useContactForm";
 import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
+import { recordFormSubmitEvent } from "@/utils/recordAnalyticsEvent";
 import { useEffect } from "react";
 import {
   clearPendingPayment,
@@ -267,6 +268,10 @@ export const ReferFriendDialog = ({
           referrer_name: values.referrer_name,
           referrer_studio_number: values.referrer_studio_number,
           landing_page: landingPageSlug || null,
+          tracking_key: ctaTrackingKey || null,
+          cta_tracking_key: ctaTrackingKey || null,
+          cta_type: ctaType || "refer_friend",
+          cta_source: ctaSource || null,
           payment_intent_id: paymentIntentId,
           amount_pence: REFER_FRIEND_AMOUNT_PENCE,
           source: "stripe_client",
@@ -294,6 +299,10 @@ export const ReferFriendDialog = ({
         }
       }
       const eventId = createTrackingEventId("lp-lead");
+      recordFormSubmitEvent(
+        "refer_friend",
+        typeof window !== "undefined" ? window.location.pathname : "/",
+      );
       pushDataLayer("lp_form_submit", {
         event_action: "lp_form_submit",
         form_type: "refer_friend",

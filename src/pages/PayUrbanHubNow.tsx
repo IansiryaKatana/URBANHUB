@@ -389,6 +389,7 @@ const PayUrbanHubNow = () => {
           payment_intent_id: paymentIntentId,
           amount_pence: amountPence,
           currency: "GBP",
+          landing_page: "/pay-urban-hub-now",
           source: "stripe_client",
         },
       });

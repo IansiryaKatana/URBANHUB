@@ -41,6 +41,7 @@ import { toast } from "sonner";
 import { ArrowUpRight } from "lucide-react";
 import { CONTACT_WEBHOOK_URL } from "@/hooks/useContactForm";
 import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
+import { recordFormSubmitEvent } from "@/utils/recordAnalyticsEvent";
 import {
   clearPendingPayment,
   clearStripeRedirectParamsFromUrl,
@@ -317,6 +318,10 @@ export const SecureBookingDialog = ({
         }
       }
       const eventId = createTrackingEventId("lp-purchase");
+      recordFormSubmitEvent(
+        "pay_deposit",
+        typeof window !== "undefined" ? window.location.pathname : "/",
+      );
       pushDataLayer("lp_form_submit", {
         event_action: "lp_form_submit",
         form_type: "pay_deposit",

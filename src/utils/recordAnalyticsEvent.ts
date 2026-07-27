@@ -13,6 +13,10 @@ function getSessionId(): string {
   return s;
 }
 
+/**
+ * Conversion event — call only after a form submission is confirmed successful
+ * (CRM/webhook/DB save succeeded). Do not call from click handlers.
+ */
 export function recordFormSubmitEvent(form_type: string, page_path: string) {
   const path = page_path || "/";
   supabase
@@ -20,7 +24,7 @@ export function recordFormSubmitEvent(form_type: string, page_path: string) {
     .insert({
       event_name: "form_submit",
       page_path: path,
-      metadata: { form_type },
+      metadata: { form_type, source: "confirmed_success" },
       session_id: getSessionId(),
       user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
     })

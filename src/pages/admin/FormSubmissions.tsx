@@ -44,6 +44,11 @@ import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { fetchAllSupabaseRows } from "@/utils/fetchAllSupabaseRows";
 import {
+  formatLandingPageLabel,
+  getSubmissionCampaign,
+  getSubmissionLandingPage,
+} from "@/lib/formSubmissionSource";
+import {
   AdminListPagination,
   AdminListToolbar,
   adminIconButtonClass,
@@ -118,10 +123,16 @@ function parseTypeFilter(value: string | null): string {
   return value;
 }
 
+function parseLpFilter(value: string | null): string {
+  if (!value || value === "all") return "";
+  return value;
+}
+
 export default function FormSubmissions() {
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFilter = parseStatusFilter(searchParams.get("status"));
   const typeFilter = parseTypeFilter(searchParams.get("type"));
+  const lpFilter = parseLpFilter(searchParams.get("lp"));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -152,6 +163,19 @@ export default function FormSubmissions() {
       ),
   });
 
+  const landingPageOptions = useMemo(() => {
+    if (!rows?.length) return [];
+    const map = new Map<string, string>();
+    for (const row of rows) {
+      const lp = getSubmissionLandingPage(row.metadata);
+      if (!lp) continue;
+      if (!map.has(lp)) map.set(lp, formatLandingPageLabel(lp));
+    }
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [rows]);
+
   const filteredRows = useMemo(() => {
     if (!rows?.length) return [];
     let result = rows;
@@ -161,16 +185,28 @@ export default function FormSubmissions() {
     if (typeFilter) {
       result = result.filter((row) => row.form_type === typeFilter);
     }
+    if (lpFilter === "__none__") {
+      result = result.filter((row) => !getSubmissionLandingPage(row.metadata));
+    } else if (lpFilter) {
+      result = result.filter((row) => getSubmissionLandingPage(row.metadata) === lpFilter);
+    }
     const q = debouncedSearch.toLowerCase();
     if (!q) return result;
-    return result.filter(
-      (row) =>
+    return result.filter((row) => {
+      const lp = getSubmissionLandingPage(row.metadata);
+      const campaign = getSubmissionCampaign(row.metadata);
+      const lpLabel = lp ? formatLandingPageLabel(lp) : "";
+      return (
         row.name.toLowerCase().includes(q) ||
         row.email.toLowerCase().includes(q) ||
         (formTypeLabels[row.form_type] ?? row.form_type).toLowerCase().includes(q) ||
-        (row.message ?? "").toLowerCase().includes(q)
-    );
-  }, [rows, debouncedSearch, statusFilter, typeFilter]);
+        (row.message ?? "").toLowerCase().includes(q) ||
+        (lp ?? "").toLowerCase().includes(q) ||
+        lpLabel.toLowerCase().includes(q) ||
+        (campaign ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [rows, debouncedSearch, statusFilter, typeFilter, lpFilter]);
 
   const { paginated: paginatedRows, totalPages, safePage } = paginateItems(filteredRows, currentPage);
 
@@ -283,7 +319,7 @@ export default function FormSubmissions() {
         <AdminListToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
-          searchPlaceholder="Search name, email, type or message..."
+          searchPlaceholder="Search name, email, type, LP, campaign..."
           searchAriaLabel="Search form submissions"
           filters={
             <div className="flex flex-wrap items-center gap-2">
@@ -328,6 +364,31 @@ export default function FormSubmissions() {
                   <SelectItem value="all">All types</SelectItem>
                   {Object.entries(formTypeLabels).map(([k, v]) => (
                     <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={lpFilter || "all"}
+                onValueChange={(v) => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    if (v === "all") next.delete("lp");
+                    else next.set("lp", v);
+                    return next;
+                  });
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[180px] text-xs">
+                  <SelectValue placeholder="LP / Campaign" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All LPs</SelectItem>
+                  <SelectItem value="__none__">No LP set</SelectItem>
+                  {landingPageOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -410,6 +471,7 @@ export default function FormSubmissions() {
                     </TableHead>
                     <TableHead className={`${adminTableHeadClass} w-36`}>Date</TableHead>
                     <TableHead className={adminTableHeadClass}>Type</TableHead>
+                    <TableHead className={adminTableHeadClass}>LP / Campaign</TableHead>
                     <TableHead className={adminTableHeadClass}>Name</TableHead>
                     <TableHead className={adminTableHeadClass}>Email</TableHead>
                     <TableHead className={`${adminTableHeadClass} w-24`}>Status</TableHead>
@@ -417,7 +479,10 @@ export default function FormSubmissions() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedRows.map((row) => (
+                  {paginatedRows.map((row) => {
+                    const landingPage = getSubmissionLandingPage(row.metadata);
+                    const campaign = getSubmissionCampaign(row.metadata);
+                    return (
                     <TableRow
                       key={row.id}
                       className="cursor-pointer hover:bg-muted/40"
@@ -435,6 +500,22 @@ export default function FormSubmissions() {
                       </TableCell>
                       <TableCell className={`${adminTableCellClass} text-xs`}>
                         {formTypeLabels[row.form_type] ?? row.form_type}
+                      </TableCell>
+                      <TableCell className={`${adminTableCellClass} max-w-[160px]`}>
+                        {landingPage || campaign ? (
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-medium">
+                              {landingPage ? formatLandingPageLabel(landingPage) : "—"}
+                            </p>
+                            {campaign ? (
+                              <p className="truncate text-[10px] text-muted-foreground" title={campaign}>
+                                {campaign}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className={`${adminTableCellClass} text-sm font-medium`}>{row.name}</TableCell>
                       <TableCell className={`${adminTableCellClass} max-w-[180px] truncate text-xs text-muted-foreground`}>
@@ -471,7 +552,8 @@ export default function FormSubmissions() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
 
@@ -505,6 +587,19 @@ export default function FormSubmissions() {
                     <p className="font-medium">
                       {formTypeLabels[selected.form_type] ?? selected.form_type}
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">LP / Campaign</p>
+                    <p className="font-medium">
+                      {getSubmissionLandingPage(selected.metadata)
+                        ? formatLandingPageLabel(getSubmissionLandingPage(selected.metadata)!)
+                        : "—"}
+                    </p>
+                    {getSubmissionCampaign(selected.metadata) ? (
+                      <p className="text-xs text-muted-foreground break-all">
+                        {getSubmissionCampaign(selected.metadata)}
+                      </p>
+                    ) : null}
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Status</p>

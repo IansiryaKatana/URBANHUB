@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { recordFormSubmitEvent } from "@/utils/recordAnalyticsEvent";
 
 export type ReviewFormData = {
   reviewer_name: string;
@@ -26,6 +27,10 @@ export function useSubmitReview() {
       if (error) throw error;
     },
     onSuccess: () => {
+      recordFormSubmitEvent(
+        "review",
+        typeof window !== "undefined" ? window.location.pathname : "/reviews",
+      );
       queryClient.invalidateQueries({ queryKey: ["website-reviews-approved"] });
     },
     onError: () => {

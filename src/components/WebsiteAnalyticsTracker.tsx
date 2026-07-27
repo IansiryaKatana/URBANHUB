@@ -6,6 +6,11 @@ import { pushDataLayer } from "@/utils/dataLayer";
 
 const SESSION_KEY = "website_session_id";
 
+/** Click-time tags must never use conversion name `form_submit` (success-only via recordFormSubmitEvent). */
+function resolveClickEventName(eventName: string): string {
+  return eventName === "form_submit" ? "form_submit_click" : eventName;
+}
+
 function getSessionId(): string {
   let s = sessionStorage.getItem(SESSION_KEY);
   if (!s) {
@@ -74,16 +79,17 @@ export default function WebsiteAnalyticsTracker() {
             const element_id = el?.id ?? el?.getAttribute?.("data-analytics") ?? null;
             const element_text = (el?.textContent ?? "").trim().slice(0, 200) || null;
             const page_path = window.location.pathname || "/";
+            const event_name = resolveClickEventName(tag.event_name);
             recordEvent(
-              tag.event_name,
+              event_name,
               page_path,
               element_id,
               element_text,
-              { tag_name: tag.tag_name, category: tag.category ?? undefined }
+              { tag_name: tag.tag_name, category: tag.category ?? undefined, configured_event: tag.event_name }
             );
-            pushDataLayer(tag.event_name, {
+            pushDataLayer(event_name, {
               event_category: tag.category ?? undefined,
-              event_action: tag.event_name,
+              event_action: event_name,
               event_label: element_id ?? tag.tag_name,
               page_path,
               element_id: element_id ?? undefined,

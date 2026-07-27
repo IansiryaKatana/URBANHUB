@@ -98,11 +98,15 @@ const TIKTOK_EVENT_MAP: Record<string, string> = {
   lp_purchase: "CompletePayment",
 };
 
+/** Click attempts must not fire ad conversion pixels. */
+const TIKTOK_SKIP_EVENTS = new Set(["form_submit_click"]);
+
 /** Sanitize a custom TikTok event name to meet format rules. */
 export function toTikTokEventName(name: string): string | null {
   if (!name) return null;
   const trimmed = name.trim();
   if (!trimmed) return null;
+  if (TIKTOK_SKIP_EVENTS.has(trimmed)) return null;
 
   const mapped = TIKTOK_EVENT_MAP[trimmed];
   if (mapped) return mapped;

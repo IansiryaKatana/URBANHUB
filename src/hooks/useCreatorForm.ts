@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { recordFormSubmitEvent } from "@/utils/recordAnalyticsEvent";
 import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
+import { buildAttributionMetadata } from "@/lib/formSubmissionSource";
 import { CONTACT_WEBHOOK_URL } from "./useContactForm";
 
 export type CreatorFormData = {
@@ -53,7 +54,12 @@ async function saveCreatorToDb(formData: CreatorFormData) {
       can_visit_preston: formData.can_visit_preston,
       collaboration_format: formData.collaboration_format,
       additional_info: formData.additional_info,
-      landing_page: formData.landing_page,
+      ...buildAttributionMetadata({
+        landing_page: formData.landing_page,
+        tracking_key: formData.tracking_key,
+        cta_type: formData.cta_type,
+        cta_source: formData.cta_source,
+      }),
     },
   });
 }

@@ -194,7 +194,8 @@ Deno.serve(async (req) => {
         lead_type: "pay_deposit",
         studio_preference: (md.studio_preference || "").trim() || null,
         landing_page: (md.landing_page || "").trim() || null,
-        cta_tracking_key: (md.cta_tracking_key || "").trim() || undefined,
+        tracking_key: (md.cta_tracking_key || md.tracking_key || "").trim() || undefined,
+        cta_tracking_key: (md.cta_tracking_key || md.tracking_key || "").trim() || undefined,
         cta_type: (md.cta_type || "").trim() || undefined,
         cta_source: (md.cta_source || "").trim() || undefined,
         payment_status: "succeeded",
@@ -231,6 +232,10 @@ Deno.serve(async (req) => {
         referrer_name: (md.referrer_name || "").trim(),
         referrer_studio_number: (md.referrer_studio_number || "").trim(),
         landing_page: (md.landing_page || "").trim() || null,
+        tracking_key: (md.cta_tracking_key || md.tracking_key || "").trim() || undefined,
+        cta_tracking_key: (md.cta_tracking_key || md.tracking_key || "").trim() || undefined,
+        cta_type: (md.cta_type || "").trim() || undefined,
+        cta_source: (md.cta_source || "").trim() || undefined,
         payment_intent_id: paymentIntentId,
         amount_pence: amountPence,
         source: "website_stripe_webhook",
@@ -252,6 +257,7 @@ Deno.serve(async (req) => {
       payment_intent_id: paymentIntentId,
       amount_pence: amountPence,
       currency: (pi.currency || "gbp").toUpperCase(),
+      landing_page: "/pay-urban-hub-now",
     };
     await postCrm(crmUrl, webhookPayload);
     await supabase.from("website_form_submissions").insert({
@@ -266,6 +272,7 @@ Deno.serve(async (req) => {
         payment_intent_id: paymentIntentId,
         amount_pence: amountPence,
         currency: (pi.currency || "gbp").toUpperCase(),
+        landing_page: "/pay-urban-hub-now",
         source: "website_stripe_webhook",
       },
     });

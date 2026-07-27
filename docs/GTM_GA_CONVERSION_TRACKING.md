@@ -22,14 +22,14 @@ All events are pushed to `window.dataLayer` with a consistent shape. Use these *
 |------------------|----------------|------------------|--------|
 | `page_view`      | Every route change (SPA) | `page_path` | GA4 page_view (SPA), which pages get traffic |
 | `lead_form_open` | User opens “Get a callback” or “Book a viewing” dialog | `form_type`, `cta_source`, `page_path` | Funnel: form opened from nav vs landing vs studios |
-| `form_submit`    | User submits a form (callback, viewing, contact, short_term) | `form_type`, `page_path` | **Conversion** – which page converted |
+| `form_submit`    | Confirmed successful form submission only (CRM/DB/payment succeeded) | `form_type`, `page_path` | **Conversion** – which page converted |
+| `form_submit_click` | User clicked a form submit button (even if validation fails) | `element_id`, `page_path` | Engagement / attempt only — **not** a conversion |
 | `cta_click`      | Nav “Get a callback”, “Book viewing”, hero CTAs, short-term CTAs, etc. | `element_id`, `page_path`, `event_label` | Which CTA was clicked and on which page |
 | `menu_open`      | Mobile/open menu opened | `page_path` | Engagement |
 | `logo_click`     | Logo clicked | `page_path` | Navigation |
 | `back_to_top`    | Floating “Back to top” clicked | `element_id` = e.g. `float-back-to-top-home` | **Per-page** – which page drove the click |
 | `vr_click`       | Floating VR link clicked | `element_id` = e.g. `float-vr-studios` | **Per-page** |
 | `whatsapp_click` | Floating WhatsApp clicked | `element_id` = e.g. `float-whatsapp-contact` | **Per-page** conversion |
-| `form_submit`     | Form submit (same as above; also from Supabase-tracked buttons) | `form_type`, `page_path` | Conversion |
 | `newsletter_signup` | Newsletter subscribe | `page_path` | Conversion |
 | `book_now_click`  | Landing “Book now” (grade card) | `element_id` = `landing-grade-book-now` | Conversion from landing |
 | `shortterm_*`    | Short-term page CTAs | `page_path` | Conversion |
@@ -151,7 +151,7 @@ Name: `GA4 Config` — Type: Google Analytics: GA4 Configuration — Measurement
    - GA4 tag: Event name = `page_view`, parameter `page_location` = `https://yoursite.com{{page_path}}` (or build from `page_path`). Optionally set as “non-interaction” if you don’t want it to affect engagement metrics like bounce.
 
 5. **Conversions in GA4**  
-   - In GA4: Admin → Events → mark `form_submit` (and optionally `lead_form_open`, `whatsapp_click`, `book_now_click`) as **Conversion**.
+   - In GA4: Admin → Events → mark `form_submit` (and optionally `lead_form_open`, `whatsapp_click`, `book_now_click`) as **Conversion**. Do **not** mark `form_submit_click` as a conversion.
 
 ---
 

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { recordFormSubmitEvent } from "@/utils/recordAnalyticsEvent";
 import { createTrackingEventId, pushDataLayer } from "@/utils/dataLayer";
+import { buildAttributionMetadata } from "@/lib/formSubmissionSource";
 import { format, parseISO } from "date-fns";
 
 export const WEBHOOK_URL = 'https://btbsslznsexidjnzizre.supabase.co/functions/v1/wordpress-webhook';
@@ -55,7 +56,12 @@ async function saveLeadToDb(formData: LeadFormData) {
       preferred_date: formData.preferred_date,
       preferred_time: formData.preferred_time,
       studio_type: formData.studio_type,
-      landing_page: formData.landing_page,
+      ...buildAttributionMetadata({
+        landing_page: formData.landing_page,
+        tracking_key: formData.tracking_key,
+        cta_type: formData.cta_type,
+        cta_source: formData.cta_source,
+      }),
     },
   });
 }
