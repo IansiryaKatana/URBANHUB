@@ -69,35 +69,73 @@ const Reviews = () => {
     }
     canonicalLink.setAttribute("href", canonical);
 
+    const businessId = `${siteUrl || "https://urbanhub.uk"}/#lodging`;
+    const businessName = companyName;
+    const streetAddress = [
+      brandingSettings?.contact_address_line1,
+      brandingSettings?.contact_address_line2,
+    ]
+      .filter(Boolean)
+      .join(", ") || "Urban Hub, Preston";
+    const addressLocality = "Preston";
+    const postalCode =
+      brandingSettings?.contact_address_line3?.match(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i)?.[0] ||
+      "PR1 1AA";
+
+    const itemReviewed = {
+      "@type": "LodgingBusiness" as const,
+      "@id": businessId,
+      name: businessName,
+      url: siteUrl || "https://urbanhub.uk",
+      address: {
+        "@type": "PostalAddress" as const,
+        streetAddress,
+        addressLocality,
+        postalCode,
+        addressCountry: "GB",
+      },
+    };
+
     const aggregateRating =
       reviews && reviews.length > 0
         ? {
             "@type": "AggregateRating" as const,
-            ratingValue: reviews.reduce((a, r) => a + r.rating, 0) / reviews.length,
+            ratingValue: Number(
+              (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length).toFixed(1),
+            ),
             bestRating: 5,
             worstRating: 1,
             ratingCount: reviews.length,
             reviewCount: reviews.length,
           }
         : null;
+
     const reviewItems =
       reviews?.slice(0, 10).map((r) => ({
         "@type": "Review" as const,
+        itemReviewed: {
+          "@type": "LodgingBusiness" as const,
+          "@id": businessId,
+          name: businessName,
+        },
         author: { "@type": "Person" as const, name: r.reviewer_name },
         datePublished: r.created_at,
-        reviewRating: { "@type": "Rating" as const, ratingValue: r.rating, bestRating: 5, worstRating: 1 },
-        ...(r.title && { name: r.title }),
+        reviewRating: {
+          "@type": "Rating" as const,
+          ratingValue: r.rating,
+          bestRating: 5,
+          worstRating: 1,
+        },
+        ...(r.title?.trim() ? { name: r.title.trim() } : {}),
         reviewBody: r.content,
       })) ?? [];
 
+    // LodgingBusiness (not WebPage) so AggregateRating/Review are valid for Google Review snippets
     const structuredData = {
       "@context": "https://schema.org",
-      "@type": "WebPage",
-      name: pageTitle,
-      description: pageDescription,
-      url: canonical,
-      ...(aggregateRating && { aggregateRating }),
-      ...(reviewItems.length > 0 && { review: reviewItems }),
+      ...itemReviewed,
+      ...(aggregateRating ? { aggregateRating } : {}),
+      ...(reviewItems.length > 0 ? { review: reviewItems } : {}),
     };
 
     const scriptId = "reviews-page-structured-data";
@@ -106,6 +144,7 @@ const Reviews = () => {
     const script = document.createElement("script");
     script.id = scriptId;
     script.type = "application/ld+json";
+    script.setAttribute("data-reviews-json", "true");
     script.textContent = JSON.stringify(structuredData);
     document.head.appendChild(script);
 
@@ -118,7 +157,7 @@ const Reviews = () => {
     siteUrl,
     location.pathname,
     seo,
-    brandingSettings?.favicon_path,
+    brandingSettings,
     twitterHandle,
     reviews,
   ]);
@@ -198,11 +237,11 @@ const Reviews = () => {
                     className={`overflow-hidden transition-shadow hover:shadow-md ${review.featured ? "ring-2 ring-primary/30" : ""}`}
                   >
                     <CardContent className="p-6 md:p-8">
-                    <article itemScope itemType="https://schema.org/Review" role="listitem">
+                    <article role="listitem">
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <div className="flex">
+                            <div className="flex" aria-label={`${review.rating} out of 5 stars`}>
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
@@ -231,12 +270,10 @@ const Reviews = () => {
                           </time>
                         </div>
                         {review.title && (
-                          <h3 className="text-lg font-semibold" itemProp="name">{review.title}</h3>
+                          <h3 className="text-lg font-semibold">{review.title}</h3>
                         )}
-                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap" itemProp="reviewBody">{review.content}</p>
-                        <p className="text-sm font-medium" itemProp="author" itemScope itemType="https://schema.org/Person">
-                          <span itemProp="name">— {review.reviewer_name}</span>
-                        </p>
+                        <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{review.content}</p>
+                        <p className="text-sm font-medium">— {review.reviewer_name}</p>
                       </div>
                     </article>
                     </CardContent>

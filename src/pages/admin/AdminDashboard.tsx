@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -11,8 +12,17 @@ import {
 import { ArrowUpRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subDays } from "date-fns";
+import { format, startOfDay, subDays } from "date-fns";
 import { formatBlogPostDateShort } from "@/utils/blogDates";
+import { fetchAllSupabaseRows } from "@/utils/fetchAllSupabaseRows";
+
+const HOMEPAGE_PATHS = ["/", "/studios"] as const;
+
+type WeekAnalyticsRow = {
+  id: string;
+  page_path: string | null;
+  session_id: string | null;
+};
 
 export default function AdminDashboard() {
   const { data: recentBlogs } = useQuery({
@@ -43,29 +53,33 @@ export default function AdminDashboard() {
     },
   });
 
-  const weekStart = subDays(new Date(), 7).toISOString();
-  const { data: weekAnalytics } = useQuery({
+  // Stable key: do not put a fresh `new Date().toISOString()` in the queryKey
+  // or every render starts a new fetch and the card stays on Loading forever.
+  const weekStart = useMemo(
+    () => startOfDay(subDays(new Date(), 7)).toISOString(),
+    [],
+  );
+
+  const {
+    data: weekAnalytics,
+    isLoading: weekLoading,
+    isError: weekIsError,
+  } = useQuery({
     queryKey: ["admin-dashboard-week-analytics", weekStart],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("website_analytics_page_views")
-        .select("id, page_path, session_id, created_at")
-        .gte("created_at", weekStart);
-      if (error) throw error;
-      const rows = data ?? [];
-      const sessions = new Set(rows.map((r: { session_id: string | null }) => r.session_id).filter(Boolean));
-      const homepagePaths = ["/", "/studios"];
-      const homepageViews = rows.filter(
-        (r: { page_path: string | null }) => r.page_path && homepagePaths.includes(r.page_path)
+      const rows = await fetchAllSupabaseRows<WeekAnalyticsRow>((from, to) =>
+        supabase
+          .from("website_analytics_page_views")
+          .select("id, page_path, session_id")
+          .in("page_path", [...HOMEPAGE_PATHS])
+          .gte("created_at", weekStart)
+          .order("created_at", { ascending: false })
+          .range(from, to),
       );
-      const homepageSessions = new Set(
-        homepageViews.map((r: { session_id: string | null }) => r.session_id).filter(Boolean)
-      );
+      const sessions = new Set(rows.map((r) => r.session_id).filter(Boolean));
       return {
-        totalViews: rows.length,
-        totalSessions: sessions.size,
-        homepageViews: homepageViews.length,
-        homepageSessions: homepageSessions.size,
+        homepageViews: rows.length,
+        homepageSessions: sessions.size,
       };
     },
   });
@@ -146,7 +160,11 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1">
-              {weekAnalytics !== undefined ? (
+              {weekLoading ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : weekIsError ? (
+                <p className="text-sm text-destructive">Couldn’t load analytics.</p>
+              ) : weekAnalytics ? (
                 <div>
                   <p className="text-sm font-medium">{weekAnalytics.homepageSessions} visitors</p>
                   <p className="text-muted-foreground text-xs">
@@ -154,7 +172,7 @@ export default function AdminDashboard() {
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Loading…</p>
+                <p className="text-sm text-muted-foreground">No homepage traffic this week.</p>
               )}
             </div>
           </CardContent>
