@@ -5,9 +5,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getSlotUrl, useWebsiteImageSlots } from "@/hooks/useWebsiteImageSlots";
 
-/** Set this path when the VR tour video is uploaded (e.g. from CDN or /assets). */
-export const VR_TOUR_VIDEO_SRC: string | null = null;
+export const VR_TOUR_VIDEO_SLOT_KEY = "intl_students_vr_tour_video";
 
 interface VrTourDialogProps {
   open: boolean;
@@ -15,6 +15,9 @@ interface VrTourDialogProps {
 }
 
 export function VrTourDialog({ open, onOpenChange }: VrTourDialogProps) {
+  const { data: slots } = useWebsiteImageSlots();
+  const videoSrc = getSlotUrl(slots?.find((s) => s.slot_key === VR_TOUR_VIDEO_SLOT_KEY));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl p-0 overflow-hidden bg-black border-white/10 text-white sm:rounded-2xl">
@@ -27,9 +30,9 @@ export function VrTourDialog({ open, onOpenChange }: VrTourDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <div className="px-6 pb-6">
-          {VR_TOUR_VIDEO_SRC ? (
+          {videoSrc ? (
             <video
-              src={VR_TOUR_VIDEO_SRC}
+              src={videoSrc}
               controls
               playsInline
               className="w-full aspect-video rounded-xl bg-zinc-900"

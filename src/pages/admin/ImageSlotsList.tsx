@@ -20,6 +20,11 @@ const MAX_SIZE_MB = 5;
 const MAX_VIDEO_SIZE_MB = 100;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+const VIDEO_SLOT_KEYS = new Set(["about_hero_video", "intl_students_vr_tour_video"]);
+
+function isVideoSlotKey(slotKey: string) {
+  return VIDEO_SLOT_KEYS.has(slotKey);
+}
 
 type SlotRow = {
   id: string;
@@ -79,13 +84,17 @@ export default function ImageSlotsList() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Website Image Slots</h1>
-        <p className="text-muted-foreground">Click an image to change it. These images appear in hero sections and backgrounds across the website.</p>
+        <p className="text-muted-foreground">
+          Click a slot to change it. Includes hero images and videos such as the About hero and International Students VR tour.
+        </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">All image slots</CardTitle>
-          <p className="text-sm text-muted-foreground">Upload an image, pick from Media, or paste a URL. Fallback used if no image set.</p>
+          <CardTitle className="text-base">All image &amp; video slots</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Upload a file, pick from Media (images), or paste a URL. Fallback used if nothing is set.
+          </p>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -98,7 +107,7 @@ export default function ImageSlotsList() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {slots.map((slot) => {
                 const url = slot.file_url || slot.fallback_url || null;
-                const isVideoSlot = slot.slot_key === "about_hero_video";
+                const isVideoSlot = isVideoSlotKey(slot.slot_key);
                 return (
                   <button
                     key={slot.id}
@@ -147,12 +156,13 @@ export default function ImageSlotsList() {
       <Dialog open={!!editingSlotId} onOpenChange={(o) => !o && setEditingSlotId(null)}>
         <DialogContent className="max-w-lg" aria-describedby="edit-slot-desc">
           <DialogHeader>
-            <DialogTitle>Edit {slots?.find(s => s.id === editingSlotId)?.slot_key === "about_hero_video" ? "video" : "image"} slot</DialogTitle>
+            <DialogTitle>
+              Edit {editing && isVideoSlotKey(editing.slot_key) ? "video" : "image"} slot
+            </DialogTitle>
             <DialogDescription id="edit-slot-desc">
-              {slots?.find(s => s.id === editingSlotId)?.slot_key === "about_hero_video" 
-                ? "Upload a video file or paste a video URL. Leave empty to use fallback."
-                : "Upload an image, pick from Media, or paste a URL. Leave empty to use fallback."
-              }
+              {editing && isVideoSlotKey(editing.slot_key)
+                ? "Upload a video file or paste a video URL. Leave empty to keep the coming-soon / fallback state."
+                : "Upload an image, pick from Media, or paste a URL. Leave empty to use fallback."}
             </DialogDescription>
           </DialogHeader>
           {editing && (
@@ -190,7 +200,7 @@ function SlotEditForm({
   const [alt_text, setAlt_text] = useState(slot.alt_text ?? "");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isVideoSlot = slot.slot_key === "about_hero_video";
+  const isVideoSlot = isVideoSlotKey(slot.slot_key);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
