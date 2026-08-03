@@ -31,12 +31,12 @@ const CashbackCampaignTerms = () => {
             <div className="container mx-auto max-w-4xl px-4 text-center text-white space-y-6 py-24">
               <TypingTitle
                 as="h1"
-                text="£200 CASHBACK TERMS"
+                text="£300 CASHBACK TERMS"
                 className="text-4xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
                 typingSpeed={32}
               />
               <p className="text-sm md:text-base text-white/90 max-w-2xl mx-auto">
-                Full Terms & Conditions for the Urban Hub £200 Cashback Offer.
+                Full Terms & Conditions for the Urban Hub £300 Cashback Offer.
               </p>
               <Button size="sm" className="bg-yellow-400 hover:bg-yellow-500 text-black rounded-full w-fit" asChild>
                 <Link to="/" className="flex items-center gap-1.5 justify-center mx-auto">
@@ -53,13 +53,13 @@ const CashbackCampaignTerms = () => {
             <article className="prose prose-sm md:prose lg:prose-lg !max-w-none w-full space-y-8 md:space-y-12 text-sm md:text-base">
               <section>
                 <h2 className="text-base md:text-xl font-display font-black uppercase tracking-wide text-gray-900">
-                  Urban Hub - £200 Cashback Offer
+                  Urban Hub – £300 Cashback Offer
                 </h2>
                 <h3 className="text-sm md:text-lg font-display font-black uppercase tracking-wide text-gray-900 mt-2">
                   Full Terms &amp; Conditions
                 </h3>
                 <p className="text-gray-700 mt-3">
-                  These Terms &amp; Conditions (&quot;T&amp;Cs&quot;) govern the £200 Cashback Promotion (the
+                  These Terms &amp; Conditions (&quot;T&amp;Cs&quot;) govern the £300 Cashback Promotion (the
                   &quot;Offer&quot;) provided by Urban Hub Preston (&quot;Urban Hub&quot;, &quot;we&quot;,
                   &quot;our&quot;, &quot;us&quot;). By participating in this Offer, you agree to be bound by these
                   T&amp;Cs.
@@ -75,7 +75,10 @@ const CashbackCampaignTerms = () => {
                     1.1 The Offer is available exclusively to new residents booking a 45-week or 51-week tenancy at
                     Urban Hub.
                   </li>
-                  <li>1.2 The Offer applies to selected room types only and is subject to availability at the time of booking.</li>
+                  <li>
+                    1.2 The Offer applies to selected room types only and is subject to availability at the time of
+                    booking.
+                  </li>
                   <li>
                     1.3 The Offer is valid only for bookings made directly via Urban Hub&apos;s official channels
                     (website, on-site team, or authorised booking partners).
@@ -88,12 +91,21 @@ const CashbackCampaignTerms = () => {
                   2. Cashback Details
                 </h3>
                 <ul className="list-disc pl-5 md:pl-6 space-y-1.5 md:space-y-2 text-gray-700">
-                  <li>2.1 Eligible residents will receive a £200 cashback upon successful completion of a qualifying booking.</li>
-                  <li>2.2 Cashback will be issued as a single payment within 30 days after move-in, subject to all conditions being met.</li>
-                  <li>2.3 Cashback is issued post move-in and cannot be deducted from rent or upfront costs at the time of booking.</li>
                   <li>
-                    2.4 The cashback is non-transferable, non-exchangeable, and cannot be redeemed for cash alternatives
-                    beyond the stated payment.
+                    2.1 Eligible residents will receive £300 cashback upon successful completion of a qualifying
+                    booking.
+                  </li>
+                  <li>
+                    2.2 Cashback will be issued as a single payment within 30 days after move-in, subject to all
+                    conditions being met.
+                  </li>
+                  <li>
+                    2.3 Cashback is issued post move-in and cannot be deducted from rent or upfront costs at the time
+                    of booking.
+                  </li>
+                  <li>
+                    2.4 The cashback is non-transferable, non-exchangeable, and cannot be redeemed for cash
+                    alternatives beyond the stated payment.
                   </li>
                 </ul>
               </section>
@@ -104,10 +116,10 @@ const CashbackCampaignTerms = () => {
                 </h3>
                 <p className="text-gray-700 mb-3">3.1 To qualify, residents must:</p>
                 <ul className="list-disc pl-5 md:pl-6 space-y-1.5 md:space-y-2 text-gray-700">
-                  <li>Complete the full booking process</li>
-                  <li>Pay all required deposits and/or booking fees</li>
-                  <li>Enter into and honour the full tenancy agreement (45 or 51 weeks)</li>
-                  <li>Move into the accommodation on the agreed tenancy start date</li>
+                  <li>Complete the full booking process between 30th July and 10th August.</li>
+                  <li>Pay all required deposits and/or booking fees.</li>
+                  <li>Enter into and honour the full tenancy agreement (45 or 51 weeks).</li>
+                  <li>Move into the accommodation on the agreed tenancy start date.</li>
                 </ul>
                 <ul className="list-disc pl-5 md:pl-6 space-y-1.5 md:space-y-2 text-gray-700 mt-3">
                   <li>
@@ -128,8 +140,8 @@ const CashbackCampaignTerms = () => {
                 </h3>
                 <ul className="list-disc pl-5 md:pl-6 space-y-1.5 md:space-y-2 text-gray-700">
                   <li>
-                    4.1 This Offer cannot be used in conjunction with any other promotions, discounts, or referral
-                    schemes unless explicitly stated.
+                    4.1 This Offer cannot be combined with any other promotion, discount, referral scheme, cashback
+                    offer, or incentive. Only one promotional offer may be applied per booking.
                   </li>
                   <li>4.2 Only one cashback payment is permitted per resident per booking.</li>
                   <li>4.3 Bookings made through unauthorised third-party platforms will not qualify.</li>
@@ -141,8 +153,14 @@ const CashbackCampaignTerms = () => {
                   5. Offer Validity
                 </h3>
                 <ul className="list-disc pl-5 md:pl-6 space-y-1.5 md:space-y-2 text-gray-700">
-                  <li>5.1 The Offer is valid for bookings made from 1st April 2026 until withdrawn by Urban Hub.</li>
-                  <li>5.2 Urban Hub reserves the right to end or modify the Offer at any time without prior notice.</li>
+                  <li>
+                    5.1 The Offer is valid for bookings made between 30 July 2026 and 10 August 2026 (inclusive).
+                  </li>
+                  <li>5.2 Bookings made outside this promotional period will not qualify for the Offer.</li>
+                  <li>
+                    5.3 Urban Hub reserves the right to amend, suspend, or withdraw the Offer at any time without prior
+                    notice.
+                  </li>
                 </ul>
               </section>
 
@@ -151,9 +169,14 @@ const CashbackCampaignTerms = () => {
                   6. General Terms
                 </h3>
                 <ul className="list-disc pl-5 md:pl-6 space-y-1.5 md:space-y-2 text-gray-700">
-                  <li>6.1 Urban Hub reserves the right to verify eligibility and booking details before issuing cashback.</li>
+                  <li>
+                    6.1 Urban Hub reserves the right to verify eligibility and booking details before issuing cashback.
+                  </li>
                   <li>6.2 Any fraudulent, misleading, or incomplete applications may result in disqualification.</li>
-                  <li>6.3 In the event of any dispute, Urban Hub&apos;s decision shall be final.</li>
+                  <li>
+                    6.3 In the event of any dispute regarding eligibility or interpretation of these Terms &amp;
+                    Conditions, Urban Hub&apos;s decision shall be final.
+                  </li>
                 </ul>
               </section>
             </article>
