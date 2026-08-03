@@ -114,23 +114,43 @@ const CashbackCampaignTerms = () => {
                 <h3 className="text-sm md:text-lg font-display font-black uppercase tracking-wide text-gray-900 border-b border-gray-300 pb-2 mb-3 md:mb-4">
                   3. Conditions of the Offer
                 </h3>
-                <p className="text-gray-700 mb-3">3.1 To qualify, residents must:</p>
-                <ul className="list-disc pl-5 md:pl-6 space-y-1.5 md:space-y-2 text-gray-700">
-                  <li>Complete the full booking process between 30th July and 10th August.</li>
-                  <li>Pay all required deposits and/or booking fees.</li>
-                  <li>Enter into and honour the full tenancy agreement (45 or 51 weeks).</li>
-                  <li>Move into the accommodation on the agreed tenancy start date.</li>
-                </ul>
-                <ul className="list-disc pl-5 md:pl-6 space-y-1.5 md:space-y-2 text-gray-700 mt-3">
+                <ul className="list-none pl-0 space-y-5 text-gray-700">
                   <li>
-                    3.2 Cashback will only be processed once the resident has successfully moved in and all initial
-                    payments have cleared.
+                    <p className="mb-2.5">
+                      <span className="font-medium text-gray-900">3.1</span> To qualify, residents must:
+                    </p>
+                    <ol className="list-none m-0 pl-3 md:pl-4 border-l-2 border-gray-300 space-y-2.5 text-[0.9375rem] leading-relaxed text-gray-600">
+                      <li className="flex gap-2.5">
+                        <span className="shrink-0 w-6 font-medium text-gray-500 tabular-nums">(a)</span>
+                        <span>Complete the full booking process between 30th July and 10th August.</span>
+                      </li>
+                      <li className="flex gap-2.5">
+                        <span className="shrink-0 w-6 font-medium text-gray-500 tabular-nums">(b)</span>
+                        <span>Pay all required deposits and/or booking fees.</span>
+                      </li>
+                      <li className="flex gap-2.5">
+                        <span className="shrink-0 w-6 font-medium text-gray-500 tabular-nums">(c)</span>
+                        <span>Enter into and honour the full tenancy agreement (45 or 51 weeks).</span>
+                      </li>
+                      <li className="flex gap-2.5">
+                        <span className="shrink-0 w-6 font-medium text-gray-500 tabular-nums">(d)</span>
+                        <span>Move into the accommodation on the agreed tenancy start date.</span>
+                      </li>
+                    </ol>
                   </li>
                   <li>
-                    3.3 If a booking is cancelled before move-in, or if the tenancy is terminated early for any reason,
-                    the Offer will be void, and cashback will not be issued.
+                    <span className="font-medium text-gray-900">3.2</span> Cashback will only be processed once the
+                    resident has successfully moved in and all initial payments have cleared.
                   </li>
-                  <li>3.4 The Offer applies only to the named tenant and cannot be transferred.</li>
+                  <li>
+                    <span className="font-medium text-gray-900">3.3</span> If a booking is cancelled before move-in, or
+                    if the tenancy is terminated early for any reason, the Offer will be void, and cashback will not be
+                    issued.
+                  </li>
+                  <li>
+                    <span className="font-medium text-gray-900">3.4</span> The Offer applies only to the named tenant and
+                    cannot be transferred.
+                  </li>
                 </ul>
               </section>
 
