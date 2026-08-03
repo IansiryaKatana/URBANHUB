@@ -382,7 +382,7 @@ const PricingCard = ({ plan, contractLength, availability }: { plan: any; contra
   const [showMore, setShowMore] = useState(false);
   const sortedFeatures = [...plan.features].sort((a: any, b: any) => {
     if (a.included === b.included) return 0;
-    return a.included ? 1 : -1; // false comes first
+    return a.included ? -1 : 1; // included first, cancelled last
   });
   
   const displayedFeatures = showMore ? sortedFeatures : sortedFeatures.slice(0, 8);
