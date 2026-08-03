@@ -57,6 +57,8 @@ const Navigation = () => {
     "content-creator-terms",
     "refer-a-friend-terms",
     "cashback-campaign-terms",
+    "international-students",
+    "vr-tour",
     "admin",
   ];
   const pathSegment = location.pathname.replace(/^\/|\/$/g, "").split("/")[0];
@@ -73,9 +75,11 @@ const Navigation = () => {
     { id: "about", title: "About", url: "/about", display_order: 2, is_active: true, location: "header" as const, opens_in_new_tab: false },
     { id: "blog", title: "Blog", url: "/blog", display_order: 3, is_active: true, location: "header" as const, opens_in_new_tab: false },
     { id: "shortterm", title: "Short Term", url: "/short-term", display_order: 4, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "reviews", title: "Reviews", url: "/reviews", display_order: 5, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "faq", title: "FAQ", url: "/faq", display_order: 6, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "contact", title: "Contact Us", url: "/contact", display_order: 7, is_active: true, location: "header" as const, opens_in_new_tab: false },
+    // Hidden for now — restore when VR Tour is ready for public nav
+    // { id: "vrtour", title: "VR Tour", url: "/vr-tour", display_order: 5, is_active: true, location: "header" as const, opens_in_new_tab: false },
+    { id: "reviews", title: "Reviews", url: "/reviews", display_order: 6, is_active: true, location: "header" as const, opens_in_new_tab: false },
+    { id: "faq", title: "FAQ", url: "/faq", display_order: 7, is_active: true, location: "header" as const, opens_in_new_tab: false },
+    { id: "contact", title: "Contact Us", url: "/contact", display_order: 8, is_active: true, location: "header" as const, opens_in_new_tab: false },
   ];
 
   const scrollToSection = (id: string) => {
