@@ -26,6 +26,7 @@ const Reviews = lazy(() => import("../pages/Reviews"));
 const StudioGradeRedirect = lazy(() => import("../pages/StudioGradeRedirect"));
 const LandingPage = lazy(() => import("../pages/LandingPage"));
 const InternationalStudents = lazy(() => import("../pages/InternationalStudents"));
+const VrTour = lazy(() => import("../pages/VrTour"));
 // Admin
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin"));
 const AdminLayout = lazy(() => import("../pages/admin/AdminLayout"));
@@ -40,6 +41,7 @@ const SeoManagement = lazy(() => import("../pages/admin/SeoManagement"));
 const AnalyticsManagement = lazy(() => import("../pages/admin/AnalyticsManagement"));
 const ReviewsList = lazy(() => import("../pages/admin/ReviewsList"));
 const MediaList = lazy(() => import("../pages/admin/MediaList"));
+const VrTourRoomsList = lazy(() => import("../pages/admin/VrTourRoomsList"));
 const NewsletterAdmin = lazy(() => import("../pages/admin/NewsletterAdmin"));
 const UserManagement = lazy(() => import("../pages/admin/UserManagement"));
 const LandingPages = lazy(() => import("../pages/admin/LandingPages"));
@@ -57,6 +59,7 @@ const AnimatedRoutes = () => {
           <Route path="/studios/:year/:slug" element={<PageTransition key={location.pathname}><StudioGradeRedirect /></PageTransition>} />
           <Route path="/landing/:slug" element={<PageTransition key={location.pathname}><LandingPage /></PageTransition>} />
           <Route path="/international-students" element={<PageTransition key={location.pathname}><InternationalStudents /></PageTransition>} />
+          <Route path="/vr-tour" element={<PageTransition key={location.pathname}><VrTour /></PageTransition>} />
           <Route path="/contact" element={<PageTransition key={location.pathname}><Contact /></PageTransition>} />
           <Route path="/faq" element={<PageTransition key={location.pathname}><FAQ /></PageTransition>} />
           <Route path="/blog" element={<PageTransition key={location.pathname}><Blog /></PageTransition>} />
@@ -104,6 +107,7 @@ const AnimatedRoutes = () => {
             <Route path="analytics" element={<AnalyticsManagement />} />
             <Route path="reviews" element={<ReviewsList />} />
             <Route path="media" element={<MediaList />} />
+            <Route path="vr-tour" element={<VrTourRoomsList />} />
             <Route path="newsletter" element={<NewsletterAdmin />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="landing-pages" element={<LandingPages />} />

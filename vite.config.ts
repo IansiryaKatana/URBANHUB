@@ -14,10 +14,12 @@ export default defineConfig(() => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react-router", "react-router-dom"],
+    // Photo Sphere Viewer and GridScan must share one three instance, otherwise
+    // objects built by one copy crash the other copy's WebGLRenderer.
+    dedupe: ["react", "react-dom", "react-router", "react-router-dom", "three"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "react-router-dom"],
+    include: ["react", "react-dom", "react-router-dom", "three"],
   },
   build: {
     rollupOptions: {
@@ -32,6 +34,9 @@ export default defineConfig(() => ({
             if (id.includes("gsap")) return "gsap";
             if (id.includes("framer-motion")) return "framer-motion";
             if (id.includes("leaflet") || id.includes("react-leaflet")) return "leaflet";
+            // Photo Sphere Viewer ships separately from the decorative three-effects
+            // chunk; both import the same shared three module.
+            if (id.includes("photo-sphere-viewer")) return "vr-tour";
             if (id.includes("three") || id.includes("postprocessing") || id.includes("face-api")) return "three-effects";
             if (id.includes("react-router")) return "react-router";
             if (id.includes("@radix-ui")) return "radix-ui";

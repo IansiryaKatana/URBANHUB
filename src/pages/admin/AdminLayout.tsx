@@ -21,6 +21,7 @@ import {
   Users,
   ArrowUpRight,
   PanelsTopLeft,
+  Glasses,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,7 @@ const allNavItems = [
   { path: "/admin/reviews", label: "Reviews", icon: Star, subroles: ["customer_support", "content_editor", "marketing_manager"] },
   { path: "/admin/blog", label: "Blog", icon: FileText, subroles: ["content_editor", "marketing_manager", "seo_editor"] },
   { path: "/admin/media", label: "Media", icon: ImageIcon, subroles: ["content_editor", "marketing_manager"] },
+  { path: "/admin/vr-tour", label: "VR Tour", icon: Glasses, subroles: ["content_editor", "marketing_manager"] },
   { path: "/admin/newsletter", label: "Newsletter", icon: Mail, subroles: ["marketing_manager"] },
   { path: "/admin/seo", label: "SEO", icon: Search, subroles: ["seo_editor", "marketing_manager"] },
   { path: "/admin/users", label: "Users", icon: Users, roles: ["superadmin", "admin"] },
@@ -42,7 +44,7 @@ const allNavItems = [
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, role, signOut } = useAuth();
+  const { profile, role, signOut } = useAuth();
   const { data: branding } = useBrandingSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -101,7 +103,7 @@ export default function AdminLayout() {
         <div className="flex flex-col h-full overflow-hidden">
           <div className="flex items-center justify-between bg-black p-4 flex-shrink-0">
             <div className="flex flex-col gap-2">
-              <img src={logoUrl} alt={companyName} className="h-10 w-auto object-contain" />
+              <img src={logoUrl} alt={companyName} className="h-[30px] w-auto object-contain" />
               <span className="text-xs text-white/80 tracking-wide uppercase">Admin panel</span>
             </div>
             <Button
@@ -136,9 +138,6 @@ export default function AdminLayout() {
             })}
           </nav>
           <div className="p-3 space-y-2 flex-shrink-0">
-            <p className="text-xs md:text-[20px] text-white/70 truncate px-3" title={profile?.email ?? user?.email ?? ""}>
-              {profile?.email ?? user?.email ?? "—"}
-            </p>
             <a
               href="/"
               target="_blank"

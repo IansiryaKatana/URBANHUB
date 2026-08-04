@@ -1,0 +1,18 @@
+{
+  "01-outside-front": {
+    "id": "01-outside-front",
+    "name": "Outside Front",
+    "category": "Outside",
+    "lg": "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/vr-tour/01-outside-front-lg.webp",
+    "sm": "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/vr-tour/01-outside-front-sm.webp",
+    "thumb": "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/vr-tour/01-outside-front-thumb.webp"
+  },
+  "02-corridor": {
+    "id": "02-corridor",
+    "name": "Corridor",
+    "category": "Hallways and stairways",
+    "lg": "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/vr-tour/02-corridor-lg.webp",
+    "sm": "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/vr-tour/02-corridor-sm.webp",
+    "thumb": "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/vr-tour/02-corridor-thumb.webp"
+  }
+}

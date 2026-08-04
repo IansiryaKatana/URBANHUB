@@ -56,7 +56,8 @@ export default function FloatingActions() {
   };
 
   const isInternationalStudents = location.pathname.startsWith("/international-students");
-  if (isAdmin || isInternationalStudents || leadModalOpen) return null;
+  const isVrTour = location.pathname.startsWith("/vr-tour");
+  if (isAdmin || isInternationalStudents || isVrTour || leadModalOpen) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3" aria-label="Quick actions">
