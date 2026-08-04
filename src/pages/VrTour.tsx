@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { ChevronDown, List, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import {
   Drawer,
@@ -9,6 +9,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { VrTourPreloader } from "@/components/vr/VrTourPreloader";
 import { groupNodesByCategory } from "@/data/vrTour";
 import { useVrTourConfig } from "@/hooks/useVrTourRooms";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -18,35 +19,19 @@ const VrTourViewer = lazy(() =>
   import("@/components/vr/VrTourViewer").then((m) => ({ default: m.VrTourViewer })),
 );
 
-function VrTourLoader() {
-  return (
-    <div className="flex h-full items-center justify-center bg-black" role="status" aria-label="Loading VR tour">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/15 border-t-primary" />
-    </div>
-  );
-}
-
 type RoomGroups = ReturnType<typeof groupNodesByCategory>;
 
 function RoomsContent({
   groups,
   activeNodeId,
-  currentName,
   onSelect,
 }: {
   groups: RoomGroups;
   activeNodeId: string | null;
-  currentName: string;
   onSelect: (nodeId: string) => void;
 }) {
   return (
     <>
-      <div className="mb-4 pr-10">
-        <p className="text-sm text-white/70">
-          Now viewing: <span className="font-medium text-white">{currentName}</span>
-        </p>
-      </div>
-
       {groups.length === 0 ? (
         <p className="text-sm text-white/50">No rooms prepared yet.</p>
       ) : (
@@ -83,8 +68,8 @@ function RoomsContent({
   );
 }
 
-const closeBtnClass =
-  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-black transition hover:bg-white/90";
+const cancelBtnClass =
+  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-semibold text-black transition hover:bg-white/90";
 
 const VrTour = () => {
   const { nodes, startNodeId } = useVrTourConfig();
@@ -110,12 +95,13 @@ const VrTour = () => {
   const roomsButton = (
     <button
       type="button"
-      className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-zinc-950/85 px-4 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-zinc-900"
+      className="flex w-full items-center gap-3 rounded-xl border border-white/20 bg-zinc-950/85 px-4 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-md transition hover:bg-zinc-900"
       aria-label={`Choose a room. Currently viewing ${currentName}`}
       aria-expanded={roomsOpen}
     >
-      <List className="h-4 w-4 shrink-0" />
-      <span className="min-w-0 truncate">{roomsOpen ? "Hide rooms" : currentName}</span>
+      <span className="min-w-0 flex-1 truncate text-left">
+        {roomsOpen ? `Now viewing: ${currentName}` : currentName}
+      </span>
       <ChevronDown
         className={cn("h-4 w-4 shrink-0 transition-transform", roomsOpen && "rotate-180")}
       />
@@ -126,9 +112,7 @@ const VrTour = () => {
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-black text-white">
       <Navigation />
       <main className="relative flex min-h-0 flex-1 flex-col pt-16 md:pt-20">
-        <Suspense
-          fallback={<VrTourLoader />}
-        >
+        <Suspense fallback={<VrTourPreloader className="h-full min-h-0" />}>
           <VrTourViewer
             variant="page"
             className="h-full min-h-0"
@@ -150,16 +134,16 @@ const VrTour = () => {
                   <DrawerDescription className="sr-only">
                     Select another room in the Urban Hub virtual tour.
                   </DrawerDescription>
-                  <div className="relative px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5">
+                  <div className="relative px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-12">
                     <DrawerClose asChild>
-                      <button type="button" className={cn(closeBtnClass, "absolute right-3 top-3")} aria-label="Close rooms list">
-                        <X className="h-4 w-4" />
+                      <button type="button" className={cn(cancelBtnClass, "absolute right-3 top-3")}>
+                        <X className="h-3.5 w-3.5" />
+                        Cancel
                       </button>
                     </DrawerClose>
                     <RoomsContent
                       groups={groups}
                       activeNodeId={activeNodeId}
-                      currentName={currentName}
                       onSelect={selectRoom}
                     />
                   </div>
@@ -170,22 +154,21 @@ const VrTour = () => {
                 {roomsOpen && (
                   <div
                     id="vr-rooms-panel"
-                    className="relative max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border border-white/15 bg-zinc-950/90 p-4 pt-5 shadow-2xl backdrop-blur-md"
+                    className="relative max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border border-white/15 bg-zinc-950/90 p-4 pt-12 shadow-2xl backdrop-blur-md"
                     role="dialog"
                     aria-label="Jump to a room"
                   >
                     <button
                       type="button"
                       onClick={() => setRoomsOpen(false)}
-                      className={cn(closeBtnClass, "absolute right-3 top-3")}
-                      aria-label="Close rooms list"
+                      className={cn(cancelBtnClass, "absolute right-3 top-3")}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5" />
+                      Cancel
                     </button>
                     <RoomsContent
                       groups={groups}
                       activeNodeId={activeNodeId}
-                      currentName={currentName}
                       onSelect={selectRoom}
                     />
                   </div>

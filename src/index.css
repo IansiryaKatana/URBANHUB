@@ -270,3 +270,14 @@ html::-webkit-scrollbar {
   );
   pointer-events: none;
 }
+
+/* Hide Photo Sphere Viewer’s default circular text loader — we use VrTourPreloader instead */
+.vr-tour-viewer .psv-loader-container {
+  display: none !important;
+}
+
+@keyframes vr-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

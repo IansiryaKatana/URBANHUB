@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  getFirstListedNodeId,
   getPanoramaManifest,
   getStartNodeId as getStaticStartNodeId,
   getVrTourNodes as getStaticVrTourNodes,
@@ -95,8 +96,7 @@ export function roomsToTourConfig(rows: VrTourRoomRow[]) {
     });
   }
 
-  const startFromFlag = withPanorama.find((r) => r.is_start)?.id;
-  const startNodeId = startFromFlag && manifest[startFromFlag] ? startFromFlag : nodes[0]?.id ?? "";
+  const startNodeId = getFirstListedNodeId(nodes);
 
   return { manifest, nodes, startNodeId, source: "database" as const };
 }

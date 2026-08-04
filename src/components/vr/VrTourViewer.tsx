@@ -11,6 +11,7 @@ import "@photo-sphere-viewer/markers-plugin/index.css";
 import "@photo-sphere-viewer/gallery-plugin/index.css";
 import "@photo-sphere-viewer/virtual-tour-plugin/index.css";
 import logoUrl from "@/assets/urban-hub-logo.webp";
+import { VrTourPreloader } from "@/components/vr/VrTourPreloader";
 import { pickPanoramaUrl, type VrPanoramaUrls, type VrTourNode } from "@/data/vrTour";
 import { useVrTourConfig } from "@/hooks/useVrTourRooms";
 import { pushDataLayer } from "@/utils/dataLayer";
@@ -128,7 +129,7 @@ export function VrTourViewer({
         defaultZoomLvl: 40,
         mousewheelCtrlKey: false,
         touchmoveTwoFingers: false,
-        loadingTxt: "Loading Urban Hub…",
+        loadingTxt: "",
         lang: {
           fullscreen: "Fullscreen",
           gyroscope: "Look around (gyro)",
@@ -152,7 +153,7 @@ export function VrTourViewer({
             startNodeId: resolvedStart,
             nodes,
             transitionOptions: {
-              showLoader: true,
+              showLoader: false,
               speed: "20rpm",
               effect: "fade",
               rotation: true,
@@ -249,17 +250,12 @@ export function VrTourViewer({
 
   if (isLoading) {
     return (
-      <div
+      <VrTourPreloader
         className={cn(
-          "flex items-center justify-center bg-black",
           variant === "dialog" ? "aspect-video min-h-[280px]" : "min-h-[60vh]",
           className,
         )}
-        role="status"
-        aria-label="Loading Urban Hub VR tour"
-      >
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/15 border-t-primary" />
-      </div>
+      />
     );
   }
 
@@ -286,7 +282,7 @@ export function VrTourViewer({
   }
 
   return (
-    <div className={cn("relative overflow-hidden bg-black", className)}>
+    <div className={cn("vr-tour-viewer relative overflow-hidden bg-black", className)}>
       <div
         ref={containerRef}
         className={cn(
@@ -296,13 +292,7 @@ export function VrTourViewer({
         aria-label="Urban Hub 360 virtual tour"
       />
       {!ready && !error && (
-        <div
-          className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black"
-          role="status"
-          aria-label="Loading Urban Hub VR tour"
-        >
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/15 border-t-primary" />
-        </div>
+        <VrTourPreloader className="pointer-events-none absolute inset-0 z-10" />
       )}
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-zinc-950 px-6 text-center text-sm text-red-300">

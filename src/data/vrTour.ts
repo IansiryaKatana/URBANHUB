@@ -1,13 +1,13 @@
 import panoramas from "./vrTourPanoramas.json";
 
 export const VR_TOUR_CATEGORIES = [
-  "Common areas",
-  "Courtyard",
-  "Hallways and stairways",
+  "Streets View",
   "Outside",
   "Reception area",
+  "Hallways and stairways",
   "Silver studio",
-  "Streets View",
+  "Common areas",
+  "Courtyard",
 ] as const;
 
 export type VrTourCategory = (typeof VR_TOUR_CATEGORIES)[number];
@@ -95,8 +95,7 @@ export function getVrTourNodes(): VrTourNode[] {
 
 export function getStartNodeId(): string {
   const nodes = getVrTourNodes();
-  if (nodes.some((n) => n.id === VR_TOUR_START_NODE_ID)) return VR_TOUR_START_NODE_ID;
-  return nodes[0]?.id ?? VR_TOUR_START_NODE_ID;
+  return getFirstListedNodeId(nodes) || VR_TOUR_START_NODE_ID;
 }
 
 export function groupNodesByCategory(nodes: VrTourNode[] = getVrTourNodes()) {
@@ -114,6 +113,12 @@ export function groupNodesByCategory(nodes: VrTourNode[] = getVrTourNodes()) {
   );
 
   return [...known, ...extras];
+}
+
+/** First room in the rooms-panel list (category order × room order). */
+export function getFirstListedNodeId(nodes: VrTourNode[]): string {
+  const groups = groupNodesByCategory(nodes);
+  return groups[0]?.nodes[0]?.id ?? nodes[0]?.id ?? "";
 }
 
 /** Prefer smaller textures on narrow / low-DPR devices. */
