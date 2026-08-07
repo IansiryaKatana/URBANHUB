@@ -677,7 +677,7 @@ const UniversityOfLancashireClearing2026 = () => {
       </section>
 
       {/* Nations marquee */}
-      <section id="community" className="bg-zinc-50 py-20 md:py-24">
+      <section id="community" className="bg-zinc-50 pt-28 pb-20 md:pt-36 md:pb-24">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">One building, the whole world</p>
           <h2 className="mt-3 max-w-3xl font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
