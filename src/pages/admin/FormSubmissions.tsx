@@ -72,7 +72,8 @@ type FormType =
   | "content_creator"
   | "secure_booking"
   | "pay_deposit"
-  | "urban_hub_payment";
+  | "urban_hub_payment"
+  | "checklist_download";
 type Status = "new" | "read" | "replied" | "archived";
 
 const formTypeLabels: Record<string, string> = {
@@ -89,6 +90,7 @@ const formTypeLabels: Record<string, string> = {
   secure_booking: "Secure booking",
   pay_deposit: "Pay deposit (£99)",
   urban_hub_payment: "Urban Hub balance payment",
+  checklist_download: "Free checklist download",
 };
 
 const statusLabels: Record<Status, string> = {

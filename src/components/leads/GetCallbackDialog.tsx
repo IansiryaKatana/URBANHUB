@@ -25,6 +25,7 @@ export type LeadFormOpenSource =
   | "studios_hero"
   | "landing_grade"
   | "international_students"
+  | "uclan_clearing_2026"
   | "inline";
 
 interface GetCallbackDialogProps {

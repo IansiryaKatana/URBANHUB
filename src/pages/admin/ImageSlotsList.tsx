@@ -12,18 +12,25 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ImageIcon, Upload, Video } from "lucide-react";
+import { FileText, Loader2, ImageIcon, Upload, Video } from "lucide-react";
 import { toast } from "sonner";
 
 const BUCKET = "website";
 const MAX_SIZE_MB = 5;
 const MAX_VIDEO_SIZE_MB = 100;
+const MAX_PDF_SIZE_MB = 20;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"];
+const ALLOWED_PDF_TYPES = ["application/pdf"];
 const VIDEO_SLOT_KEYS = new Set(["about_hero_video", "intl_students_vr_tour_video"]);
+const PDF_SLOT_KEYS = new Set(["clearing_checklist_pdf"]);
 
 function isVideoSlotKey(slotKey: string) {
   return VIDEO_SLOT_KEYS.has(slotKey);
+}
+
+function isPdfSlotKey(slotKey: string) {
+  return PDF_SLOT_KEYS.has(slotKey);
 }
 
 type SlotRow = {
@@ -85,15 +92,15 @@ export default function ImageSlotsList() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Website Image Slots</h1>
         <p className="text-muted-foreground">
-          Click a slot to change it. Includes hero images and videos such as the About hero and International Students VR tour.
+          Click a slot to change it. Includes hero images, videos, and downloadable PDFs such as the Clearing free checklist.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">All image &amp; video slots</CardTitle>
+          <CardTitle className="text-base">All image, video &amp; PDF slots</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Upload a file, pick from Media (images), or paste a URL. Fallback used if nothing is set.
+            Upload a file, pick from Media (images), or paste a URL. For the Clearing checklist PDF slot, upload the PDF students receive after submitting the form.
           </p>
         </CardHeader>
         <CardContent>
@@ -108,6 +115,7 @@ export default function ImageSlotsList() {
               {slots.map((slot) => {
                 const url = slot.file_url || slot.fallback_url || null;
                 const isVideoSlot = isVideoSlotKey(slot.slot_key);
+                const isPdfSlot = isPdfSlotKey(slot.slot_key);
                 return (
                   <button
                     key={slot.id}
@@ -125,12 +133,21 @@ export default function ImageSlotsList() {
                             playsInline
                             loop
                           />
+                        ) : isPdfSlot ? (
+                          <div className="flex flex-col items-center gap-2 px-3 text-center">
+                            <FileText className="h-10 w-10 text-primary" />
+                            <span className="text-xs font-medium text-foreground line-clamp-2">
+                              {slot.display_name}
+                            </span>
+                          </div>
                         ) : (
                           <img src={url} alt={slot.alt_text || slot.display_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                         )
                       ) : (
                         isVideoSlot ? (
                           <Video className="h-12 w-12 text-muted-foreground" />
+                        ) : isPdfSlot ? (
+                          <FileText className="h-12 w-12 text-muted-foreground" />
                         ) : (
                           <ImageIcon className="h-12 w-12 text-muted-foreground" />
                         )
@@ -157,12 +174,20 @@ export default function ImageSlotsList() {
         <DialogContent className="max-w-lg" aria-describedby="edit-slot-desc">
           <DialogHeader>
             <DialogTitle>
-              Edit {editing && isVideoSlotKey(editing.slot_key) ? "video" : "image"} slot
+              Edit{" "}
+              {editing && isVideoSlotKey(editing.slot_key)
+                ? "video"
+                : editing && isPdfSlotKey(editing.slot_key)
+                  ? "PDF"
+                  : "image"}{" "}
+              slot
             </DialogTitle>
             <DialogDescription id="edit-slot-desc">
               {editing && isVideoSlotKey(editing.slot_key)
                 ? "Upload a video file or paste a video URL. Leave empty to keep the coming-soon / fallback state."
-                : "Upload an image, pick from Media, or paste a URL. Leave empty to use fallback."}
+                : editing && isPdfSlotKey(editing.slot_key)
+                  ? "Upload the PDF students receive after submitting the Get My Free Checklist form, or paste a PDF URL."
+                  : "Upload an image, pick from Media, or paste a URL. Leave empty to use fallback."}
             </DialogDescription>
           </DialogHeader>
           {editing && (
@@ -201,6 +226,7 @@ function SlotEditForm({
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isVideoSlot = isVideoSlotKey(slot.slot_key);
+  const isPdfSlot = isPdfSlotKey(slot.slot_key);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,7 +242,7 @@ function SlotEditForm({
     if (!file) return;
     
     // Check file size based on type
-    const maxSize = isVideoSlot ? MAX_VIDEO_SIZE_MB : MAX_SIZE_MB;
+    const maxSize = isVideoSlot ? MAX_VIDEO_SIZE_MB : isPdfSlot ? MAX_PDF_SIZE_MB : MAX_SIZE_MB;
     if (file.size > maxSize * 1024 * 1024) {
       toast.error(`File must be under ${maxSize}MB`);
       e.target.value = "";
@@ -224,10 +250,16 @@ function SlotEditForm({
     }
     
     // Check file type based on slot
-    const allowedTypes = isVideoSlot ? ALLOWED_VIDEO_TYPES : ALLOWED_TYPES;
+    const allowedTypes = isVideoSlot
+      ? ALLOWED_VIDEO_TYPES
+      : isPdfSlot
+        ? ALLOWED_PDF_TYPES
+        : ALLOWED_TYPES;
     if (!allowedTypes.includes(file.type)) {
       if (isVideoSlot) {
         toast.error("Allowed: MP4, WebM, OGG, MOV");
+      } else if (isPdfSlot) {
+        toast.error("Allowed: PDF");
       } else {
         toast.error("Allowed: JPEG, PNG, GIF, WebP, SVG");
       }
@@ -236,8 +268,8 @@ function SlotEditForm({
     }
     
     setUploading(true);
-    const ext = file.name.split(".").pop() || (isVideoSlot ? "mp4" : "jpg");
-    const folder = isVideoSlot ? "videos" : "media";
+    const ext = file.name.split(".").pop() || (isVideoSlot ? "mp4" : isPdfSlot ? "pdf" : "jpg");
+    const folder = isVideoSlot ? "videos" : isPdfSlot ? "documents" : "media";
     const path = `${folder}/${crypto.randomUUID()}.${ext}`;
     
     // For .mov files, use video/mp4 content-type as workaround
@@ -246,7 +278,7 @@ function SlotEditForm({
     const { data: uploadData, error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, {
       cacheControl: "3600",
       upsert: false,
-      contentType: isVideoSlot ? contentType : undefined,
+      contentType: isVideoSlot || isPdfSlot ? contentType : undefined,
     });
     
     if (uploadError) {
@@ -259,7 +291,7 @@ function SlotEditForm({
     const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(uploadData.path);
     
     // Only add to media library if it's an image
-    if (!isVideoSlot) {
+    if (!isVideoSlot && !isPdfSlot) {
       await supabase.from("website_media_library").insert({
         file_name: file.name,
         file_path: uploadData.path,
@@ -274,7 +306,13 @@ function SlotEditForm({
     
     setFile_url(urlData.publicUrl);
     if (!alt_text.trim()) setAlt_text(file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ") || "");
-    toast.success(isVideoSlot ? "Video uploaded. Click Save to assign to this slot." : "Image uploaded. Click Save to assign to this slot.");
+    toast.success(
+      isVideoSlot
+        ? "Video uploaded. Click Save to assign to this slot."
+        : isPdfSlot
+          ? "PDF uploaded. Click Save to assign to this slot."
+          : "Image uploaded. Click Save to assign to this slot.",
+    );
     setUploading(false);
     e.target.value = "";
   };
@@ -282,16 +320,22 @@ function SlotEditForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="file_url">{isVideoSlot ? "Video URL" : "Image URL"}</Label>
-        <Input id="file_url" value={file_url} onChange={(e) => setFile_url(e.target.value)} placeholder={isVideoSlot ? "Paste video URL or upload below" : "Paste URL, upload below, or pick from Media"} />
+        <Label htmlFor="file_url">{isVideoSlot ? "Video URL" : isPdfSlot ? "PDF URL" : "Image URL"}</Label>
+        <Input id="file_url" value={file_url} onChange={(e) => setFile_url(e.target.value)} placeholder={isVideoSlot ? "Paste video URL or upload below" : isPdfSlot ? "Paste PDF URL or upload below" : "Paste URL, upload below, or pick from Media"} />
       </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Label className="shrink-0">{isVideoSlot ? "Upload video" : "Upload image"}</Label>
+        <Label className="shrink-0">{isVideoSlot ? "Upload video" : isPdfSlot ? "Upload PDF" : "Upload image"}</Label>
         <div className="flex gap-2 flex-1 flex-wrap">
           <input
             ref={fileInputRef}
             type="file"
-            accept={isVideoSlot ? ALLOWED_VIDEO_TYPES.join(",") : ALLOWED_TYPES.join(",")}
+            accept={
+              isVideoSlot
+                ? ALLOWED_VIDEO_TYPES.join(",")
+                : isPdfSlot
+                  ? ALLOWED_PDF_TYPES.join(",")
+                  : ALLOWED_TYPES.join(",")
+            }
             className="hidden"
             onChange={handleFileUpload}
           />
@@ -308,6 +352,8 @@ function SlotEditForm({
           <span className="text-xs text-muted-foreground">
             {isVideoSlot 
               ? `MP4, WebM, OGG, MOV, max ${MAX_VIDEO_SIZE_MB}MB`
+              : isPdfSlot
+                ? `PDF, max ${MAX_PDF_SIZE_MB}MB`
               : `JPEG, PNG, GIF, WebP, SVG, max ${MAX_SIZE_MB}MB`
             }
           </span>
@@ -327,7 +373,21 @@ function SlotEditForm({
           </div>
         </div>
       )}
-      {!isVideoSlot && media.length > 0 && (
+      {file_url && isPdfSlot && (
+        <div className="space-y-2">
+          <Label>PDF link</Label>
+          <a
+            href={file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          >
+            <FileText className="h-4 w-4" />
+            Open current PDF
+          </a>
+        </div>
+      )}
+      {!isVideoSlot && !isPdfSlot && media.length > 0 && (
         <div className="space-y-2">
           <Label>Pick from Media</Label>
           <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto p-1">

@@ -56,8 +56,9 @@ export default function FloatingActions() {
   };
 
   const isInternationalStudents = location.pathname.startsWith("/international-students");
+  const isClearing2026 = location.pathname.startsWith("/university-of-lancashire-clearing-2026");
   const isVrTour = location.pathname.startsWith("/vr-tour");
-  if (isAdmin || isInternationalStudents || isVrTour || leadModalOpen) return null;
+  if (isAdmin || isInternationalStudents || isClearing2026 || isVrTour || leadModalOpen) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3" aria-label="Quick actions">

@@ -26,6 +26,7 @@ const Reviews = lazy(() => import("../pages/Reviews"));
 const StudioGradeRedirect = lazy(() => import("../pages/StudioGradeRedirect"));
 const LandingPage = lazy(() => import("../pages/LandingPage"));
 const InternationalStudents = lazy(() => import("../pages/InternationalStudents"));
+const UniversityOfLancashireClearing2026 = lazy(() => import("../pages/UniversityOfLancashireClearing2026"));
 const VrTour = lazy(() => import("../pages/VrTour"));
 // Admin
 const AdminLogin = lazy(() => import("../pages/admin/AdminLogin"));
@@ -59,6 +60,7 @@ const AnimatedRoutes = () => {
           <Route path="/studios/:year/:slug" element={<PageTransition key={location.pathname}><StudioGradeRedirect /></PageTransition>} />
           <Route path="/landing/:slug" element={<PageTransition key={location.pathname}><LandingPage /></PageTransition>} />
           <Route path="/international-students" element={<PageTransition key={location.pathname}><InternationalStudents /></PageTransition>} />
+          <Route path="/university-of-lancashire-clearing-2026" element={<PageTransition key={location.pathname}><UniversityOfLancashireClearing2026 /></PageTransition>} />
           <Route path="/vr-tour" element={<PageTransition key={location.pathname}><VrTour /></PageTransition>} />
           <Route path="/contact" element={<PageTransition key={location.pathname}><Contact /></PageTransition>} />
           <Route path="/faq" element={<PageTransition key={location.pathname}><FAQ /></PageTransition>} />

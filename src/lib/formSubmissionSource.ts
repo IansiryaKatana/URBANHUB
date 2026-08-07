@@ -30,6 +30,7 @@ export function formatLandingPageLabel(landingPage: string): string {
 
   const known: Record<string, string> = {
     "/international-students": "International Students",
+    "/university-of-lancashire-clearing-2026": "University of Lancashire Clearing 2026",
     "/contact": "Contact",
     "/short-term": "Short Term",
     "/pay-urban-hub-now": "Pay Urban Hub Now",

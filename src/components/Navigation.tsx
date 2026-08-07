@@ -58,6 +58,7 @@ const Navigation = () => {
     "refer-a-friend-terms",
     "cashback-campaign-terms",
     "international-students",
+    "university-of-lancashire-clearing-2026",
     "vr-tour",
     "admin",
   ];
@@ -660,12 +661,16 @@ const Navigation = () => {
         landingPageSlug={
           location.pathname.startsWith("/international-students")
             ? "/international-students"
-            : undefined
+            : location.pathname.startsWith("/university-of-lancashire-clearing-2026")
+              ? "/university-of-lancashire-clearing-2026"
+              : undefined
         }
         ctaTrackingKey={
           location.pathname.startsWith("/international-students")
             ? "intl_nav_callback"
-            : "nav-callback"
+            : location.pathname.startsWith("/university-of-lancashire-clearing-2026")
+              ? "clearing_nav_callback"
+              : "nav-callback"
         }
         ctaType="callback"
       />
@@ -676,12 +681,16 @@ const Navigation = () => {
         landingPageSlug={
           location.pathname.startsWith("/international-students")
             ? "/international-students"
-            : undefined
+            : location.pathname.startsWith("/university-of-lancashire-clearing-2026")
+              ? "/university-of-lancashire-clearing-2026"
+              : undefined
         }
         ctaTrackingKey={
           location.pathname.startsWith("/international-students")
             ? "intl_nav_book_viewing"
-            : "nav-book-viewing"
+            : location.pathname.startsWith("/university-of-lancashire-clearing-2026")
+              ? "clearing_nav_book_viewing"
+              : "nav-book-viewing"
         }
         ctaType="viewing"
       />
