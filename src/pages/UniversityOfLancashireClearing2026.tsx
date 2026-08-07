@@ -36,26 +36,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTestimonials } from "@/hooks/useTestimonials";
 import { useReviews } from "@/hooks/useReviews";
 import { useIntlArrivalSteps } from "@/hooks/useIntlArrivalSteps";
+import { useSlotUrl } from "@/hooks/useWebsiteImageSlots";
 import { portalStudiosUrl } from "@/config";
 import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
 import { SecureBookingDialog } from "@/components/leads/SecureBookingDialog";
 import { ChecklistDownloadDialog } from "@/components/leads/ChecklistDownloadDialog";
 import { CountryFlagMarquee } from "@/components/international-students/CountryFlagMarquee";
 import { buildWhatsAppUrl } from "@/components/international-students/MorphingStickyCta";
-import { VrTourDialog } from "@/components/international-students/VrTourDialog";
+import { VrTourDialog, VR_TOUR_THUMBNAIL_SLOT_KEY } from "@/components/international-students/VrTourDialog";
 import { VideoTestimonialCard } from "@/components/international-students/VideoTestimonialCard";
 import { ArrivalCoverflow } from "@/components/international-students/ArrivalCoverflow";
 import Autoplay from "embla-carousel-autoplay";
-import vrThumbnail from "@/assets/international-students/vr.webp";
+import vrThumbnailFallback from "@/assets/international-students/vr.webp";
 import ncAccre from "@/assets/nc accre.png";
 import ulAccre from "@/assets/UL accree.png";
 import anukAccre from "@/assets/anuk accre.png";
 
 const LANDING_SLUG = "/university-of-lancashire-clearing-2026";
 
-const HERO_IMAGE_MOBILE =
+const HERO_IMAGE_MOBILE_FALLBACK =
   "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/media/18b3d9fc-134f-45a2-99bd-5848a073164c.webp";
-const HERO_IMAGE_DESKTOP =
+const HERO_IMAGE_DESKTOP_FALLBACK =
   "https://pzptocwdaqpczexlbajr.supabase.co/storage/v1/object/public/website/media/4a210e79-968c-41df-baa1-f051694b0f74.webp";
 
 const HERO_INTRO =
@@ -187,6 +188,9 @@ const UniversityOfLancashireClearing2026 = () => {
   const reviews = reviewsData || [];
   const { data: arrivalStepsData } = useIntlArrivalSteps();
   const arrivalSteps = arrivalStepsData || [];
+  const heroImageMobile = useSlotUrl("clearing_2026_hero_mobile", HERO_IMAGE_MOBILE_FALLBACK);
+  const heroImageDesktop = useSlotUrl("clearing_2026_hero_desktop", HERO_IMAGE_DESKTOP_FALLBACK);
+  const vrThumbnail = useSlotUrl(VR_TOUR_THUMBNAIL_SLOT_KEY, vrThumbnailFallback);
 
   const [silverSlides, setSilverSlides] = useState<{ id: string; url: string; alt: string }[]>([]);
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
@@ -288,9 +292,9 @@ const UniversityOfLancashireClearing2026 = () => {
       {/* Hero */}
       <section id="clearing-hero" className="relative min-h-[100dvh] overflow-hidden bg-black text-white">
         <picture>
-          <source media="(min-width: 768px)" srcSet={HERO_IMAGE_DESKTOP} />
+          <source media="(min-width: 768px)" srcSet={heroImageDesktop} />
           <img
-            src={HERO_IMAGE_MOBILE}
+            src={heroImageMobile}
             alt="University of Lancashire Clearing 2026 at Urban Hub"
             className="absolute inset-0 h-full w-full object-cover"
             fetchPriority="high"

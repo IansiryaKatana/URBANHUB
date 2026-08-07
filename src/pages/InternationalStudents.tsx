@@ -4,7 +4,6 @@ import {
   ArrowUpRight,
   CreditCard,
   Eye,
-  Glasses,
   HeartHandshake,
   LifeBuoy,
   ShieldCheck,
@@ -40,13 +39,14 @@ import { GetCallbackDialog } from "@/components/leads/GetCallbackDialog";
 import { SecureBookingDialog } from "@/components/leads/SecureBookingDialog";
 import { CountryFlagMarquee } from "@/components/international-students/CountryFlagMarquee";
 import { buildWhatsAppUrl } from "@/components/international-students/MorphingStickyCta";
-import { VrTourDialog } from "@/components/international-students/VrTourDialog";
+import { VrTourDialog, VR_TOUR_THUMBNAIL_SLOT_KEY } from "@/components/international-students/VrTourDialog";
 import { VideoTestimonialCard } from "@/components/international-students/VideoTestimonialCard";
 import { ArrivalCoverflow } from "@/components/international-students/ArrivalCoverflow";
+import { useSlotUrl } from "@/hooks/useWebsiteImageSlots";
 import type { Database } from "@/integrations/supabase/types";
 import Autoplay from "embla-carousel-autoplay";
 import communityImage from "@/assets/international-students/community.jpg";
-import vrThumbnail from "@/assets/international-students/vr.webp";
+import vrThumbnailFallback from "@/assets/international-students/vr.webp";
 
 type AcademicYearRow = Database["public"]["Tables"]["academic_years"]["Row"];
 
@@ -169,6 +169,7 @@ const InternationalStudents = () => {
   const { data: communityImagesData } = useIntlCommunityImages();
   const { data: arrivalStepsData } = useIntlArrivalSteps();
   const arrivalSteps = arrivalStepsData || [];
+  const vrThumbnail = useSlotUrl(VR_TOUR_THUMBNAIL_SLOT_KEY, vrThumbnailFallback);
   const communitySlides =
     communityImagesData && communityImagesData.length > 0
       ? communityImagesData.map((img) => ({
@@ -414,11 +415,11 @@ const InternationalStudents = () => {
             </div>
           </div>
 
-          {/* VR teaser image — bottom right (desktop only); swap src when image is ready */}
+          {/* VR teaser — bottom right, above hero CTAs on mobile */}
           <button
             type="button"
             onClick={() => setVrOpen(true)}
-            className="absolute bottom-8 right-4 z-20 hidden w-[280px] overflow-hidden rounded-2xl shadow-2xl transition hover:opacity-95 md:bottom-12 md:right-8 md:block md:w-[320px]"
+            className="absolute bottom-[4.75rem] right-4 z-20 w-[160px] overflow-hidden rounded-2xl shadow-2xl transition hover:opacity-95 sm:w-[200px] md:bottom-12 md:right-8 md:w-[320px]"
             aria-label="Start VR tour"
           >
             <div className="relative aspect-video w-full bg-zinc-900">
@@ -429,33 +430,6 @@ const InternationalStudents = () => {
               />
             </div>
           </button>
-        </div>
-      </section>
-
-      {/* Mobile VR strip */}
-      <section className="bg-zinc-900 text-white md:hidden" aria-label="Tour studios in VR">
-        <div className="mx-auto flex max-w-7xl flex-col items-stretch gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-white/10 text-white">
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
-              <Glasses className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">
-                See it before you fly
-              </p>
-              <p className="font-display text-lg font-black uppercase leading-tight tracking-wide text-white">
-                Tour the studios in VR
-              </p>
-            </div>
-          </div>
-          <Button
-            className="w-full rounded-[16px] bg-primary px-6 font-bold uppercase tracking-wide text-white hover:bg-primary/90 sm:w-auto"
-            onClick={() => setVrOpen(true)}
-          >
-            <Glasses className="mr-2 h-4 w-4" />
-            Start VR Tour
-          </Button>
         </div>
       </section>
 

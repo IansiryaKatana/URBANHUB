@@ -15,6 +15,7 @@ const VrTourViewer = lazy(() =>
 );
 
 export const VR_TOUR_VIDEO_SLOT_KEY = "intl_students_vr_tour_video";
+export const VR_TOUR_THUMBNAIL_SLOT_KEY = "intl_students_vr_tour_thumbnail";
 
 interface VrTourDialogProps {
   open: boolean;

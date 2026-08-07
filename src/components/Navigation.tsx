@@ -70,17 +70,141 @@ const Navigation = () => {
   const { data: dbNavItems } = useNavigationItems("header");
   const logoUrl = logoPath || logo;
 
+  type NavChild = { id: string; title: string; url: string };
+  type NavItem = {
+    id: string;
+    title: string;
+    url: string;
+    display_order: number;
+    is_active: boolean;
+    location: "header";
+    opens_in_new_tab: boolean;
+    children?: NavChild[];
+  };
+
   // Hardcoded navigation items based on pages built
-  const navItems = [
-    { id: "home", title: "Home", url: "/", display_order: 1, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "about", title: "About", url: "/about", display_order: 2, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "blog", title: "Blog", url: "/blog", display_order: 3, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "shortterm", title: "Short Term", url: "/short-term", display_order: 4, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "vrtour", title: "VR Tour", url: "/vr-tour", display_order: 5, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "reviews", title: "Reviews", url: "/reviews", display_order: 6, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "faq", title: "FAQ", url: "/faq", display_order: 7, is_active: true, location: "header" as const, opens_in_new_tab: false },
-    { id: "contact", title: "Contact Us", url: "/contact", display_order: 8, is_active: true, location: "header" as const, opens_in_new_tab: false },
+  const navItems: NavItem[] = [
+    { id: "home", title: "Home", url: "/", display_order: 1, is_active: true, location: "header", opens_in_new_tab: false },
+    {
+      id: "about",
+      title: "About",
+      url: "/about",
+      display_order: 2,
+      is_active: true,
+      location: "header",
+      opens_in_new_tab: false,
+      children: [
+        { id: "intl-students", title: "For International Students", url: "/international-students" },
+      ],
+    },
+    { id: "blog", title: "Blog", url: "/blog", display_order: 3, is_active: true, location: "header", opens_in_new_tab: false },
+    { id: "shortterm", title: "Short Term", url: "/short-term", display_order: 4, is_active: true, location: "header", opens_in_new_tab: false },
+    { id: "vrtour", title: "VR Tour", url: "/vr-tour", display_order: 5, is_active: true, location: "header", opens_in_new_tab: false },
+    { id: "reviews", title: "Reviews", url: "/reviews", display_order: 6, is_active: true, location: "header", opens_in_new_tab: false },
+    { id: "faq", title: "FAQ", url: "/faq", display_order: 7, is_active: true, location: "header", opens_in_new_tab: false },
+    { id: "contact", title: "Contact Us", url: "/contact", display_order: 8, is_active: true, location: "header", opens_in_new_tab: false },
   ];
+
+  const isNavItemActive = (item: NavItem) => {
+    if (item.url === "/") {
+      return location.pathname === "/" || location.pathname.startsWith("/studios");
+    }
+    if (location.pathname === item.url) return true;
+    return Boolean(item.children?.some((child) => location.pathname === child.url));
+  };
+
+  const renderDesktopNavItem = (item: NavItem) => {
+    const isActive = isNavItemActive(item);
+    const inactiveClass = "text-white hover:bg-white/10 hover:text-accent-yellow";
+    const activeClass = "bg-[#1a1a1a] text-accent-yellow shadow-md";
+
+    if (item.children?.length) {
+      return (
+        <DropdownMenu key={item.id}>
+          <DropdownMenuTrigger
+            className={cn(
+              desktopNavItemClass,
+              "inline-flex items-center gap-1 outline-none",
+              isActive ? activeClass : inactiveClass,
+            )}
+          >
+            {item.title}
+            <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="min-w-[14rem] rounded-xl border-border/60 bg-white p-1.5 text-zinc-900">
+            <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2.5 text-sm font-medium">
+              <Link to={item.url}>{item.title}</Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {item.children.map((child) => (
+              <DropdownMenuItem
+                key={child.id}
+                asChild
+                className="cursor-pointer rounded-lg px-3 py-2.5 text-sm font-medium"
+              >
+                <Link to={child.url}>{child.title}</Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+
+    return (
+      <Link
+        key={item.id}
+        to={item.url}
+        className={cn(desktopNavItemClass, isActive ? activeClass : inactiveClass)}
+      >
+        {item.title}
+      </Link>
+    );
+  };
+
+  const renderMobileNavItem = (item: NavItem) => {
+    const isActive = isNavItemActive(item);
+    const linkClass = (active: boolean) =>
+      `block text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 ${
+        active
+          ? "bg-[#1a1a1a] text-accent-yellow shadow-sm"
+          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+      }`;
+
+    if (item.children?.length) {
+      return (
+        <div key={item.id} className="space-y-1">
+          <Link
+            to={item.url}
+            onClick={() => setMobileMenuOpen(false)}
+            className={linkClass(location.pathname === item.url)}
+          >
+            {item.title}
+          </Link>
+          {item.children.map((child) => (
+            <Link
+              key={child.id}
+              to={child.url}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`${linkClass(location.pathname === child.url)} ml-3 border-l-2 border-gray-200 pl-4`}
+            >
+              {child.title}
+            </Link>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        key={item.id}
+        to={item.url}
+        onClick={() => setMobileMenuOpen(false)}
+        className={linkClass(isActive)}
+      >
+        {item.title}
+      </Link>
+    );
+  };
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -283,28 +407,7 @@ const Navigation = () => {
                     ))}
                   </>
                 )
-                : navItems.map((item) => {
-                    const isActive =
-                      location.pathname === item.url ||
-                      (item.url === "/" &&
-                        (location.pathname === "/" || location.pathname.startsWith("/studios")));
-                    return (
-                      <Link
-                        key={item.id}
-                        to={item.url}
-                        className={cn(
-                          desktopNavItemClass,
-                          isActive
-                            ? "bg-[#1a1a1a] text-accent-yellow shadow-md"
-                            : isBlogPage
-                            ? "text-white hover:bg-white/10 hover:text-accent-yellow"
-                            : "text-white hover:bg-white/10 hover:text-accent-yellow"
-                        )}
-                      >
-                        {item.title}
-                      </Link>
-                    );
-                  })}
+                : navItems.map((item) => renderDesktopNavItem(item))}
             </div>
 
             {/* Button on right */}
@@ -384,26 +487,7 @@ const Navigation = () => {
                             ))}
                           </>
                         )
-                        : navItems.map((item) => {
-                            const isActive =
-                              location.pathname === item.url ||
-                              (item.url === "/" &&
-                                (location.pathname === "/" || location.pathname.startsWith("/studios")));
-                            return (
-                              <Link
-                                key={item.id}
-                                to={item.url}
-                                onClick={() => setMobileMenuOpen(false)}
-                                className={`block text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 ${
-                                  isActive
-                                    ? "bg-[#1a1a1a] text-accent-yellow shadow-sm"
-                                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                }`}
-                              >
-                                {item.title}
-                              </Link>
-                            );
-                          })}
+                        : navItems.map((item) => renderMobileNavItem(item))}
                     </nav>
 
                     {/* Action Buttons Section */}
@@ -475,26 +559,7 @@ const Navigation = () => {
                     ))}
                   </>
                 )
-                : navItems.map((item) => {
-                    const isActive =
-                      location.pathname === item.url ||
-                      (item.url === "/" &&
-                        (location.pathname === "/" || location.pathname.startsWith("/studios")));
-                    return (
-                      <Link
-                        key={item.id}
-                        to={item.url}
-                        className={cn(
-                          desktopNavItemClass,
-                          isActive
-                            ? "bg-[#1a1a1a] text-accent-yellow shadow-md"
-                            : "text-white hover:bg-white/10 hover:text-accent-yellow"
-                        )}
-                      >
-                        {item.title}
-                      </Link>
-                    );
-                  })}
+                : navItems.map((item) => renderDesktopNavItem(item))}
             </div>
 
             {/* Buttons on right */}
@@ -599,26 +664,7 @@ const Navigation = () => {
                             ))}
                           </>
                         )
-                        : navItems.map((item) => {
-                            const isActive =
-                              location.pathname === item.url ||
-                              (item.url === "/" &&
-                                (location.pathname === "/" || location.pathname.startsWith("/studios")));
-                            return (
-                              <Link
-                                key={item.id}
-                                to={item.url}
-                                onClick={() => setMobileMenuOpen(false)}
-                                className={`block text-base font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 ${
-                                  isActive
-                                    ? "bg-[#1a1a1a] text-accent-yellow shadow-sm"
-                                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                }`}
-                              >
-                                {item.title}
-                              </Link>
-                            );
-                          })}
+                        : navItems.map((item) => renderMobileNavItem(item))}
                     </nav>
 
                     {/* Action Buttons Section */}

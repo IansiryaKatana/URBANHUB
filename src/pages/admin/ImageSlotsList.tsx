@@ -92,7 +92,7 @@ export default function ImageSlotsList() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Website Image Slots</h1>
         <p className="text-muted-foreground">
-          Click a slot to change it. Includes hero images, videos, and downloadable PDFs such as the Clearing free checklist.
+          Click a slot to change it. Includes hero images, videos, VR tour thumbnail, and downloadable PDFs such as the Clearing free checklist.
         </p>
       </div>
 

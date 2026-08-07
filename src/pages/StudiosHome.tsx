@@ -63,6 +63,9 @@ import {
 import type { LandingHeroAlignment, LandingHeroCtaType } from "@/lib/landingHeroCta";
 import { fetchLandingHeroSlides } from "@/lib/fetchLandingHeroSlides";
 import { portalStudiosUrl } from "@/config";
+import { VrTourDialog, VR_TOUR_THUMBNAIL_SLOT_KEY } from "@/components/international-students/VrTourDialog";
+import { useSlotUrl } from "@/hooks/useWebsiteImageSlots";
+import vrThumbnailFallback from "@/assets/international-students/vr.webp";
 
 // Import amenity images
 import amenityCinema from "@/assets/amenity-cinema.jpg";
@@ -498,7 +501,9 @@ const StudiosHome = () => {
   const [referFriendDialogOpen, setReferFriendDialogOpen] = useState(false);
   const [creatorDialogOpen, setCreatorDialogOpen] = useState(false);
   const [secureBookingDialogOpen, setSecureBookingDialogOpen] = useState(false);
+  const [vrOpen, setVrOpen] = useState(false);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
+  const vrThumbnail = useSlotUrl(VR_TOUR_THUMBNAIL_SLOT_KEY, vrThumbnailFallback);
   const [contractLength, setContractLength] = useState<"45" | "51">("45");
   const { data: brandingSettings } = useBrandingSettings();
   const companyName = brandingSettings?.company_name || "StudentStaySolutions";
@@ -1090,6 +1095,22 @@ const StudiosHome = () => {
             aria-hidden
           />
         )}
+
+        {/* VR teaser — desktop only on homepage */}
+        <button
+          type="button"
+          onClick={() => setVrOpen(true)}
+          className="absolute bottom-12 right-8 z-20 hidden w-[320px] overflow-hidden rounded-2xl shadow-2xl transition hover:opacity-95 md:block"
+          aria-label="Start VR tour"
+        >
+          <div className="relative aspect-video w-full bg-zinc-900">
+            <img
+              src={vrThumbnail}
+              alt="Tour the studios in VR"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </div>
+        </button>
       </section>
       <main className="container mx-auto px-4 pt-2 pb-12 md:pt-16 md:pb-20 max-w-6xl space-y-4 md:space-y-12">
         {/* Academic Year Tabs */}
@@ -1579,6 +1600,7 @@ const StudiosHome = () => {
         landingPageSlug="/studios"
         ctaSource="homepage_landing_hero"
       />
+      <VrTourDialog open={vrOpen} onOpenChange={setVrOpen} />
     </div>
   );
 };
