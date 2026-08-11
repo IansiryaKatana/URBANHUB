@@ -3,6 +3,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import {
   ArrowRight,
   ArrowUpRight,
+  Check,
   Dumbbell,
   Glasses,
   Globe2,
@@ -151,6 +152,15 @@ const PLANS = [
   { name: "3 instalments", tag: "UK guarantor required", highlight: false, green: false },
   { name: "4 instalments", tag: "UK guarantor required", highlight: false, green: false },
   { name: "10 instalments", tag: "UK guarantor required", highlight: false, green: false },
+];
+
+const PARENT_POINTS = [
+  "ANUK accredited residence, independently audited for safety and quality",
+  "24/7 on-site security and CCTV",
+  "All bills included, no hidden costs",
+  "Professional guarantor service available, no UK guarantor needed",
+  "Visa refused? Full refund within 7 days",
+  "Direct contact with management, WhatsApp, email, or phone",
 ];
 
 const FAQS = [
@@ -676,6 +686,66 @@ const UniversityOfLancashireClearing2026 = () => {
             >
               Secure Your Studio (£99)
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* For parents */}
+      <section id="parents" className="bg-black py-20 text-white md:py-28">
+        <div className="mx-auto max-w-7xl px-4 md:px-8">
+          <div className="flex items-center gap-3">
+            <span className="h-px w-8 bg-primary" aria-hidden />
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/80">For parents</p>
+          </div>
+          <h2 className="mt-4 max-w-4xl font-display text-4xl font-black uppercase leading-none tracking-tight md:text-6xl">
+            Watching from home
+            <br />
+            <span className="text-primary">(or another country)?</span>
+          </h2>
+
+          <div className="mt-10 grid gap-12 lg:grid-cols-2 lg:gap-16 lg:items-start">
+            <div>
+              <p className="max-w-md text-sm leading-relaxed text-white/80 md:text-base">
+                We know this is a big decision. Here&apos;s everything you need to feel confident about your child&apos;s
+                new home.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button
+                  size="lg"
+                  className="rounded-[16px] border border-white bg-transparent px-7 font-bold uppercase tracking-wide text-white hover:bg-white hover:text-black"
+                  onClick={() =>
+                    openWa(
+                      "Hi Urban Hub, I'm a parent and I'd like to talk about accommodation for my child at UCLan.",
+                    )
+                  }
+                >
+                  <FaWhatsapp className="mr-2 h-5 w-5" />
+                  WhatsApp Us
+                </Button>
+                <Button
+                  size="lg"
+                  className="rounded-[16px] bg-accent-yellow px-7 font-bold uppercase tracking-wide text-black hover:bg-accent-yellow/90"
+                  onClick={() => {
+                    setCtaKey("parents_guide");
+                    setChecklistOpen(true);
+                  }}
+                >
+                  Get The Parent&apos;s Guide
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <ul className="space-y-4">
+              {PARENT_POINTS.map((point) => (
+                <li key={point} className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>
+                  <p className="text-sm leading-relaxed text-white/90 md:text-base">{point}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
