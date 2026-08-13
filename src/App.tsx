@@ -15,6 +15,7 @@ import GoogleSearchConsole from "./components/GoogleSearchConsole";
 import WebsiteAnalyticsTracker from "./components/WebsiteAnalyticsTracker";
 import NewsletterPopup from "./components/NewsletterPopup";
 import FloatingActions from "./components/FloatingActions";
+import { ClearingCashbackSticky } from "./components/clearing/ClearingCashbackSticky";
 import LegacyRedirects from "./components/LegacyRedirects";
 import AnimatedRoutes from "./components/AnimatedRoutes";
 import MicrosoftClarity from "./components/MicrosoftClarity";
@@ -47,6 +48,7 @@ const App = () => (
               <AnimatedRoutes />
               <NewsletterPopup />
               <FloatingActions />
+              <ClearingCashbackSticky />
               <MicrosoftClarity />
             </ErrorBoundary>
           </BrowserRouter>
