@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Clock } from "lucide-react";
+import { Clock, X } from "lucide-react";
 import { PORTAL_BASE_URL } from "@/config";
 import { useSlotUrl } from "@/hooks/useWebsiteImageSlots";
 import { isAnyLeadModalOpen, subscribeLeadModalGate } from "@/lib/leadModalGate";
@@ -90,8 +90,8 @@ export function ClearingCashbackSticky({ analyticsPrefix = "cashback-sticky" }: 
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 md:bottom-6 md:left-6">
-      <div className="relative w-[132px] sm:w-[156px] md:w-[176px]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none md:inset-auto md:bottom-6 md:left-6 md:block md:items-stretch md:justify-start">
+      <div className="pointer-events-auto relative w-[148px] sm:w-[156px] md:w-[176px]">
         <button
           type="button"
           onClick={minimize}
@@ -99,7 +99,7 @@ export function ClearingCashbackSticky({ analyticsPrefix = "cashback-sticky" }: 
           aria-label="Hide cashback offer"
           data-analytics={`${analyticsPrefix}-minimize`}
         >
-          <Clock className="h-4 w-4" strokeWidth={2.5} />
+          <X className="h-4 w-4" strokeWidth={2.5} />
         </button>
         <a
           href={PORTAL_BASE_URL}
