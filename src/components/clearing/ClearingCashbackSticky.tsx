@@ -91,7 +91,7 @@ export function ClearingCashbackSticky({ analyticsPrefix = "cashback-sticky" }: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none md:inset-auto md:bottom-6 md:left-6 md:block md:items-stretch md:justify-start">
-      <div className="pointer-events-auto relative w-[148px] sm:w-[156px] md:w-[176px]">
+      <div className="pointer-events-auto relative w-[192px] sm:w-[203px] md:w-[176px]">
         <button
           type="button"
           onClick={minimize}
