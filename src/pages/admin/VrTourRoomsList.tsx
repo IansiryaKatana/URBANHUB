@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Glasses, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Glasses, GripVertical, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,17 @@ import { cn } from "@/lib/utils";
 
 const BUCKET = "website";
 const STORAGE_PREFIX = "vr-tour";
+
+function moveRow<T extends { id: string }>(list: T[], fromId: string, toId: string): T[] {
+  if (fromId === toId) return list;
+  const fromIndex = list.findIndex((row) => row.id === fromId);
+  const toIndex = list.findIndex((row) => row.id === toId);
+  if (fromIndex < 0 || toIndex < 0) return list;
+  const next = [...list];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
 
 
 type RoomFormState = {
@@ -130,6 +141,10 @@ export default function VrTourRoomsList() {
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [draftRows, setDraftRows] = useState<VrTourRoomRow[] | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const draftRowsRef = useRef<VrTourRoomRow[] | null>(null);
   const { searchQuery, setSearchQuery, debouncedSearch, currentPage, setCurrentPage } =
     useDebouncedAdminSearch();
 
@@ -138,10 +153,13 @@ export default function VrTourRoomsList() {
     queryFn: () => fetchVrTourRooms(true),
   });
 
+  const sourceRows = draftRows ?? rows ?? [];
+  const canReorder = statusFilter === "all" && !debouncedSearch;
+
   const filteredRows = useMemo(() => {
-    if (!rows?.length) return [];
+    if (!sourceRows.length) return [];
     const q = debouncedSearch.toLowerCase();
-    return rows.filter((row) => {
+    return sourceRows.filter((row) => {
       if (statusFilter === "active" && !row.is_active) return false;
       if (statusFilter === "inactive" && row.is_active) return false;
       if (!q) return true;
@@ -151,9 +169,13 @@ export default function VrTourRoomsList() {
         row.category.toLowerCase().includes(q)
       );
     });
-  }, [rows, debouncedSearch, statusFilter]);
+  }, [sourceRows, debouncedSearch, statusFilter]);
 
-  const { paginated: paginatedRows, totalPages, safePage } = paginateItems(filteredRows, currentPage);
+  const { paginated: paginatedRows, totalPages, safePage } = paginateItems(
+    filteredRows,
+    currentPage,
+    canReorder ? Math.max(filteredRows.length, 1) : undefined,
+  );
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["admin-vr-tour-rooms"] });
@@ -221,11 +243,89 @@ export default function VrTourRoomsList() {
     onError: () => toast.error("Failed to delete room."),
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (ordered: VrTourRoomRow[]) => {
+      const previousById = new Map((rows ?? []).map((row) => [row.id, row.display_order]));
+      const updates = ordered
+        .map((row, index) => ({ id: row.id, display_order: index }))
+        .filter(({ id, display_order }) => previousById.get(id) !== display_order);
+
+      const results = await Promise.all(
+        updates.map(({ id, display_order }) =>
+          supabase
+            .from("website_vr_tour_rooms" as never)
+            .update({ display_order } as never)
+            .eq("id", id),
+        ),
+      );
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+    },
+    onMutate: async (ordered) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-vr-tour-rooms"] });
+      const previous = queryClient.getQueryData<VrTourRoomRow[]>(["admin-vr-tour-rooms"]);
+      queryClient.setQueryData(
+        ["admin-vr-tour-rooms"],
+        ordered.map((row, index) => ({ ...row, display_order: index })),
+      );
+      return { previous };
+    },
+    onError: (err: Error, _ordered, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["admin-vr-tour-rooms"], context.previous);
+      }
+      setDraftRows(null);
+      draftRowsRef.current = null;
+      toast.error(err.message || "Failed to save order.");
+    },
+    onSuccess: () => {
+      setDraftRows(null);
+      draftRowsRef.current = null;
+      invalidate();
+    },
+  });
+
+  const persistDraftOrder = () => {
+    const fromId = dragIdRef.current;
+    const ordered = draftRowsRef.current;
+    dragIdRef.current = null;
+    draftRowsRef.current = null;
+    setDraggingId(null);
+    if (!fromId || !ordered || !rows) {
+      setDraftRows(null);
+      return;
+    }
+    const unchanged = ordered.every((row, index) => row.id === rows[index]?.id);
+    if (unchanged) {
+      setDraftRows(null);
+      return;
+    }
+    reorderMutation.mutate(ordered);
+  };
+
+  const handleDragStart = (id: string) => {
+    if (!canReorder) return;
+    dragIdRef.current = id;
+    setDraggingId(id);
+    draftRowsRef.current = sourceRows;
+    setDraftRows(sourceRows);
+  };
+
+  const handleDragOver = (overId: string) => {
+    const fromId = dragIdRef.current;
+    if (!fromId || fromId === overId) return;
+    setDraftRows((prev) => {
+      const next = moveRow(prev ?? sourceRows, fromId, overId);
+      draftRowsRef.current = next;
+      return next;
+    });
+  };
+
   const openCreate = () => {
     setEditingId(null);
     setForm({
       ...emptyForm(),
-      display_order: (rows?.length ?? 0) + 1,
+      display_order: rows?.length ? Math.max(...rows.map((r) => r.display_order)) + 1 : 0,
       is_start: !rows?.some((r) => r.is_start),
     });
     setSheetOpen(true);
@@ -336,10 +436,17 @@ export default function VrTourRoomsList() {
           }
         />
 
+        <p className="text-xs text-muted-foreground">
+          {canReorder
+            ? "Drag the handle on a row to change the order rooms appear in the tour."
+            : "Clear search and status filters to drag rooms into a new order."}
+        </p>
+
         <div className="rounded-md border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className={cn(adminTableHeadClass, "w-10")} />
                 <TableHead className={adminTableHeadClass}>Preview</TableHead>
                 <TableHead className={adminTableHeadClass}>Room</TableHead>
                 <TableHead className={adminTableHeadClass}>Category</TableHead>
@@ -352,21 +459,65 @@ export default function VrTourRoomsList() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                     <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                   </TableCell>
                 </TableRow>
               ) : paginatedRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                     No VR rooms yet. If this is the first time, apply migration{" "}
                     <code className="text-xs">045_vr_tour_rooms.sql</code> in Supabase, then add a
                     room and upload a 360 image.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedRows.map((row) => (
-                  <TableRow key={row.id}>
+                paginatedRows.map((row, index) => (
+                  <TableRow
+                    key={row.id}
+                    onDragOver={(e) => {
+                      if (!canReorder) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      handleDragOver(row.id);
+                    }}
+                    onDrop={(e) => {
+                      if (!canReorder) return;
+                      e.preventDefault();
+                    }}
+                    className={cn(
+                      draggingId === row.id && "opacity-50",
+                      canReorder && draggingId && "select-none",
+                    )}
+                  >
+                    <TableCell className={cn(adminTableCellClass, "w-10 pr-0")}>
+                      <button
+                        type="button"
+                        draggable={canReorder}
+                        disabled={!canReorder || reorderMutation.isPending}
+                        onDragStart={(e) => {
+                          if (!canReorder) {
+                            e.preventDefault();
+                            return;
+                          }
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", row.id);
+                          const rowEl = e.currentTarget.closest("tr");
+                          if (rowEl) e.dataTransfer.setDragImage(rowEl, 24, 24);
+                          handleDragStart(row.id);
+                        }}
+                        onDragEnd={persistDraftOrder}
+                        className={cn(
+                          "inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground",
+                          canReorder
+                            ? "cursor-grab active:cursor-grabbing hover:bg-muted"
+                            : "cursor-not-allowed opacity-40",
+                        )}
+                        aria-label={canReorder ? `Drag to reorder ${row.name}` : "Reordering disabled"}
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </button>
+                    </TableCell>
                     <TableCell className={adminTableCellClass}>
                       {row.panorama_thumb ? (
                         <img
@@ -391,7 +542,9 @@ export default function VrTourRoomsList() {
                     </TableCell>
                     <TableCell className={adminTableCellClass}>{row.category}</TableCell>
                     <TableCell className={adminTableCellClass}>{(row.links ?? []).length}</TableCell>
-                    <TableCell className={adminTableCellClass}>{row.display_order}</TableCell>
+                    <TableCell className={adminTableCellClass}>
+                      {canReorder ? index + 1 : row.display_order}
+                    </TableCell>
                     <TableCell className={adminTableCellClass}>
                       <Badge variant={row.is_active ? "default" : "outline"}>
                         {row.is_active ? "Active" : "Inactive"}
@@ -507,6 +660,9 @@ export default function VrTourRoomsList() {
                       setForm((p) => ({ ...p, display_order: Number(e.target.value) || 0 }))
                     }
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Or drag rows in the list to change order.
+                  </p>
                 </div>
               </div>
 
