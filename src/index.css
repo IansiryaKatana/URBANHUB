@@ -276,6 +276,37 @@ html::-webkit-scrollbar {
   display: none !important;
 }
 
+/* Keep PSV navbar icons vertically centered (Tailwind border-box otherwise squashes the 20px+padding buttons) */
+.vr-tour-viewer .psv-navbar {
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.vr-tour-viewer .psv-button:not(.psv-zoom-range) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 40px;
+  width: 40px;
+  padding: 0;
+  line-height: 0;
+}
+
+.vr-tour-viewer .psv-button-svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.vr-tour-viewer .psv-caption {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  line-height: 1;
+}
+
 @keyframes vr-loader-spin {
   to {
     transform: rotate(360deg);

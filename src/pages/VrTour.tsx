@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import {
   Drawer,
@@ -71,6 +71,9 @@ function RoomsContent({
 const cancelBtnClass =
   "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-semibold text-black transition hover:bg-white/90";
 
+const roomNavArrowClass =
+  "pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-zinc-950/85 text-white shadow-lg backdrop-blur-md transition hover:bg-zinc-900";
+
 const VrTour = () => {
   const { nodes, startNodeId } = useVrTourConfig();
   const groups = useMemo(() => groupNodesByCategory(nodes), [nodes]);
@@ -86,10 +89,20 @@ const VrTour = () => {
     setCurrentName((prev) => (prev === "VR Tour" ? start.name : prev));
   }, [nodes, startNodeId]);
 
+  const orderedNodes = useMemo(() => groups.flatMap((group) => group.nodes), [groups]);
+
   const selectRoom = (nodeId: string) => {
     setActiveNodeId(nodeId);
     // Keep the list open on desktop; close the sheet after picking on mobile.
     if (isMobile) setRoomsOpen(false);
+  };
+
+  const goSiblingRoom = (delta: number) => {
+    if (orderedNodes.length < 2) return;
+    const currentIndex = orderedNodes.findIndex((node) => node.id === activeNodeId);
+    const fromIndex = currentIndex >= 0 ? currentIndex : 0;
+    const next = orderedNodes[(fromIndex + delta + orderedNodes.length) % orderedNodes.length];
+    if (next) selectRoom(next.id);
   };
 
   const roomsButton = (
@@ -124,7 +137,28 @@ const VrTour = () => {
           />
         </Suspense>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 p-3 sm:p-4 md:inset-x-auto md:bottom-auto md:left-4 md:top-24 md:w-80 md:p-0">
+        {orderedNodes.length > 1 && !(isMobile && roomsOpen) && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-12 top-16 z-20 md:bottom-0 md:top-20">
+            <button
+              type="button"
+              className={cn(roomNavArrowClass, "absolute left-2 top-1/2 -translate-y-1/2 md:left-[21.5rem]")}
+              onClick={() => goSiblingRoom(-1)}
+              aria-label="Previous room"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button
+              type="button"
+              className={cn(roomNavArrowClass, "absolute right-2 top-1/2 -translate-y-1/2")}
+              onClick={() => goSiblingRoom(1)}
+              aria-label="Next room"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </div>
+        )}
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 p-3 pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(3.75rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-auto md:left-4 md:top-24 md:w-80 md:p-0 md:pb-0">
           <div className="pointer-events-auto mx-auto flex max-w-lg flex-col items-stretch gap-2 md:mx-0 md:w-full">
             {isMobile ? (
               <Drawer open={roomsOpen} onOpenChange={setRoomsOpen}>
