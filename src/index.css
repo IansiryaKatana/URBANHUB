@@ -129,21 +129,38 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  /*
+    Lock the rem root so Chrome “font size” / OS text prefs don’t inflate the whole UI
+    relative to Cursor’s Electron preview (which typically stays at 16px).
+  */
   html {
     overflow-x: clip;
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /*
+    System browsers (Chrome/Edge/Safari) often read ~6% larger than Cursor/Electron.
+    Uniform zoom covers rem + fixed px. Safari falls back to a tighter rem root.
+  */
+  html[data-app-shell="browser"] {
+    zoom: 0.94;
+  }
+
+  @supports not (zoom: 1) {
+    html[data-app-shell="browser"] {
+      font-size: 15px;
+    }
   }
 
   body {
     @apply bg-background text-foreground;
-    font-size: 12px;
+    font-size: 1rem;
     overflow-x: clip;
     max-width: 100%;
-  }
-
-  @media (min-width: 768px) {
-    body {
-      font-size: 16px;
-    }
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Prevent iOS Safari auto-zoom on focus (requires >= 16px computed font-size) */
@@ -276,10 +293,19 @@ html::-webkit-scrollbar {
   display: none !important;
 }
 
-/* Keep PSV navbar icons vertically centered (Tailwind border-box otherwise squashes the 20px+padding buttons) */
+/* Compact PSV toolbar: hug controls, pin to bottom-right */
 .vr-tour-viewer .psv-navbar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  left: auto !important;
+  right: 0.75rem !important;
+  bottom: 0.75rem !important;
+  width: auto !important;
+  max-width: calc(100% - 1.5rem);
+  height: auto;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.75rem;
   line-height: 0;
 }
 
@@ -301,10 +327,7 @@ html::-webkit-scrollbar {
 }
 
 .vr-tour-viewer .psv-caption {
-  display: flex;
-  align-items: center;
-  height: 40px;
-  line-height: 1;
+  display: none;
 }
 
 @keyframes vr-loader-spin {

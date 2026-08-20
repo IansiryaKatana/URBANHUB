@@ -66,6 +66,7 @@ const Navigation = () => {
   const isBlogPage = location.pathname === "/blog" || (pathSegment && !topLevelReserved.includes(pathSegment) && location.pathname.match(/^\/[^/]+$/));
   const isAboutPage = location.pathname === "/about";
   const isShortTermPage = location.pathname === "/short-term";
+  const isVrTourPage = location.pathname === "/vr-tour" || location.pathname.startsWith("/vr-tour/");
   const companyName = useBrandingSetting("company_name");
   const { data: dbNavItems } = useNavigationItems("header");
   const logoUrl = logoPath || logo;
@@ -364,7 +365,9 @@ const Navigation = () => {
     >
       <nav
         className={
-          isShortTermPage
+          isVrTourPage
+            ? "w-full bg-black px-3 md:px-6 xl:px-8"
+            : isShortTermPage
             ? "w-full px-0 pt-3 md:px-[100px] md:pt-5"
             : `w-full px-3 md:px-6 xl:px-8 ${
                 isContactOrFAQ || isBlogPage ? "pt-4 md:pt-6" : "pt-3 md:pt-5"
@@ -524,7 +527,9 @@ const Navigation = () => {
         ) : (
           <div
             className={`pointer-events-auto flex items-center justify-between gap-3 px-3 py-2 md:gap-4 md:px-6 md:py-3 transition-all duration-300 ${
-              ((isScrolled || isBlogPage) && isVisible)
+              isVrTourPage
+                ? "bg-transparent"
+                : ((isScrolled || isBlogPage) && isVisible)
                 ? "bg-black rounded-xl shadow-lg backdrop-blur-md" 
                 : (isAboutPage && isVisible)
                 ? "bg-black/60 rounded-xl shadow-lg backdrop-blur-md"

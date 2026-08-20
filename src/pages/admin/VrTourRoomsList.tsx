@@ -17,6 +17,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -43,11 +53,22 @@ import {
 } from "@/components/admin/AdminRecordList";
 import { fetchVrTourRooms, type VrTourRoomRow } from "@/hooks/useVrTourRooms";
 import { buildVrPanoramaVariants, slugifyVrRoomId } from "@/lib/vrPanoramaResize";
-import { VR_TOUR_CATEGORIES, type VrTourCategory, type VrTourLink } from "@/data/vrTour";
+import {
+  remapVrLinks,
+  syncVrRoomIdsFromNames,
+  uniqueRoomIdFromName,
+} from "@/lib/vrRoomIds";
+import { VR_TOUR_CATEGORIES, resolveTourPanelCategory, type VrTourCategory, type VrTourLink } from "@/data/vrTour";
 import { cn } from "@/lib/utils";
 
 const BUCKET = "website";
 const STORAGE_PREFIX = "vr-tour";
+
+/** Persist panel categories until migration 051 is applied on the DB. */
+function toDbCategory(category: VrTourCategory): string {
+  if (category === "Rooms" || category === "Facilities") return category;
+  return resolveTourPanelCategory(category);
+}
 
 function moveRow<T extends { id: string }>(list: T[], fromId: string, toId: string): T[] {
   if (fromId === toId) return list;
@@ -58,17 +79,6 @@ function moveRow<T extends { id: string }>(list: T[], fromId: string, toId: stri
   const [moved] = next.splice(fromIndex, 1);
   next.splice(toIndex, 0, moved);
   return next;
-}
-
-/** Slugify display name; append -2, -3… if the id is already taken. */
-function uniqueRoomIdFromName(name: string, existingIds: string[], keepId?: string | null): string {
-  const base = slugifyVrRoomId(name);
-  if (!base) return "";
-  if (keepId && keepId === base) return keepId;
-  if (!existingIds.includes(base) || base === keepId) return base;
-  let n = 2;
-  while (existingIds.includes(`${base}-${n}`)) n += 1;
-  return `${base}-${n}`;
 }
 
 
@@ -88,7 +98,7 @@ type RoomFormState = {
 const emptyForm = (): RoomFormState => ({
   id: "",
   name: "",
-  category: "Common areas",
+  category: "Rooms",
   display_order: 0,
   is_active: true,
   is_start: false,
@@ -102,7 +112,7 @@ function rowToForm(row: VrTourRoomRow): RoomFormState {
   return {
     id: row.id,
     name: row.name,
-    category: row.category,
+    category: resolveTourPanelCategory(row.category, row.id, row.name),
     display_order: row.display_order,
     is_active: row.is_active,
     is_start: row.is_start,
@@ -148,6 +158,8 @@ export default function VrTourRoomsList() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [syncIdsConfirmOpen, setSyncIdsConfirmOpen] = useState(false);
   const [form, setForm] = useState<RoomFormState>(emptyForm);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
@@ -201,19 +213,18 @@ export default function VrTourRoomsList() {
       }
 
       const existingIds = (rows ?? []).map((r) => r.id);
-      const id = editingId
-        ? editingId
-        : uniqueRoomIdFromName(payload.name, existingIds);
+      const id = uniqueRoomIdFromName(payload.name, existingIds, editingId);
       if (!id) throw new Error("Enter a room name so we can create an ID (e.g. Moor Lane → moor-lane).");
 
       if (payload.is_start) {
-        await clearOtherStartNodes(id);
+        // Clear other start flags before insert/rename so the unique index stays happy
+        await clearOtherStartNodes(editingId || id);
       }
 
       const body = {
         id,
         name: payload.name.trim(),
-        category: payload.category,
+        category: toDbCategory(payload.category),
         display_order: Number(payload.display_order) || 0,
         is_active: payload.is_active,
         is_start: payload.is_start,
@@ -223,25 +234,60 @@ export default function VrTourRoomsList() {
         panorama_thumb: payload.panorama_thumb,
       };
 
+      const saveWithCategoryFallback = async () => {
+        const run = async (category: string) => {
+          const nextBody = { ...body, category };
+          if (editingId) {
+            return supabase
+              .from("website_vr_tour_rooms" as never)
+              .update({
+                id: nextBody.id,
+                name: nextBody.name,
+                category: nextBody.category,
+                display_order: nextBody.display_order,
+                is_active: nextBody.is_active,
+                is_start: nextBody.is_start,
+                links: remapVrLinks(nextBody.links, idMap),
+                panorama_lg: nextBody.panorama_lg,
+                panorama_sm: nextBody.panorama_sm,
+                panorama_thumb: nextBody.panorama_thumb,
+              } as never)
+              .eq("id", editingId);
+          }
+          return supabase.from("website_vr_tour_rooms" as never).insert(nextBody as never);
+        };
+
+        let result = await run(body.category);
+        if (result.error && /category|check constraint/i.test(result.error.message)) {
+          const legacy = payload.category === "Rooms" ? "Silver studio" : "Common areas";
+          result = await run(legacy);
+        }
+        if (result.error) throw result.error;
+      };
+
+      const idMap = Object.fromEntries(
+        (rows ?? []).map((r) => [r.id, r.id === editingId ? id : r.id]),
+      );
+
       if (editingId) {
-        const { error } = await supabase
-          .from("website_vr_tour_rooms" as never)
-          .update({
-            name: body.name,
-            category: body.category,
-            display_order: body.display_order,
-            is_active: body.is_active,
-            is_start: body.is_start,
-            links: body.links,
-            panorama_lg: body.panorama_lg,
-            panorama_sm: body.panorama_sm,
-            panorama_thumb: body.panorama_thumb,
-          } as never)
-          .eq("id", editingId);
-        if (error) throw error;
+        // Remap hotspot links on every room when this room's id changes
+        if (editingId !== id) {
+          for (const room of rows ?? []) {
+            if (room.id === editingId) continue;
+            const nextLinks = remapVrLinks(room.links, idMap);
+            const unchanged =
+              JSON.stringify(nextLinks) === JSON.stringify(room.links ?? []);
+            if (unchanged) continue;
+            const { error: linkError } = await supabase
+              .from("website_vr_tour_rooms" as never)
+              .update({ links: nextLinks } as never)
+              .eq("id", room.id);
+            if (linkError) throw linkError;
+          }
+        }
+        await saveWithCategoryFallback();
       } else {
-        const { error } = await supabase.from("website_vr_tour_rooms" as never).insert(body as never);
-        if (error) throw error;
+        await saveWithCategoryFallback();
       }
     },
     onSuccess: () => {
@@ -254,16 +300,46 @@ export default function VrTourRoomsList() {
     onError: (err: Error) => toast.error(err.message || "Failed to save room."),
   });
 
+  const syncIdsMutation = useMutation({
+    mutationFn: async () => {
+      if (!rows?.length) return { changed: 0, map: {} as Record<string, string> };
+      return syncVrRoomIdsFromNames(rows);
+    },
+    onSuccess: (result) => {
+      invalidate();
+      if (!result.changed) {
+        toast.message("All room IDs already match their names.");
+        return;
+      }
+      toast.success(`Updated ${result.changed} room ID${result.changed === 1 ? "" : "s"} from names.`);
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to sync room IDs."),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Remove hotspot links that pointed at this room
+      for (const room of rows ?? []) {
+        if (room.id === id) continue;
+        const nextLinks = (room.links ?? []).filter((link) => link.nodeId !== id);
+        if (nextLinks.length === (room.links ?? []).length) continue;
+        const { error: linkError } = await supabase
+          .from("website_vr_tour_rooms" as never)
+          .update({ links: nextLinks } as never)
+          .eq("id", room.id);
+        if (linkError) throw linkError;
+      }
+
       const { error } = await supabase.from("website_vr_tour_rooms" as never).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       invalidate();
       toast.success("Room deleted.");
+      setDeleteConfirm(null);
       setSheetOpen(false);
       setEditingId(null);
+      setForm(emptyForm());
     },
     onError: () => toast.error("Failed to delete room."),
   });
@@ -421,13 +497,15 @@ export default function VrTourRoomsList() {
     }));
   };
 
-  const previewCreateId = !editingId
-    ? uniqueRoomIdFromName(form.name, (rows ?? []).map((r) => r.id))
-    : "";
+  const previewId = uniqueRoomIdFromName(
+    form.name,
+    (rows ?? []).map((r) => r.id),
+    editingId,
+  );
 
   const otherRoomOptions = (rows ?? [])
-    .map((r) => r.id)
-    .filter((id) => id !== (editingId || form.id || previewCreateId));
+    .map((r) => (r.id === editingId ? previewId || r.id : r.id))
+    .filter((id) => id && id !== (editingId || form.id || previewId));
 
   return (
     <div className="space-y-6">
@@ -442,10 +520,23 @@ export default function VrTourRoomsList() {
             .
           </p>
         </div>
-        <Button onClick={openCreate} className="w-fit">
-          <Plus className="h-4 w-4 mr-2" />
-          Add room
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!rows?.length || syncIdsMutation.isPending}
+            onClick={() => setSyncIdsConfirmOpen(true)}
+          >
+            {syncIdsMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            Sync IDs from names
+          </Button>
+          <Button onClick={openCreate} className="w-fit">
+            <Plus className="h-4 w-4 mr-2" />
+            Add room
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -487,7 +578,7 @@ export default function VrTourRoomsList() {
                 <TableHead className={adminTableHeadClass}>Links</TableHead>
                 <TableHead className={adminTableHeadClass}>Order</TableHead>
                 <TableHead className={adminTableHeadClass}>Status</TableHead>
-                <TableHead className={cn(adminTableHeadClass, "w-[100px]")} />
+                <TableHead className={cn(adminTableHeadClass, "w-[88px]")} />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -596,6 +687,17 @@ export default function VrTourRoomsList() {
                         >
                           <Pencil className={adminIconClass} />
                         </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className={adminIconButtonClass}
+                          disabled={deleteMutation.isPending}
+                          onClick={() => setDeleteConfirm({ id: row.id, name: row.name })}
+                          aria-label="Delete room"
+                        >
+                          <Trash2 className={adminIconClass} />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -627,14 +729,12 @@ export default function VrTourRoomsList() {
         <SheetContent
           side="right"
           className="flex w-full flex-col gap-0 p-0 sm:max-w-xl"
-          aria-describedby="vr-room-sheet-desc"
         >
           <div className="flex-1 overflow-y-auto p-6 pr-12">
             <SheetHeader>
               <SheetTitle>{editingId ? "Edit VR room" : "Add VR room"}</SheetTitle>
-              <SheetDescription id="vr-room-sheet-desc">
-                Upload an equirectangular 360° image. We generate large, small, and thumbnail WebP
-                versions automatically.
+              <SheetDescription className="sr-only">
+                {editingId ? "Edit this VR tour room." : "Add a new VR tour room."}
               </SheetDescription>
             </SheetHeader>
 
@@ -651,20 +751,31 @@ export default function VrTourRoomsList() {
                     setForm((p) => ({
                       ...p,
                       name,
-                      // Keep id locked when editing; auto-slug while creating
-                      id: editingId
-                        ? p.id
-                        : uniqueRoomIdFromName(name, (rows ?? []).map((r) => r.id)),
+                      id: uniqueRoomIdFromName(
+                        name,
+                        (rows ?? []).map((r) => r.id),
+                        editingId,
+                      ),
                     }));
                   }}
                 />
-                {editingId ? (
+                {previewId ? (
                   <p className="text-xs text-muted-foreground">
-                    Room ID: <code className="text-xs">{editingId}</code>
-                  </p>
-                ) : previewCreateId ? (
-                  <p className="text-xs text-muted-foreground">
-                    ID will be: <code className="text-xs">{previewCreateId}</code>
+                    {editingId && editingId !== previewId ? (
+                      <>
+                        ID will update: <code className="text-xs">{editingId}</code>
+                        {" → "}
+                        <code className="text-xs">{previewId}</code>
+                      </>
+                    ) : editingId ? (
+                      <>
+                        Room ID: <code className="text-xs">{editingId}</code>
+                      </>
+                    ) : (
+                      <>
+                        ID will be: <code className="text-xs">{previewId}</code>
+                      </>
+                    )}
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -841,9 +952,12 @@ export default function VrTourRoomsList() {
                 type="button"
                 variant="destructive"
                 disabled={uploadBusy || saveMutation.isPending || deleteMutation.isPending}
-                onClick={() => {
-                  if (confirm(`Delete room "${editingId}"?`)) deleteMutation.mutate(editingId);
-                }}
+                onClick={() =>
+                  setDeleteConfirm({
+                    id: editingId,
+                    name: form.name || editingId,
+                  })
+                }
               >
                 Delete
               </Button>
@@ -873,6 +987,82 @@ export default function VrTourRoomsList() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) setDeleteConfirm(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete VR room?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <span className="font-medium text-foreground">
+                {deleteConfirm?.name}
+              </span>
+              {deleteConfirm?.id ? (
+                <>
+                  {" "}
+                  (<code className="text-xs">{deleteConfirm.id}</code>)
+                </>
+              ) : null}
+              . Hotspot links pointing to this room will be removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending || !deleteConfirm}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteConfirm) deleteMutation.mutate(deleteConfirm.id);
+              }}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Delete room
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={syncIdsConfirmOpen}
+        onOpenChange={(open) => {
+          if (!syncIdsMutation.isPending) setSyncIdsConfirmOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sync room IDs from names?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Every room ID will be updated from its display name (e.g. Moor Lane → moor-lane).
+              Hotspot links will be remapped automatically.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={syncIdsMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={syncIdsMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                syncIdsMutation.mutate(undefined, {
+                  onSettled: () => setSyncIdsConfirmOpen(false),
+                });
+              }}
+            >
+              {syncIdsMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Sync IDs
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

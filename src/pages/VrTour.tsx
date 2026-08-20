@@ -41,7 +41,7 @@ function RoomsContent({
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent-yellow">
                 {category}
               </p>
-              <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              <ul className="grid grid-cols-1 gap-1.5">
                 {roomNodes.map((node) => (
                   <li key={node.id}>
                     <button
@@ -124,7 +124,8 @@ const VrTour = () => {
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-black text-white">
       <Navigation />
-      <main className="relative flex min-h-0 flex-1 flex-col pt-16 md:pt-20">
+      {/* Offset matches Navigation VR header height (py-2/py-3 + sm controls ≈ 52px / 60px). */}
+      <main className="relative flex min-h-0 flex-1 flex-col pt-[3.25rem] md:pt-[3.75rem]">
         <Suspense fallback={<VrTourPreloader className="h-full min-h-0" />}>
           <VrTourViewer
             variant="page"
@@ -138,7 +139,7 @@ const VrTour = () => {
         </Suspense>
 
         {orderedNodes.length > 1 && !(isMobile && roomsOpen) && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-12 top-16 z-20 md:bottom-0 md:top-20">
+          <div className="pointer-events-none absolute inset-x-0 bottom-12 top-[3.25rem] z-20 md:bottom-0 md:top-[3.75rem]">
             <button
               type="button"
               className={cn(roomNavArrowClass, "absolute left-2 top-1/2 -translate-y-1/2 md:left-[21.5rem]")}
@@ -158,8 +159,8 @@ const VrTour = () => {
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 p-3 pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(3.75rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-auto md:left-4 md:top-24 md:w-80 md:p-0 md:pb-0">
-          <div className="pointer-events-auto mx-auto flex max-w-lg flex-col items-stretch gap-2 md:mx-0 md:w-full">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 p-3 pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:p-4 sm:pb-[calc(3.75rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-4 md:left-4 md:top-16 md:w-80 md:p-0 md:pb-0">
+          <div className="pointer-events-auto mx-auto flex max-w-lg flex-col items-stretch gap-2 md:mx-0 md:h-full md:w-full">
             {isMobile ? (
               <Drawer open={roomsOpen} onOpenChange={setRoomsOpen}>
                 <DrawerTrigger asChild>{roomsButton}</DrawerTrigger>
@@ -168,7 +169,7 @@ const VrTour = () => {
                   <DrawerDescription className="sr-only">
                     Select another room in the Urban Hub virtual tour.
                   </DrawerDescription>
-                  <div className="relative px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-12">
+                  <div className="relative overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-12">
                     <DrawerClose asChild>
                       <button type="button" className={cn(cancelBtnClass, "absolute right-3 top-3")}>
                         <X className="h-3.5 w-3.5" />
@@ -188,7 +189,7 @@ const VrTour = () => {
                 {roomsOpen && (
                   <div
                     id="vr-rooms-panel"
-                    className="relative max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border border-white/15 bg-zinc-950/90 p-4 pt-12 shadow-2xl backdrop-blur-md"
+                    className="relative min-h-0 flex-1 overflow-y-auto rounded-2xl border border-white/15 bg-zinc-950/90 p-4 pt-12 shadow-2xl backdrop-blur-md"
                     role="dialog"
                     aria-label="Jump to a room"
                   >
@@ -207,7 +208,7 @@ const VrTour = () => {
                     />
                   </div>
                 )}
-                <div onClick={() => setRoomsOpen((open) => !open)} role="presentation">
+                <div className="shrink-0" onClick={() => setRoomsOpen((open) => !open)} role="presentation">
                   {roomsButton}
                 </div>
               </>

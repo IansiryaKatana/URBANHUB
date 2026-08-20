@@ -1,16 +1,32 @@
 import panoramas from "./vrTourPanoramas.json";
 
-export const VR_TOUR_CATEGORIES = [
-  "Streets View",
-  "Outside",
-  "Reception area",
-  "Hallways and stairways",
-  "Silver studio",
-  "Common areas",
-  "Courtyard",
-] as const;
+export const VR_TOUR_CATEGORIES = ["Rooms", "Facilities"] as const;
 
 export type VrTourCategory = (typeof VR_TOUR_CATEGORIES)[number];
+
+/** Legacy DB categories still present until migration 051 is applied. */
+const LEGACY_CATEGORY_TO_PANEL: Record<string, VrTourCategory> = {
+  Rooms: "Rooms",
+  Facilities: "Facilities",
+  "Silver studio": "Rooms",
+  Outside: "Facilities",
+  "Streets View": "Facilities",
+  "Reception area": "Facilities",
+  "Hallways and stairways": "Facilities",
+  "Common areas": "Facilities",
+  Courtyard: "Facilities",
+};
+
+export function resolveTourPanelCategory(category: string, roomId?: string, roomName?: string): VrTourCategory {
+  if (category === "Rooms" || category === "Facilities") return category;
+  const mapped = LEGACY_CATEGORY_TO_PANEL[category];
+  if (mapped) return mapped;
+  const hay = `${roomId ?? ""} ${roomName ?? ""}`.toLowerCase();
+  if (/(^|-)(silver|bathroom|private-bathroom)/.test(hay) || /silver room|private bathroom/i.test(hay)) {
+    return "Rooms";
+  }
+  return "Facilities";
+}
 
 export type VrTourLink = {
   nodeId: string;
@@ -66,26 +82,26 @@ export function getPanoramaManifest(): Record<string, VrPanoramaUrls> {
  */
 export const VR_TOUR_NODES: VrTourNode[] = [
   {
-    id: "01-outside-front",
-    name: "Outside Front",
-    category: "Outside",
-    links: [
-      // Path toward the curved brick building entrance (centre of panorama)
-      { nodeId: "02-corridor", yaw: "8deg", pitch: "-12deg" },
-    ],
+    id: "silver-room",
+    name: "Silver Room",
+    category: "Rooms",
+    links: [{ nodeId: "private-bathroom", yaw: "0deg", pitch: "-10deg" }],
   },
   {
-    id: "02-corridor",
+    id: "private-bathroom",
+    name: "Private Bathroom",
+    category: "Rooms",
+    links: [{ nodeId: "silver-room", yaw: "91.2deg", pitch: "-12.9deg" }],
+  },
+  {
+    id: "corridor",
     name: "Corridor",
-    category: "Hallways and stairways",
-    links: [
-      // Toward the exit / lift lobby (right of door 186 in the capture)
-      { nodeId: "01-outside-front", yaw: "95deg", pitch: "-6deg" },
-    ],
+    category: "Facilities",
+    links: [{ nodeId: "silver-room", yaw: "95deg", pitch: "-6deg" }],
   },
 ];
 
-export const VR_TOUR_START_NODE_ID = "01-outside-front";
+export const VR_TOUR_START_NODE_ID = "silver-room";
 
 export function getVrTourNodes(): VrTourNode[] {
   const manifest = getPanoramaManifest();
@@ -101,18 +117,12 @@ export function getStartNodeId(): string {
 export function groupNodesByCategory(nodes: VrTourNode[] = getVrTourNodes()) {
   const known = VR_TOUR_CATEGORIES.map((category) => ({
     category,
-    nodes: nodes.filter((n) => n.category === category),
+    nodes: nodes.filter(
+      (n) => resolveTourPanelCategory(n.category, n.id, n.name) === category,
+    ),
   })).filter((g) => g.nodes.length > 0);
 
-  const knownSet = new Set<string>(VR_TOUR_CATEGORIES);
-  const extras = [...new Set(nodes.map((n) => n.category).filter((c) => !knownSet.has(c)))].map(
-    (category) => ({
-      category,
-      nodes: nodes.filter((n) => n.category === category),
-    }),
-  );
-
-  return [...known, ...extras];
+  return known;
 }
 
 /** First room in the rooms-panel list (category order × room order). */

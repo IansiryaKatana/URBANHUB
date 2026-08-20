@@ -119,18 +119,19 @@ const Footer = () => {
   }, []);
 
   return (
-    <>
-      {/* Accreditation strip — above main footer */}
+    <footer style={{ backgroundColor: "hsl(0 0% 0%)" }} className="relative overflow-hidden text-white">
+      <Noise patternAlpha={15} />
+
       <section
         aria-label="Accreditation"
-        className="relative border-y border-white/25 bg-zinc-950 text-white"
+        className="relative border-b border-white/25"
       >
         <div className="container relative z-10 mx-auto flex max-w-7xl flex-col gap-5 px-4 py-8 md:flex-row md:items-center md:gap-10 md:py-10">
           <div className="shrink-0 text-center md:text-left">
             <h2 className="font-display text-2xl font-black uppercase tracking-tight md:text-3xl">
               Accreditation
             </h2>
-            <p className="mt-2 max-w-xs text-sm font-medium leading-snug text-white/70 md:mx-0 mx-auto">
+            <p className="mx-auto mt-2 max-w-xs text-sm font-medium leading-snug text-white/70 md:mx-0">
               The gold standard for student housing in the UK.
             </p>
           </div>
@@ -138,9 +139,7 @@ const Footer = () => {
         </div>
       </section>
 
-      <footer style={{ backgroundColor: "hsl(0 0% 0%)" }} className="relative overflow-hidden py-12 text-white md:py-16">
-      <Noise patternAlpha={15} />
-      <div className="container relative z-10 mx-auto max-w-7xl px-4">
+      <div className="container relative z-10 mx-auto max-w-7xl px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12 lg:grid-cols-3">
           <div>
             <div className="mb-4">
@@ -235,7 +234,6 @@ const Footer = () => {
         </div>
       </div>
     </footer>
-    </>
   );
 };
 

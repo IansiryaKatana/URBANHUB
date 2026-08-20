@@ -6,8 +6,8 @@ import {
   getPanoramaManifest,
   getStartNodeId as getStaticStartNodeId,
   getVrTourNodes as getStaticVrTourNodes,
+  resolveTourPanelCategory,
   type VrPanoramaUrls,
-  type VrTourCategory,
   type VrTourLink,
   type VrTourNode,
 } from "@/data/vrTour";
@@ -15,7 +15,7 @@ import {
 export type VrTourRoomRow = {
   id: string;
   name: string;
-  category: VrTourCategory;
+  category: string;
   panorama_lg: string | null;
   panorama_sm: string | null;
   panorama_thumb: string | null;
@@ -91,7 +91,7 @@ export function roomsToTourConfig(rows: VrTourRoomRow[]) {
     nodes.push({
       id: row.id,
       name: row.name,
-      category: row.category,
+      category: resolveTourPanelCategory(row.category, row.id, row.name),
       links: parseLinks(row.links),
     });
   }

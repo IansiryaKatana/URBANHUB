@@ -126,7 +126,10 @@ export function VrTourViewer({
       const viewer = new Viewer({
         container: containerRef.current,
         navbar: ["zoom", "move", "gallery", "gyroscope", "stereo", "fullscreen"],
-        defaultZoomLvl: 40,
+        // 0 = maxFov (widest); keep FOV wide so rooms open zoomed out
+        defaultZoomLvl: 0,
+        maxFov: 110,
+        minFov: 30,
         mousewheelCtrlKey: false,
         touchmoveTwoFingers: false,
         loadingTxt: "",
