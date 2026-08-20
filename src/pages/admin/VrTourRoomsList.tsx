@@ -60,6 +60,17 @@ function moveRow<T extends { id: string }>(list: T[], fromId: string, toId: stri
   return next;
 }
 
+/** Slugify display name; append -2, -3… if the id is already taken. */
+function uniqueRoomIdFromName(name: string, existingIds: string[], keepId?: string | null): string {
+  const base = slugifyVrRoomId(name);
+  if (!base) return "";
+  if (keepId && keepId === base) return keepId;
+  if (!existingIds.includes(base) || base === keepId) return base;
+  let n = 2;
+  while (existingIds.includes(`${base}-${n}`)) n += 1;
+  return `${base}-${n}`;
+}
+
 
 type RoomFormState = {
   id: string;
@@ -184,12 +195,16 @@ export default function VrTourRoomsList() {
 
   const saveMutation = useMutation({
     mutationFn: async (payload: RoomFormState) => {
-      const id = slugifyVrRoomId(payload.id);
-      if (!id) throw new Error("Room ID is required.");
       if (!payload.name.trim()) throw new Error("Room name is required.");
       if (!payload.panorama_lg || !payload.panorama_sm || !payload.panorama_thumb) {
         throw new Error("Upload a 360 panorama before saving.");
       }
+
+      const existingIds = (rows ?? []).map((r) => r.id);
+      const id = editingId
+        ? editingId
+        : uniqueRoomIdFromName(payload.name, existingIds);
+      if (!id) throw new Error("Enter a room name so we can create an ID (e.g. Moor Lane → moor-lane).");
 
       if (payload.is_start) {
         await clearOtherStartNodes(id);
@@ -211,7 +226,17 @@ export default function VrTourRoomsList() {
       if (editingId) {
         const { error } = await supabase
           .from("website_vr_tour_rooms" as never)
-          .update(body as never)
+          .update({
+            name: body.name,
+            category: body.category,
+            display_order: body.display_order,
+            is_active: body.is_active,
+            is_start: body.is_start,
+            links: body.links,
+            panorama_lg: body.panorama_lg,
+            panorama_sm: body.panorama_sm,
+            panorama_thumb: body.panorama_thumb,
+          } as never)
           .eq("id", editingId);
         if (error) throw error;
       } else {
@@ -342,9 +367,12 @@ export default function VrTourRoomsList() {
     e.target.value = "";
     if (!file) return;
 
-    const roomId = slugifyVrRoomId(form.id || file.name);
+    const existingIds = (rows ?? []).map((r) => r.id);
+    const roomId = editingId
+      ? editingId
+      : uniqueRoomIdFromName(form.name || file.name, existingIds);
     if (!roomId) {
-      toast.error("Set a room ID before uploading (e.g. 03-gym).");
+      toast.error("Enter a room name before uploading (e.g. Moor Lane).");
       return;
     }
 
@@ -354,8 +382,10 @@ export default function VrTourRoomsList() {
       const urls = await uploadVariants(roomId, file, setUploadProgress);
       setForm((prev) => ({
         ...prev,
-        id: prev.id || roomId,
-        name: prev.name || roomId.replace(/^\d+-/, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        id: editingId ?? roomId,
+        name:
+          prev.name ||
+          roomId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
         panorama_lg: urls.lg,
         panorama_sm: urls.sm,
         panorama_thumb: urls.thumb,
@@ -391,9 +421,13 @@ export default function VrTourRoomsList() {
     }));
   };
 
+  const previewCreateId = !editingId
+    ? uniqueRoomIdFromName(form.name, (rows ?? []).map((r) => r.id))
+    : "";
+
   const otherRoomOptions = (rows ?? [])
     .map((r) => r.id)
-    .filter((id) => id !== slugifyVrRoomId(form.id));
+    .filter((id) => id !== (editingId || form.id || previewCreateId));
 
   return (
     <div className="space-y-6">
@@ -605,28 +639,38 @@ export default function VrTourRoomsList() {
             </SheetHeader>
 
             <div className="mt-6 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="vr-room-id">Room ID</Label>
-                  <Input
-                    id="vr-room-id"
-                    value={form.id}
-                    disabled={Boolean(editingId) || uploadBusy}
-                    placeholder="03-gym"
-                    onChange={(e) => setForm((p) => ({ ...p, id: slugifyVrRoomId(e.target.value) }))}
-                  />
-                  <p className="text-xs text-muted-foreground">Lowercase slug, e.g. 03-gym</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vr-room-name">Display name</Label>
-                  <Input
-                    id="vr-room-name"
-                    value={form.name}
-                    disabled={uploadBusy}
-                    placeholder="Gym"
-                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="vr-room-name">Display name</Label>
+                <Input
+                  id="vr-room-name"
+                  value={form.name}
+                  disabled={uploadBusy}
+                  placeholder="Moor Lane"
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setForm((p) => ({
+                      ...p,
+                      name,
+                      // Keep id locked when editing; auto-slug while creating
+                      id: editingId
+                        ? p.id
+                        : uniqueRoomIdFromName(name, (rows ?? []).map((r) => r.id)),
+                    }));
+                  }}
+                />
+                {editingId ? (
+                  <p className="text-xs text-muted-foreground">
+                    Room ID: <code className="text-xs">{editingId}</code>
+                  </p>
+                ) : previewCreateId ? (
+                  <p className="text-xs text-muted-foreground">
+                    ID will be: <code className="text-xs">{previewCreateId}</code>
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    ID is created automatically from the name (e.g. Moor Lane → moor-lane).
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -696,7 +740,7 @@ export default function VrTourRoomsList() {
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={uploadBusy || (!editingId && !form.id)}
+                    disabled={uploadBusy || (!editingId && !slugifyVrRoomId(form.name))}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     {uploadBusy ? (
@@ -724,8 +768,8 @@ export default function VrTourRoomsList() {
                     className="mt-2 h-28 w-full rounded-md object-cover"
                   />
                 )}
-                {!form.id && !editingId && (
-                  <p className="text-xs text-amber-600">Enter a room ID before uploading.</p>
+                {!editingId && !slugifyVrRoomId(form.name) && (
+                  <p className="text-xs text-amber-600">Enter a room name before uploading.</p>
                 )}
               </div>
 
