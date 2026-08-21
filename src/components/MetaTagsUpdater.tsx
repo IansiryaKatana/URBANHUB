@@ -3,42 +3,54 @@ import { useLocation } from "react-router-dom";
 import { useBrandingSettings } from "@/hooks/useBranding";
 import { useWebsiteSeoSettings } from "@/hooks/useWebsiteSeoSettings";
 import { usePageSeo } from "@/hooks/usePageSeo";
-
-const META_TITLE_MAX_LENGTH = 60; // Google ~600px; ~60 chars recommended for display
+import { useSeoFlags } from "@/contexts/SeoFlagsContext";
+import {
+  absoluteUrl,
+  buildDefaultJsonLd,
+  defaultCanonicalUrl,
+  isAdminPath,
+} from "@/lib/seo";
 
 const MetaTagsUpdater = () => {
   const location = useLocation();
+  const { isNotFound } = useSeoFlags();
   const { data: brandingSettings } = useBrandingSettings();
   const { data: seoSettings } = useWebsiteSeoSettings();
   const { data: pageSeo } = usePageSeo(location.pathname);
 
   useEffect(() => {
     const companyName = seoSettings?.site_name ?? brandingSettings?.company_name ?? "Urban Hub";
-    const defaultMetaDesc = seoSettings?.default_meta_description ?? brandingSettings?.meta_description ??
+    const defaultMetaDesc =
+      seoSettings?.default_meta_description ??
+      brandingSettings?.meta_description ??
       `Modern student accommodation in Preston. Book your studio apartment for the academic year. Premium amenities and convenient location.`;
     const defaultOgImage = seoSettings?.default_og_image_url || brandingSettings?.favicon_path || "/favicon.png";
     const twitterHandle = seoSettings?.twitter_handle ?? brandingSettings?.twitter_handle ?? "@UrbanHubBooking";
     const siteUrl = typeof window !== "undefined" ? window.location.origin : "https://urbanhub.uk";
+    const admin = isAdminPath(location.pathname);
 
-    const metaDescription = pageSeo?.meta_description ?? defaultMetaDesc;
-    const ogTitle = pageSeo?.og_title ?? `${companyName} | Student Accommodation`;
+    const pageTitle = isNotFound
+      ? `Page Not Found | ${companyName} Student Accommodation Preston`
+      : pageSeo?.meta_title ??
+        seoSettings?.default_meta_title ??
+        `${companyName} Student Accommodation Preston`;
+    const metaDescription = isNotFound
+      ? `The page you're looking for doesn't exist or has been moved. Return to ${companyName} student accommodation in Preston.`
+      : pageSeo?.meta_description ?? defaultMetaDesc;
+    const canonicalHref =
+      pageSeo?.canonical_url?.trim() || defaultCanonicalUrl(location.pathname, siteUrl);
+    const ogTitle = pageSeo?.og_title ?? pageTitle;
     const ogDescription = pageSeo?.og_description ?? metaDescription;
-    const ogImage = pageSeo?.og_image_url ?? defaultOgImage;
+    const ogImageUrl = absoluteUrl(pageSeo?.og_image_url ?? defaultOgImage, siteUrl);
     const twitterTitle = pageSeo?.twitter_title ?? ogTitle;
     const twitterDescription = pageSeo?.twitter_description ?? ogDescription;
-    const toAbsoluteUrl = (url: string | null | undefined) => {
-      if (!url) return "";
-      if (/^https?:\/\//i.test(url)) return url;
-      if (url.startsWith("//")) return `https:${url}`;
-      const base = siteUrl.replace(/\/+$/, "");
-      return `${base}${url.startsWith("/") ? url : `/${url}`}`;
-    };
-
-    const ogImageUrl = toAbsoluteUrl(ogImage);
-    const twitterImage = toAbsoluteUrl(pageSeo?.twitter_image_url ?? ogImageUrl);
+    const twitterImage = absoluteUrl(pageSeo?.twitter_image_url ?? ogImageUrl, siteUrl);
+    const ogType = pageSeo?.page_type === "post" ? "article" : "website";
+    const robots =
+      isNotFound || admin ? "noindex, follow" : pageSeo?.robots_meta?.trim() || "index, follow";
 
     const updateMetaTagByProperty = (property: string, content: string) => {
-      let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+      let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
       if (!meta) {
         meta = document.createElement("meta");
         meta.setAttribute("property", property);
@@ -48,7 +60,7 @@ const MetaTagsUpdater = () => {
     };
 
     const updateMetaTagByName = (name: string, content: string) => {
-      let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement;
+      let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
       if (!meta) {
         meta = document.createElement("meta");
         meta.setAttribute("name", name);
@@ -57,26 +69,28 @@ const MetaTagsUpdater = () => {
       meta.setAttribute("content", content);
     };
 
-    // Set document title from seo_pages or fallback; cap at 60 chars for Google display
-    const defaultMetaTitle = seoSettings?.default_meta_title ?? `${companyName} Student Accommodation Preston`;
-    let pageTitle = pageSeo?.meta_title ?? defaultMetaTitle;
-    if (pageTitle && pageTitle.length > META_TITLE_MAX_LENGTH) {
-      pageTitle = pageTitle.slice(0, META_TITLE_MAX_LENGTH - 1).trim() + "…";
-    }
     if (pageTitle) {
       document.title = pageTitle;
     }
 
     updateMetaTagByName("description", metaDescription);
     updateMetaTagByName("author", companyName);
+    updateMetaTagByName("robots", robots);
 
     updateMetaTagByProperty("og:title", ogTitle);
     updateMetaTagByProperty("og:description", ogDescription);
+    updateMetaTagByProperty("og:url", canonicalHref);
+    updateMetaTagByProperty("og:type", ogType);
+    updateMetaTagByProperty("og:site_name", companyName);
+    updateMetaTagByProperty("og:locale", "en_GB");
     if (ogImageUrl) {
       updateMetaTagByProperty("og:image", ogImageUrl);
     }
     if (pageSeo?.og_image_alt) {
       updateMetaTagByProperty("og:image:alt", pageSeo.og_image_alt);
+    } else {
+      const existingAlt = document.querySelector('meta[property="og:image:alt"]');
+      if (existingAlt) existingAlt.remove();
     }
 
     updateMetaTagByName("twitter:card", "summary_large_image");
@@ -90,9 +104,7 @@ const MetaTagsUpdater = () => {
       updateMetaTagByName("twitter:image:alt", pageSeo.twitter_image_alt);
     }
 
-    // Always set canonical so Google has a user-selected canonical (fixes "Duplicate without user-selected canonical")
-    const canonicalHref = pageSeo?.canonical_url?.trim() || `${siteUrl}${location.pathname.replace(/\/+$/, "") || "/"}`;
-    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!link) {
       link = document.createElement("link");
       link.setAttribute("rel", "canonical");
@@ -100,44 +112,42 @@ const MetaTagsUpdater = () => {
     }
     link.setAttribute("href", canonicalHref);
 
-    if (pageSeo?.robots_meta) {
-      updateMetaTagByName("robots", pageSeo.robots_meta);
-    }
-
     updateMetaTagByName("theme-color", "#ff2020");
 
-    // Structured data (JSON-LD): page-specific from seo_pages or default Organization + WebSite
     const existingJsonLd = document.querySelector('script[type="application/ld+json"][data-seo-json]');
     if (existingJsonLd) existingJsonLd.remove();
 
-    const schema = pageSeo?.schema_json ?? {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "Organization",
-          "@id": `${siteUrl}/#organization`,
-          name: companyName,
-          url: siteUrl,
-        },
-        {
-          "@type": "WebSite",
-          "@id": `${siteUrl}/#website`,
-          url: siteUrl,
-          name: companyName,
-          publisher: { "@id": `${siteUrl}/#organization` },
-        },
-      ],
-    };
+    const streetAddress = [
+      brandingSettings?.contact_address_line1,
+      brandingSettings?.contact_address_line2,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const postalCode =
+      brandingSettings?.contact_address_line3?.match(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i)?.[0] ||
+      undefined;
+
+    const schema =
+      pageSeo?.schema_json ??
+      buildDefaultJsonLd({
+        pathname: location.pathname,
+        pageTitle,
+        pageDescription: metaDescription,
+        siteUrl,
+        companyName,
+        streetAddress: streetAddress || undefined,
+        postalCode,
+        telephone: brandingSettings?.contact_phone || undefined,
+      });
 
     const script = document.createElement("script");
     script.type = "application/ld+json";
     script.setAttribute("data-seo-json", "true");
     script.textContent = typeof schema === "string" ? schema : JSON.stringify(schema);
     document.head.appendChild(script);
-  }, [brandingSettings, seoSettings, pageSeo, location.pathname]);
+  }, [brandingSettings, seoSettings, pageSeo, location.pathname, isNotFound]);
 
   return null;
 };
 
 export default MetaTagsUpdater;
-

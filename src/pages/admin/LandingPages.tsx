@@ -43,7 +43,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminListPagination } from "@/components/admin/AdminRecordList";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { CharCounter, FocusPhraseGuide } from "@/components/admin/FocusPhraseGuide";
 import { fetchAllSupabaseRows } from "@/utils/fetchAllSupabaseRows";
+import { upsertSeoPage, deleteSeoPageByPath } from "@/lib/upsertSeoPage";
+import { META_DESC_LIMIT, META_TITLE_LIMIT, SITE_URL } from "@/lib/seo";
 import { Loader2, Pencil, Plus, Trash2, Copy, Eye, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -89,6 +92,37 @@ const CTA_TYPE_LABELS: Record<LandingPageRow["default_cta_type"], string> = {
 
 function getDefaultCtaLabel(page: LandingPageRow) {
   return page.default_cta_label?.trim() || CTA_TYPE_LABELS[page.default_cta_type] || page.default_cta_type;
+}
+
+type LandingSeoInput = {
+  meta_title: string;
+  meta_description: string;
+  focus_keyword: string;
+};
+
+async function saveLandingSeo(
+  slug: string,
+  previousSlug: string | undefined,
+  isActive: boolean,
+  seo: LandingSeoInput,
+  fallbacks: { name: string; heading: string | null; subheading: string | null },
+) {
+  const title =
+    seo.meta_title.trim() || `${fallbacks.heading || fallbacks.name} | Urban Hub Preston`;
+  const description =
+    seo.meta_description.trim() ||
+    fallbacks.subheading ||
+    "Student accommodation in Preston at Urban Hub. View studios, prices and book a viewing.";
+  await upsertSeoPage({
+    page_path: `/landing/${slug}`,
+    previous_path: previousSlug && previousSlug !== slug ? `/landing/${previousSlug}` : undefined,
+    page_type: "page",
+    meta_title: title,
+    meta_description: description,
+    focus_keyword: seo.focus_keyword.trim() || fallbacks.name,
+    canonical_url: `${SITE_URL}/landing/${slug}`,
+    robots_meta: isActive ? "index, follow" : "noindex, follow",
+  });
 }
 
 type HeroSlideRow = {
@@ -167,12 +201,36 @@ export default function LandingPages() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: Partial<LandingPageRow> }) => {
+    mutationFn: async ({
+      id,
+      payload,
+      seo,
+      previousSlug,
+    }: {
+      id: string;
+      payload: Partial<LandingPageRow>;
+      seo: LandingSeoInput;
+      previousSlug?: string;
+    }) => {
       const { error } = await supabase.from("website_landing_pages").update(payload).eq("id", id);
       if (error) throw error;
+      if (payload.slug) {
+        await saveLandingSeo(
+          payload.slug,
+          previousSlug,
+          payload.is_active ?? true,
+          seo,
+          {
+            name: payload.name || "",
+            heading: payload.hero_heading ?? null,
+            subheading: payload.hero_subheading ?? null,
+          },
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-landing-seo"] });
       toast.success("Landing page updated.");
       setEditingId(null);
     },
@@ -180,9 +238,20 @@ export default function LandingPages() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: Omit<LandingPageRow, "id">) => {
+    mutationFn: async ({
+      payload,
+      seo,
+    }: {
+      payload: Omit<LandingPageRow, "id">;
+      seo: LandingSeoInput;
+    }) => {
       const { error } = await supabase.from("website_landing_pages").insert(payload);
       if (error) throw error;
+      await saveLandingSeo(payload.slug, undefined, payload.is_active, seo, {
+        name: payload.name,
+        heading: payload.hero_heading,
+        subheading: payload.hero_subheading,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-pages"] });
@@ -194,8 +263,12 @@ export default function LandingPages() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      const page = pages?.find((p) => p.id === id);
       const { error } = await supabase.from("website_landing_pages").delete().eq("id", id);
       if (error) throw error;
+      if (page?.slug) {
+        await deleteSeoPageByPath(`/landing/${page.slug}`);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-pages"] });
@@ -231,8 +304,10 @@ export default function LandingPages() {
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       if (!ids.length) return;
+      const slugs = (pages || []).filter((p) => ids.includes(p.id)).map((p) => p.slug);
       const { error } = await supabase.from("website_landing_pages").delete().in("id", ids);
       if (error) throw error;
+      await Promise.all(slugs.map((slug) => deleteSeoPageByPath(`/landing/${slug}`)));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-pages"] });
@@ -293,6 +368,17 @@ export default function LandingPages() {
           .insert(slidesInsert);
         if (insertSlidesError) throw insertSlidesError;
       }
+      await saveLandingSeo(
+        newSlug,
+        undefined,
+        false,
+        { meta_title: "", meta_description: "", focus_keyword: page.name },
+        {
+          name: `${page.name} (Copy)`,
+          heading: page.hero_heading,
+          subheading: page.hero_subheading,
+        },
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-website-landing-pages"] });
@@ -341,6 +427,19 @@ export default function LandingPages() {
   };
 
   const editing = pages?.find((p) => p.id === editingId) ?? null;
+  const { data: editingSeo } = useQuery({
+    queryKey: ["admin-landing-seo", editing?.slug],
+    enabled: !!editing?.slug,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("seo_pages")
+        .select("meta_title, meta_description, focus_keyword")
+        .eq("page_path", `/landing/${editing!.slug}`)
+        .maybeSingle();
+      if (error) throw error;
+      return data as LandingSeoInput | null;
+    },
+  });
   const selectedArray = Array.from(selectedIds);
   const isPending =
     updateMutation.isPending ||
@@ -617,7 +716,15 @@ export default function LandingPages() {
           {editing && (
             <LandingPageForm
               initial={editing}
-              onSubmit={(payload) => updateMutation.mutate({ id: editing.id, payload })}
+              initialSeo={editingSeo}
+              onSubmit={(payload, seo) =>
+                updateMutation.mutate({
+                  id: editing.id,
+                  payload,
+                  seo,
+                  previousSlug: editing.slug,
+                })
+              }
               onCancel={() => setEditingId(null)}
               isLoading={updateMutation.isPending}
             />
@@ -636,12 +743,15 @@ export default function LandingPages() {
           </SheetHeader>
           <LandingPageForm
             initial={null}
-            onSubmit={(payload) =>
+            onSubmit={(payload, seo) =>
               createMutation.mutate({
-                ...payload,
-                sort_order: payload.sort_order ?? pages?.length ?? 0,
-                is_active: false,
-              } as Omit<LandingPageRow, "id">)
+                payload: {
+                  ...payload,
+                  sort_order: payload.sort_order ?? pages?.length ?? 0,
+                  is_active: false,
+                } as Omit<LandingPageRow, "id">,
+                seo,
+              })
             }
             onCancel={() => setCreateOpen(false)}
             isLoading={createMutation.isPending}
@@ -708,12 +818,14 @@ export default function LandingPages() {
 
 function LandingPageForm({
   initial,
+  initialSeo,
   onSubmit,
   onCancel,
   isLoading,
 }: {
   initial: LandingPageRow | null;
-  onSubmit: (payload: Omit<LandingPageRow, "id"> | Partial<LandingPageRow>) => void;
+  initialSeo?: LandingSeoInput | null;
+  onSubmit: (payload: Omit<LandingPageRow, "id"> | Partial<LandingPageRow>, seo: LandingSeoInput) => void;
   onCancel: () => void;
   isLoading: boolean;
 }) {
@@ -759,6 +871,16 @@ function LandingPageForm({
   const [googleAdsConversionLabelPurchase, setGoogleAdsConversionLabelPurchase] = useState(
     initial?.google_ads_conversion_label_purchase ?? "",
   );
+  const [metaTitle, setMetaTitle] = useState(initialSeo?.meta_title ?? "");
+  const [metaDescription, setMetaDescription] = useState(initialSeo?.meta_description ?? "");
+  const [focusKeyword, setFocusKeyword] = useState(initialSeo?.focus_keyword ?? "");
+
+  useEffect(() => {
+    if (!initialSeo) return;
+    setMetaTitle(initialSeo.meta_title ?? "");
+    setMetaDescription(initialSeo.meta_description ?? "");
+    setFocusKeyword(initialSeo.focus_keyword ?? "");
+  }, [initialSeo]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -811,7 +933,11 @@ function LandingPageForm({
       google_ads_conversion_label_lead: googleAdsConversionLabelLead.trim() || null,
       google_ads_conversion_label_purchase: googleAdsConversionLabelPurchase.trim() || null,
     };
-    onSubmit(payload);
+    onSubmit(payload, {
+      meta_title: metaTitle,
+      meta_description: metaDescription,
+      focus_keyword: focusKeyword,
+    });
   };
 
   return (
@@ -1098,6 +1224,54 @@ function LandingPageForm({
       {initial && (
         <HeroSlidesManager landingPageId={initial.id} />
       )}
+
+      <div className="border-t pt-4 space-y-4">
+        <h4 className="text-sm font-semibold">SEO</h4>
+        <p className="text-xs text-muted-foreground">
+          Used for <span className="font-mono">/landing/{slug || "slug"}</span>. Inactive pages are noindexed.
+        </p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="landing-meta-title">Meta title</Label>
+            <CharCounter value={metaTitle} limit={META_TITLE_LIMIT} />
+          </div>
+          <Input
+            id="landing-meta-title"
+            value={metaTitle}
+            onChange={(e) => setMetaTitle(e.target.value)}
+            placeholder={heroHeading || name || "50–60 characters"}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="landing-meta-desc">Meta description</Label>
+            <CharCounter value={metaDescription} limit={META_DESC_LIMIT} />
+          </div>
+          <Textarea
+            id="landing-meta-desc"
+            value={metaDescription}
+            onChange={(e) => setMetaDescription(e.target.value)}
+            rows={3}
+            className="resize-y"
+            placeholder={heroSubheading || "155–160 characters"}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="landing-focus">Focus keyphrase</Label>
+          <Input
+            id="landing-focus"
+            value={focusKeyword}
+            onChange={(e) => setFocusKeyword(e.target.value)}
+            placeholder="e.g. student apartments Preston"
+          />
+        </div>
+        <FocusPhraseGuide
+          phrase={focusKeyword}
+          title={metaTitle || heroHeading || name}
+          description={metaDescription || heroSubheading}
+          h1={heroHeading || name}
+        />
+      </div>
 
       <div className="flex gap-2 justify-end pt-2 border-t">
         <Button type="button" variant="outline" onClick={onCancel}>

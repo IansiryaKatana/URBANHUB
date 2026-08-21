@@ -981,7 +981,7 @@ const StudiosHome = () => {
             ]}
           >
             <CarouselContent className="-ml-0 h-full">
-              {landingHeroSlides.map((slide) => {
+              {landingHeroSlides.map((slide, index) => {
                 const bg =
                   (isMobile ? slide.mobileImageUrl : slide.desktopImageUrl) ||
                   slide.desktopImageUrl ||
@@ -1013,6 +1013,7 @@ const StudiosHome = () => {
                             </p>
                           </AnimatedText>
                           <AnimatedHeading
+                            as={index === 0 ? "h1" : "h2"}
                             delay={0.2}
                             className="text-4xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
                           >
@@ -1092,8 +1093,9 @@ const StudiosHome = () => {
             style={{
               background: "linear-gradient(180deg, rgba(5, 6, 9, 0.95) 0%, rgba(5, 6, 9, 0.85) 100%)",
             }}
-            aria-hidden
-          />
+          >
+            <h1 className="sr-only">Urban Hub Student Accommodation Preston</h1>
+          </div>
         )}
 
         {/* VR teaser — desktop only on homepage */}

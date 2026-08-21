@@ -202,6 +202,13 @@
   status = 301
   force = true
 
+# Full sitemap (static pages + landing pages + published posts from seo_pages)
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/sitemap"
+  status = 200
+  force = true
+
 # Blog sitemap (dynamic: generated from Supabase on each request; updates when posts are added)
 [[redirects]]
   from = "/sitemap-blog.xml"
@@ -215,6 +222,11 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Inject per-URL meta and return HTTP 404 for unknown routes (crawlers see unique tags)
+[[edge_functions]]
+  function = "seo-html"
+  path = "/*"
 
 # ========== Headers ==========
 # CSP: Allow fonts (Google), styles (Stripe iframe), Stripe frames/connect, and media (video/audio).

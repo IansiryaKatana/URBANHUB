@@ -1,8 +1,12 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /admin
+Disallow: /admin/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin
+Disallow: /admin/
 
 User-agent: Twitterbot
 Allow: /
@@ -12,6 +16,8 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
 
 Sitemap: https://urbanhub.uk/sitemap.xml
 Sitemap: https://urbanhub.uk/sitemap-blog.xml

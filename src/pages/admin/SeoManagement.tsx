@@ -24,7 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Pencil, Plus, Trash2, Search, Globe } from "lucide-react";
 import { toast } from "sonner";
-import { ImageUpload } from "@/components/admin/ImageUpload";
+import { FocusPhraseGuide } from "@/components/admin/FocusPhraseGuide";
 import {
   AdminListPagination,
   AdminListToolbar,
@@ -111,7 +111,28 @@ type SeoPageRow = {
   robots_meta: string | null;
 };
 
-const PAGE_PATHS = ["/", "/studios", "/contact", "/faq", "/blog", "/about", "/short-term", "/pay-urban-hub-now", "/reviews", "/privacy", "/terms", "/cashback-campaign-terms"];
+const PAGE_PATHS = [
+  "/",
+  "/studios",
+  "/studios/2026-2027",
+  "/contact",
+  "/faq",
+  "/blog",
+  "/about",
+  "/short-term",
+  "/pay-urban-hub-now",
+  "/reviews",
+  "/privacy",
+  "/terms",
+  "/vr-tour",
+  "/international-students",
+  "/university-of-lancashire-clearing-2026",
+  "/complaints-policy",
+  "/equality-diversity-policy",
+  "/content-creator-terms",
+  "/refer-a-friend-terms",
+  "/cashback-campaign-terms",
+];
 
 export default function SeoManagement() {
   const queryClient = useQueryClient();
@@ -590,6 +611,11 @@ function PageSeoForm({
           description={meta_description}
           url={canonical_url || `https://urbanhub.uk${page_path}`}
         />
+        <FocusPhraseGuide
+          phrase={focus_keyword}
+          title={meta_title}
+          description={meta_description}
+        />
       </div>
 
       <div className="border-t pt-4 space-y-4">
@@ -757,6 +783,11 @@ function PageSeoCreateForm({
         title={meta_title}
         description={meta_description}
         url={`https://urbanhub.uk${page_path || "/page"}`}
+      />
+      <FocusPhraseGuide
+        phrase={focus_keyword}
+        title={meta_title}
+        description={meta_description}
       />
       <div className="flex gap-2 justify-end pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>

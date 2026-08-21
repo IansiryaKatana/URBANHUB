@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SeoFlagsProvider } from "./contexts/SeoFlagsContext";
 import PageTitle from "./components/PageTitle";
 import FaviconUpdater from "./components/FaviconUpdater";
 import MetaTagsUpdater from "./components/MetaTagsUpdater";
@@ -36,6 +37,7 @@ const App = () => (
               v7_relativeSplatPath: true,
             }}
           >
+            <SeoFlagsProvider>
             <ErrorBoundary>
               <PageTitle />
               <FaviconUpdater />
@@ -51,6 +53,7 @@ const App = () => (
               <ClearingCashbackSticky />
               <MicrosoftClarity />
             </ErrorBoundary>
+            </SeoFlagsProvider>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

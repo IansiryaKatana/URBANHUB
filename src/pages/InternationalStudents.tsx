@@ -372,30 +372,22 @@ const InternationalStudents = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
 
         <div className="relative z-10 mx-auto flex min-h-[100dvh] max-w-7xl flex-col justify-between px-4 pb-5 pt-24 md:justify-end md:px-8 md:pb-20 md:pt-32">
-          <div className="max-w-2xl space-y-3 md:hidden">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.28em] text-white/70">
+          <div className="max-w-2xl space-y-3 md:space-y-0">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.28em] text-white/70 md:mb-4">
               University of Lancashire
             </p>
-            <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-wide">
+            <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-wide sm:text-5xl md:text-6xl lg:text-7xl">
               For international
               <br />
               students
             </h1>
-            <p className="max-w-xl text-sm leading-relaxed text-white/80">{HERO_INTRO_SHORT}</p>
+            <p className="max-w-xl text-sm leading-relaxed text-white/80 md:mt-5 md:text-base">
+              <span className="md:hidden">{HERO_INTRO_SHORT}</span>
+              <span className="hidden md:inline">{HERO_INTRO_FULL}</span>
+            </p>
           </div>
 
           <div className="max-w-2xl">
-            <div className="hidden md:block">
-              <p className="mb-4 text-[12px] font-semibold uppercase tracking-[0.28em] text-white/70">
-                University of Lancashire
-              </p>
-              <h1 className="font-display text-5xl font-black uppercase leading-[0.92] tracking-wide sm:text-5xl md:text-6xl lg:text-7xl">
-                For international
-                <br />
-                students
-              </h1>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-white/80">{HERO_INTRO_FULL}</p>
-            </div>
             <div className="flex w-full gap-3 md:mt-8 md:w-auto md:flex-wrap">
               <Button
                 size="lg"

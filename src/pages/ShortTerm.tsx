@@ -310,15 +310,16 @@ const ShortTerm = () => {
           <div className="w-full min-h-0 flex-1 overflow-y-auto px-4 py-8 pb-8 md:overflow-visible md:px-[100px] md:pb-[100px] md:pt-0 md:min-h-screen flex flex-col md:flex-row md:items-end md:justify-between gap-8 md:gap-12 md:pb-4">
             {/* Left: title, desc, tabs — aligned to very bottom, tabs directly under desc like CTAs; pb-36 on mobile clears the fixed CTA button */}
             <div className="flex-1 flex min-h-0 flex-col justify-end text-white max-w-2xl md:justify-end md:min-h-0">
+              <h1 className="sr-only">Short term student accommodation in Preston</h1>
               <TabsContent value="tourist" className="mt-0 mb-0 outline-none ring-0">
                 <AnimatedText delay={0.1}>
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-black uppercase leading-tight text-left">
+                  <h2 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-black uppercase leading-tight text-left">
                     Preston&apos;s Perfect Getaway
-                  </h1>
+                  </h2>
                 </AnimatedText>
               </TabsContent>
               <TabsContent value="keyworker" className="mt-0 mb-0 outline-none ring-0">
-                <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-black uppercase leading-tight text-left">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-black uppercase leading-tight text-left">
                   <TypingTitle
                     as="span"
                     text="Private En-suite Studios "
@@ -334,7 +335,7 @@ const ShortTerm = () => {
                     typingSpeed={32}
                     showCursor={false}
                   />
-                </h1>
+                </h2>
               </TabsContent>
               <AnimatedText delay={0.2} as="div" className="text-white/90 text-sm md:text-base max-w-lg mt-2 md:mt-3">
                 <TabsContent value="tourist" className="mt-0 mb-0 outline-none ring-0">

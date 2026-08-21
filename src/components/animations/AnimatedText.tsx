@@ -40,6 +40,7 @@ interface AnimatedHeadingProps {
   className?: string;
   delay?: number;
   split?: boolean;
+  as?: "h1" | "h2" | "h3";
 }
 
 export const AnimatedHeading = ({
@@ -47,13 +48,15 @@ export const AnimatedHeading = ({
   className = "",
   delay = 0,
   split = false,
+  as = "h2",
 }: AnimatedHeadingProps) => {
   const text = typeof children === "string" ? children : String(children);
+  const MotionHeading = as === "h1" ? motion.h1 : as === "h3" ? motion.h3 : motion.h2;
 
   if (split) {
     const words = text.split(" ");
     return (
-      <motion.h2
+      <MotionHeading
         className={className}
         initial="hidden"
         whileInView="visible"
@@ -79,12 +82,12 @@ export const AnimatedHeading = ({
             {word}
           </motion.span>
         ))}
-      </motion.h2>
+      </MotionHeading>
     );
   }
 
   return (
-    <motion.h2
+    <MotionHeading
       className={className}
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -96,7 +99,7 @@ export const AnimatedHeading = ({
       }}
     >
       {children}
-    </motion.h2>
+    </MotionHeading>
   );
 };
 

@@ -32,10 +32,10 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
       <h1 className="sr-only focus:not-sr-only">
-        Urban Hub Student Accommodation Preston – Studios &amp; Room Types
+        Student Accommodation Preston | En-Suite Rooms - Urban Hub
       </h1>
       <p className="sr-only">
-        Student accommodation in Preston. Book your studio apartment for the academic year. Gold, Silver, Platinum and Rhodium studios.
+        Urban Hub Preston offers modern en-suite rooms minutes from University of Lancashire, with bills included and no guarantor needed upfront. Book your viewing today.
       </p>
       <div className="animate-pulse" aria-hidden>
         <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />

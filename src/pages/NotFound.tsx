@@ -5,15 +5,22 @@ import { useBrandingSettings } from "@/hooks/useBranding";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import { GridScan } from "@/components/GridScan";
+import { useSeoFlags } from "@/contexts/SeoFlagsContext";
 
 const NotFound = () => {
   const location = useLocation();
   const { data: brandingSettings } = useBrandingSettings();
+  const { setIsNotFound } = useSeoFlags();
   const companyName = brandingSettings?.company_name || "Urban Hub";
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);
+
+  useEffect(() => {
+    setIsNotFound(true);
+    return () => setIsNotFound(false);
+  }, [setIsNotFound]);
 
   useEffect(() => {
     document.title = `Page Not Found | ${companyName} Student Accommodation Preston`;
@@ -25,6 +32,13 @@ const NotFound = () => {
       document.head.appendChild(meta);
     }
     meta.setAttribute("content", desc);
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement;
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute("content", "noindex, follow");
   }, [companyName]);
 
   return (

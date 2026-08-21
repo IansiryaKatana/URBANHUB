@@ -622,7 +622,7 @@ const LandingPage = () => {
           ]}
         >
           <CarouselContent className="-ml-0 h-full">
-            {heroSlides.map((slide) => {
+            {heroSlides.map((slide, index) => {
               const bg =
                 (isMobile ? slide.mobile_image_url : slide.desktop_image_url) ||
                 slide.desktop_image_url ||
@@ -654,6 +654,7 @@ const LandingPage = () => {
                           </p>
                         </AnimatedText>
                         <AnimatedHeading
+                          as={index === 0 ? "h1" : "h2"}
                           delay={0.2}
                           className="text-4xl md:text-5xl lg:text-6xl font-display font-black uppercase leading-tight"
                         >

@@ -1,10 +1,9 @@
 import { useEffect } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useBrandingSettings } from "@/hooks/useBranding";
 import { useSlotUrl } from "@/hooks/useWebsiteImageSlots";
-import { usePageSeo } from "@/hooks/usePageSeo";
 import { useReviews } from "@/hooks/useReviews";
 import { ReviewForm } from "@/components/reviews/ReviewForm";
 import { AnimatedText, AnimatedParagraph } from "@/components/animations/AnimatedText";
@@ -12,63 +11,14 @@ import TypingTitle from "@/components/TypingTitle";
 import { Star, Loader2, BadgeCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-const REVIEWS_PAGE_PATH = "/reviews";
-
 const Reviews = () => {
   const { data: brandingSettings } = useBrandingSettings();
-  const { data: seo } = usePageSeo(REVIEWS_PAGE_PATH);
-  const location = useLocation();
   const companyName = brandingSettings?.company_name || "Urban Hub";
   const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
-  const twitterHandle = brandingSettings?.twitter_handle || "@UrbanHubBooking";
 
   const { data: reviews, isLoading } = useReviews();
 
   useEffect(() => {
-    const pageTitle = seo?.meta_title ?? `Reviews | ${companyName} Student Accommodation Preston`;
-    const pageDescription =
-      seo?.meta_description ??
-      `Read honest reviews from students and residents at ${companyName} Preston. See what others say about our student accommodation, studios, and facilities.`;
-    const ogImage = seo?.og_image_url || brandingSettings?.favicon_path || "/favicon.png";
-    const canonical = seo?.canonical_url || `${siteUrl}${location.pathname}`;
-
-    document.title = pageTitle;
-
-    const setMeta = (nameOrProperty: string, content: string, isProperty = false) => {
-      const attr = isProperty ? "property" : "name";
-      let el = document.querySelector(`meta[${attr}="${nameOrProperty}"]`) as HTMLMetaElement;
-      if (!el) {
-        el = document.createElement("meta");
-        el.setAttribute(attr, nameOrProperty);
-        document.head.appendChild(el);
-      }
-      el.setAttribute("content", content);
-    };
-    setMeta("description", pageDescription);
-    const keywords = `reviews, student accommodation reviews, ${companyName} reviews, Preston student housing reviews, Urban Hub reviews`;
-    setMeta("keywords", keywords);
-    if (seo?.robots_meta) setMeta("robots", seo.robots_meta);
-
-    setMeta("og:title", seo?.og_title ?? pageTitle, true);
-    setMeta("og:description", seo?.og_description ?? pageDescription, true);
-    setMeta("og:url", canonical, true);
-    setMeta("og:type", "website", true);
-    setMeta("og:image", ogImage, true);
-
-    setMeta("twitter:card", "summary_large_image");
-    setMeta("twitter:title", seo?.twitter_title ?? pageTitle);
-    setMeta("twitter:description", seo?.twitter_description ?? pageDescription);
-    setMeta("twitter:image", seo?.twitter_image_url || ogImage);
-    setMeta("twitter:site", twitterHandle);
-
-    let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
-    if (!canonicalLink) {
-      canonicalLink = document.createElement("link");
-      canonicalLink.setAttribute("rel", "canonical");
-      document.head.appendChild(canonicalLink);
-    }
-    canonicalLink.setAttribute("href", canonical);
-
     const businessId = `${siteUrl || "https://urbanhub.uk"}/#lodging`;
     const businessName = companyName;
     const streetAddress = [
@@ -130,7 +80,6 @@ const Reviews = () => {
         reviewBody: r.content,
       })) ?? [];
 
-    // LodgingBusiness (not WebPage) so AggregateRating/Review are valid for Google Review snippets
     const structuredData = {
       "@context": "https://schema.org",
       ...itemReviewed,
@@ -148,19 +97,14 @@ const Reviews = () => {
     script.textContent = JSON.stringify(structuredData);
     document.head.appendChild(script);
 
+    const keywordsTag = document.querySelector('meta[name="keywords"]');
+    if (keywordsTag) keywordsTag.remove();
+
     return () => {
       const toRemove = document.getElementById(scriptId);
       if (toRemove) toRemove.remove();
     };
-  }, [
-    companyName,
-    siteUrl,
-    location.pathname,
-    seo,
-    brandingSettings,
-    twitterHandle,
-    reviews,
-  ]);
+  }, [companyName, siteUrl, brandingSettings, reviews]);
 
   const heroSlotUrl = useSlotUrl("hero_reviews", brandingSettings?.studio_catalog_hero_image);
   const heroImagePath = heroSlotUrl || "https://urbanhub.uk/wp-content/uploads/2025/05/URBAN-HUB-OUTSIDE-A-3-of-1-scaled-1.webp";

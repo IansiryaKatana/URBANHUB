@@ -126,6 +126,7 @@ const VrTour = () => {
       <Navigation />
       {/* Offset matches Navigation VR header height (py-2/py-3 + sm controls ≈ 52px / 60px). */}
       <main className="relative flex min-h-0 flex-1 flex-col pt-[3.25rem] md:pt-[3.75rem]">
+        <h1 className="sr-only">360° VR Tour of Urban Hub Student Accommodation Preston</h1>
         <Suspense fallback={<VrTourPreloader className="h-full min-h-0" />}>
           <VrTourViewer
             variant="page"
