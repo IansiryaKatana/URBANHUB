@@ -26,6 +26,104 @@ type VrTourViewerProps = {
   activeNodeId?: string | null;
 };
 
+/** PSV only listens for mousedown on look-around arrows and hides them on touch. */
+const MOVE_HOLD_MS = 200;
+
+type MoveRoll = { yaw?: boolean; pitch?: boolean };
+
+function rollForMoveButton(btn: HTMLElement, index: number): MoveRoll | null {
+  const rotate = btn.querySelector("g")?.getAttribute("transform") ?? "";
+  const match = /rotate\((-?\d+)/.exec(rotate);
+  const angle = match ? Number(match[1]) : null;
+  if (angle === 0) return { yaw: true };
+  if (angle === 180) return { yaw: false };
+  if (angle === 90) return { pitch: false };
+  if (angle === -90) return { pitch: true };
+  return ([{ yaw: true }, { yaw: false }, { pitch: false }, { pitch: true }] as MoveRoll[])[index] ?? null;
+}
+
+function bindNavbarMoveButtons(viewer: Viewer, root: HTMLElement) {
+  const moveViewer = viewer as Viewer & {
+    dynamics?: { position?: { roll: (axes: MoveRoll) => void; stop: () => void } };
+    resetIdleTimer?: () => void;
+  };
+  const dynamics = moveViewer.dynamics?.position;
+  if (!dynamics) return () => undefined;
+
+  const cleanups: Array<() => void> = [];
+
+  root.querySelectorAll<HTMLElement>(".psv-move-button").forEach((btn, index) => {
+    const roll = rollForMoveButton(btn, index);
+    if (!roll) return;
+
+    btn.style.removeProperty("display");
+    btn.style.touchAction = "none";
+
+    let holding = false;
+    let pressedAt = 0;
+    let stopTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const start = (event: PointerEvent) => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (holding) return;
+      holding = true;
+      if (stopTimer) {
+        clearTimeout(stopTimer);
+        stopTimer = undefined;
+      }
+      pressedAt = Date.now();
+      try {
+        viewer.stopAll();
+      } catch {
+        /* viewer may already be idle */
+      }
+      dynamics.roll(roll);
+      try {
+        btn.setPointerCapture(event.pointerId);
+      } catch {
+        /* capture is best-effort on older WebViews */
+      }
+    };
+
+    const stop = () => {
+      if (!holding) return;
+      holding = false;
+      const finish = () => {
+        dynamics.stop();
+        moveViewer.resetIdleTimer?.();
+      };
+      const elapsed = Date.now() - pressedAt;
+      if (elapsed < MOVE_HOLD_MS) {
+        stopTimer = setTimeout(finish, MOVE_HOLD_MS - elapsed);
+      } else {
+        finish();
+      }
+    };
+
+    const preventCallout = (event: Event) => event.preventDefault();
+
+    btn.addEventListener("pointerdown", start, { passive: false });
+    btn.addEventListener("pointerup", stop);
+    btn.addEventListener("pointercancel", stop);
+    btn.addEventListener("lostpointercapture", stop);
+    btn.addEventListener("contextmenu", preventCallout);
+
+    cleanups.push(() => {
+      if (stopTimer) clearTimeout(stopTimer);
+      if (holding) dynamics.stop();
+      btn.removeEventListener("pointerdown", start);
+      btn.removeEventListener("pointerup", stop);
+      btn.removeEventListener("pointercancel", stop);
+      btn.removeEventListener("lostpointercapture", stop);
+      btn.removeEventListener("contextmenu", preventCallout);
+    });
+  });
+
+  return () => cleanups.forEach((fn) => fn());
+}
+
 function buildTourNodes(
   graph: VrTourNode[],
   manifest: Record<string, VrPanoramaUrls>,
@@ -121,6 +219,7 @@ export function VrTourViewer({
     const resolvedStart =
       startNodeId && nodes.some((n) => n.id === startNodeId) ? startNodeId : nodes[0].id;
     let cancelled = false;
+    let unbindMoveButtons = () => {};
 
     try {
       const viewer = new Viewer({
@@ -171,6 +270,7 @@ export function VrTourViewer({
       }
 
       viewerRef.current = viewer;
+      unbindMoveButtons = bindNavbarMoveButtons(viewer, containerRef.current);
       const tour = viewer.getPlugin(VirtualTourPlugin) as VirtualTourPlugin;
       const markers = viewer.getPlugin(MarkersPlugin) as MarkersPlugin;
       tourRef.current = tour;
@@ -229,6 +329,7 @@ export function VrTourViewer({
 
     return () => {
       cancelled = true;
+      unbindMoveButtons();
       destroyViewer();
     };
   }, [

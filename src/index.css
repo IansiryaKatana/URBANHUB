@@ -320,6 +320,16 @@ html::-webkit-scrollbar {
   line-height: 0;
 }
 
+/* PSV hides look-around arrows on touch and only listens for mousedown. Keep them
+   visible and make press-and-hold pan the same way as desktop. */
+.vr-tour-viewer .psv-move-button {
+  display: flex !important;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .vr-tour-viewer .psv-button-svg {
   display: block;
   width: 20px;
